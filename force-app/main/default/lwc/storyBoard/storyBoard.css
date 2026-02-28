@@ -353,6 +353,12 @@
     font-size: 0.7rem;
     color: #9ca3af;
 }
+.card-est-hours {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #0096c7;
+    white-space: nowrap;
+}
 
 /* ── Drag states ─────────────────────────────────────────────────────────── */
 .card-dragging {
@@ -611,3 +617,30 @@
     color: #6b7280;
     margin-right: auto;
 }
+
+/* ── Estimated Hours input row ───────────────────────────────────────────── */
+.est-hours-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.est-hours-row .new-story-input {
+    flex: 1;
+    min-width: 0;
+}
+.btn-save-hrs {
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: none;
+    background: #00b4d8;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.btn-save-hrs:hover     { background: #0096b4; }
+.btn-save-hrs:disabled  { background: #a5f3fc; cursor: not-allowed; }

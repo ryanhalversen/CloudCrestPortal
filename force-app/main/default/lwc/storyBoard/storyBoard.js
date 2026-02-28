@@ -9,9 +9,10 @@ import STORY_SUBMITTED_CHANNEL  from '@salesforce/messageChannel/StorySubmitted_
 import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected__c';
 import getStories        from '@salesforce/apex/StoryBoardController.getStories';
 import getProjects       from '@salesforce/apex/StoryBoardController.getProjects';
-import updateStoryStatus from '@salesforce/apex/StoryBoardController.updateStoryStatus';
-import updatePriority    from '@salesforce/apex/StoryBoardController.updatePriority';
-import createStory       from '@salesforce/apex/StoryBoardController.createStory';
+import updateStoryStatus    from '@salesforce/apex/StoryBoardController.updateStoryStatus';
+import updatePriority       from '@salesforce/apex/StoryBoardController.updatePriority';
+import updateEstimatedHours from '@salesforce/apex/StoryBoardController.updateEstimatedHours';
+import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -72,10 +73,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isLoading         = true;
     @track errorMessage      = '';
     @track projectOptions    = [];
-    @track modalCard         = null;
-    @track modalPriority     = null;
-    @track isSavingPriority  = false;
-    @track modalSaveError    = false;
+    @track modalCard           = null;
+    @track modalPriority       = null;
+    @track isSavingPriority    = false;
+    @track modalSaveError      = false;
+    @track estHoursInput       = '';
+    @track isSavingEstHours    = false;
+    @track estHoursSaveError   = false;
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -239,10 +243,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         if (!id) return;
         const card = this.columns.flatMap(c => c.cards).find(c => c.id === id);
         if (!card) return;
-        this.modalCard        = { ...card };
-        this.modalPriority    = card.priority;
-        this.modalSaveError   = false;
-        this.isSavingPriority = false;
+        this.modalCard          = { ...card };
+        this.modalPriority      = card.priority;
+        this.modalSaveError     = false;
+        this.isSavingPriority   = false;
+        this.estHoursInput      = card.estimatedHours != null ? String(card.estimatedHours) : '';
+        this.estHoursSaveError  = false;
+        this.isSavingEstHours   = false;
     }
 
     handleModalClose() { this.modalCard = null; }
@@ -287,6 +294,32 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     handleModalSave() {}
     handleCardHover() {}
     handleCardLeave() {}
+
+    // ── Estimated Hours ───────────────────────────────────────────────────
+    handleEstHoursChange(e) { this.estHoursInput = e.target.value; }
+
+    async handleEstHoursSave() {
+        const raw   = (this.estHoursInput || '').toString().trim();
+        const hours = raw === '' ? null : parseFloat(raw);
+        if (raw !== '' && (isNaN(hours) || hours < 0)) return;
+        this.isSavingEstHours  = true;
+        this.estHoursSaveError = false;
+        const id = this.modalCard.id;
+        try {
+            await updateEstimatedHours({ caseId: id, hours });
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== id ? c : { ...c, estimatedHours: hours })
+            }));
+            this.modalCard = { ...this.modalCard, estimatedHours: hours };
+            this._toast('Saved', 'Estimated hours updated', 'success');
+        } catch (err) {
+            this.estHoursSaveError = true;
+            console.error('Failed to save estimated hours', err);
+        } finally {
+            this.isSavingEstHours = false;
+        }
+    }
 
     // ── New Story Modal ───────────────────────────────────────────────────
     handleNewStoryClick() {
@@ -530,6 +563,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             openedDate:    c.CreatedDate
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
+            estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
             cardClass:  'story-card'

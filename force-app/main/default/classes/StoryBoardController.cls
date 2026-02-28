@@ -4,7 +4,8 @@ public without sharing class StoryBoardController {
     public static List<Case> getStories(Boolean mineOnly, Id projectId) {
         String q =
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, ' +
-            'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c ' +
+            'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
+            'Hours_Estimate_to_Complete__c ' +
             'FROM Case';
 
         List<String> filters = new List<String>();
@@ -105,6 +106,22 @@ public without sharing class StoryBoardController {
             Case c = new Case(
                 Id       = caseId,
                 Priority = priority
+            );
+            update c;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Update Estimated Hours ────────────────────────────────────────────
+    @AuraEnabled
+    public static void updateEstimatedHours(Id caseId, Decimal hours) {
+        try {
+            Case c = new Case(
+                Id                            = caseId,
+                Hours_Estimate_to_Complete__c = hours
             );
             update c;
         } catch (DmlException ex) {
