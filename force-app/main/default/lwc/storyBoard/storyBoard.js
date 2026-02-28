@@ -13,6 +13,8 @@ import updateStoryStatus    from '@salesforce/apex/StoryBoardController.updateSt
 import updatePriority       from '@salesforce/apex/StoryBoardController.updatePriority';
 import updateEstimatedHours from '@salesforce/apex/StoryBoardController.updateEstimatedHours';
 import getTimeEntries       from '@salesforce/apex/StoryBoardController.getTimeEntries';
+import getNextSteps         from '@salesforce/apex/StoryBoardController.getNextSteps';
+import addNextStep          from '@salesforce/apex/StoryBoardController.addNextStep';
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -83,6 +85,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track estHoursSaveError   = false;
     @track timeEntries         = [];
     @track isLoadingTime       = false;
+    @track nextSteps           = [];
+    @track nextStepInput       = '';
+    @track isSavingStep        = false;
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -263,6 +268,19 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return `${Number(h.toFixed(2))}h`;
     }
 
+    _mapNextStep(s) {
+        let date = '';
+        if (s.CreatedDate) {
+            date = new Date(s.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return {
+            id:   s.Id,
+            note: s.CommentBody || '',
+            date,
+            user: s.CreatedBy?.Name || ''
+        };
+    }
+
     _mapTimeEntry(t) {
         const hrs  = t.Minutes_Logged__c ? Number((t.Minutes_Logged__c / 60).toFixed(2)) : 0;
         let date   = '';
@@ -310,11 +328,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.estHoursSaveError  = false;
         this.isSavingEstHours   = false;
         this.timeEntries        = [];
+        this.nextSteps          = [];
+        this.nextStepInput      = '';
         this.isLoadingTime      = true;
-        getTimeEntries({ caseId: id })
-            .then(rows => { this.timeEntries = rows.map(t => this._mapTimeEntry(t)); })
-            .catch(() => {})
-            .finally(() => { this.isLoadingTime = false; });
+        Promise.all([
+            getTimeEntries({ caseId: id }),
+            getNextSteps({ caseId: id })
+        ]).then(([times, steps]) => {
+            this.timeEntries = times.map(t => this._mapTimeEntry(t));
+            this.nextSteps   = steps.map(s => this._mapNextStep(s));
+        }).catch(() => {}).finally(() => { this.isLoadingTime = false; });
     }
 
     handleModalClose() { this.modalCard = null; }
@@ -383,6 +406,28 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             console.error('Failed to save estimated hours', err);
         } finally {
             this.isSavingEstHours = false;
+        }
+    }
+
+    // ── Next Steps ────────────────────────────────────────────────────────
+    handleNextStepChange(e) { this.nextStepInput = e.target.value; }
+
+    async handleNextStepSave() {
+        const note = (this.nextStepInput || '').trim();
+        if (!note) return;
+        this.isSavingStep = true;
+        try {
+            const newId = await addNextStep({ caseId: this.modalCard.id, note });
+            const today = new Date();
+            const dateLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            this.nextSteps = [...this.nextSteps, { id: newId, note, date: dateLabel, user: '' }];
+            this.nextStepInput = '';
+            const ta = this.template.querySelector('.next-step-textarea');
+            if (ta) ta.value = '';
+        } catch (err) {
+            console.error('Failed to save next step', err);
+        } finally {
+            this.isSavingStep = false;
         }
     }
 

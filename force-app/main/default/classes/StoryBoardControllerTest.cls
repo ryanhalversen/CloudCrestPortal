@@ -83,4 +83,54 @@ public class StoryBoardControllerTest {
         }
         Test.stopTest();
     }
+
+    @isTest
+    static void testGetNextSteps_empty() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 3' LIMIT 1];
+
+        Test.startTest();
+        List<CaseComment> result = StoryBoardController.getNextSteps(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return no comments yet');
+    }
+
+    @isTest
+    static void testAddNextStep_and_getNextSteps() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+
+        Test.startTest();
+        Id commentId = StoryBoardController.addNextStep(c.Id, 'Investigated root cause');
+        List<CaseComment> result = StoryBoardController.getNextSteps(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, commentId, 'Comment Id should be returned');
+        System.assertEquals(1, result.size(), 'Should return the saved comment');
+        System.assertEquals('Investigated root cause', result[0].CommentBody, 'Comment body should match');
+    }
+
+    @isTest
+    static void testGetTimeEntries_empty() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        List<Time__c> result = StoryBoardController.getTimeEntries(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return no time entries');
+    }
+
+    @isTest
+    static void testUpdateEstimatedHours() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.updateEstimatedHours(c.Id, 4.5);
+        Test.stopTest();
+
+        Case updated = [SELECT Hours_Estimate_to_Complete__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals(4.5, updated.Hours_Estimate_to_Complete__c, 'Estimated hours should be updated');
+    }
 }

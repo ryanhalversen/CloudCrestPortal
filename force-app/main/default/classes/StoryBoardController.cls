@@ -116,6 +116,29 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Next Steps (CaseComment) ──────────────────────────────────────────
+    @AuraEnabled
+    public static List<CaseComment> getNextSteps(Id caseId) {
+        return [
+            SELECT Id, CommentBody, CreatedDate, CreatedBy.Name
+            FROM CaseComment
+            WHERE ParentId = :caseId
+            ORDER BY CreatedDate ASC
+            LIMIT 200
+        ];
+    }
+
+    @AuraEnabled
+    public static Id addNextStep(Id caseId, String note) {
+        CaseComment cc = new CaseComment(
+            ParentId    = caseId,
+            CommentBody = note,
+            IsPublished = false
+        );
+        insert cc;
+        return cc.Id;
+    }
+
     // ── Get Time Entries ──────────────────────────────────────────────────
     @AuraEnabled
     public static List<Time__c> getTimeEntries(Id caseId) {

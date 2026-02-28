@@ -563,6 +563,37 @@
     color: #9ca3af;
     white-space: nowrap;
 }
+
+/* ── Next Steps ───────────────────────────────────────────────────────────── */
+.panel-divider {
+    height: 1px;
+    background: #f0f2f5;
+    margin: 4px 0;
+}
+.next-step-entry {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #f0f2f5;
+    border-radius: 7px;
+    padding: 8px 10px;
+}
+.ns-arrow {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.next-steps-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6b7280;
+    background: #e5e7eb;
+    border-radius: 20px;
+    padding: 1px 8px;
+}
 .modal-subject {
     font-size: 1rem;
     font-weight: 700;
