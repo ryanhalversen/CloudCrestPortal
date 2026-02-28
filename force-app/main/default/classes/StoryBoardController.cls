@@ -5,7 +5,7 @@ public without sharing class StoryBoardController {
         String q =
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
-            'Hours_Estimate_to_Complete__c ' +
+            'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name ' +
             'FROM Case';
 
         List<String> filters = new List<String>();

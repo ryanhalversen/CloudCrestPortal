@@ -95,8 +95,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track selectedOwnerFilter = '';
     viewMode                   = 'mine';
     _currentUserId             = userId;
-    _projectOwnerMap           = {};   // projectId → ownerId
-    _ownerNames                = {};   // ownerId  → name
+    _caseOwnerNames            = {};   // ownerId → name (built from story data)
 
     _wiredStoriesResult;
     _subscription = null;
@@ -109,19 +108,6 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 { label: 'All Projects', value: '' },
                 ...data.map(p => ({ label: p.Name, value: p.Id }))
             ];
-            const ownerMap = {};
-            const nameMap  = {};
-            data.forEach(p => {
-                // Project_Lead_Sprint__c is the "Project Owner" field; fall back to OwnerId
-                const effectiveOwnerId   = p.Project_Lead_Sprint__c || p.OwnerId;
-                const effectiveOwnerName = (p.Project_Lead_Sprint__c && p.Project_Lead_Sprint__r?.Name)
-                                           || p.Owner?.Name;
-                ownerMap[p.Id] = effectiveOwnerId;
-                if (effectiveOwnerName) nameMap[effectiveOwnerId] = effectiveOwnerName;
-            });
-            this._projectOwnerMap = ownerMap;
-            this._ownerNames      = nameMap;
-
             const myProject = data.find(p => p.OwnerId === this._currentUserId);
             if (myProject) {
                 this.selectedProjectId = myProject.Id;
@@ -154,6 +140,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.isLoading = false;
         if (result.data) {
             this.columns = this._buildColumns(result.data);
+            const nameMap = {};
+            result.data.forEach(c => {
+                if (c.OwnerId && c.Owner?.Name) nameMap[c.OwnerId] = c.Owner.Name;
+            });
+            this._caseOwnerNames = nameMap;
             this.errorMessage = '';
             requestAnimationFrame(() => this._updateOverflowMarkers());
         } else if (result.error) {
@@ -168,7 +159,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get ownerOptions() {
         const opts = [{ label: 'All Owners', value: '' }];
-        Object.entries(this._ownerNames).forEach(([id, name]) => {
+        Object.entries(this._caseOwnerNames).forEach(([id, name]) => {
             opts.push({ label: name, value: id });
         });
         opts.sort((a, b) => a.value === '' ? -1 : a.label.localeCompare(b.label));
@@ -177,13 +168,8 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get displayColumns() {
         if (!this.selectedOwnerFilter) return this.columns;
-        const ownedProjects = new Set(
-            Object.entries(this._projectOwnerMap)
-                .filter(([, ownerId]) => ownerId === this.selectedOwnerFilter)
-                .map(([projectId]) => projectId)
-        );
         return this.columns.map(col => {
-            const cards = col.cards.filter(c => ownedProjects.has(c.projectId));
+            const cards = col.cards.filter(c => c.ownerId === this.selectedOwnerFilter);
             return { ...col, cards, count: cards.length, hasCards: cards.length > 0 };
         });
     }
@@ -605,6 +591,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
+            ownerId:    c.OwnerId    || null,
             projectId:  c.Projects__c || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
