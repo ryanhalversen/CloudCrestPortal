@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add .forceignore .gitignore .husky/ .prettierignore .prettierrc .vscode/ README.md config/ force-app/ jest.config.js manifest/ package.json scripts/ sfdx-project.json && git commit -m \"$\\(cat <<'EOF'\nInitial commit of CloudCrestPortal Salesforce DX project\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
