@@ -33,9 +33,8 @@ const PRIORITY_BTN_CLASSES = {
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 
 const STATUSES = [
-    'New', 'Scheduled', 'Work In Progress (WIP)', 'Waiting for User',
-    'On Hold', 'Backlog', 'In Review', 'In UAT',
-    'Blocked', 'Cancelled', 'Completed'
+    'On Hold', 'Backlog', 'New', 'Scheduled', 'Work In Progress (WIP)', 'Waiting for User',
+    'In Review', 'In UAT', 'Blocked', 'Completed', 'Cancelled'
 ];
 
 const STATUS_COLORS = {
