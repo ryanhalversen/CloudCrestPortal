@@ -83,9 +83,22 @@ public with sharing class EodTimeRetroController {
         ];
 
         Map<Id, List<CaseHistory>> historyByStory = new Map<Id, List<CaseHistory>>();
+        // historyList is DESC by CreatedDate — first occurrence per CaseId = most recent event
+        Map<Id, Datetime> wipEnterTime = new Map<Id, Datetime>();
+        Map<Id, Datetime> wipExitTime  = new Map<Id, Datetime>();
         for (CaseHistory h : historyList) {
             if (!historyByStory.containsKey(h.CaseId)) historyByStory.put(h.CaseId, new List<CaseHistory>());
             if (historyByStory.get(h.CaseId).size() < 4) historyByStory.get(h.CaseId).add(h);
+            if (h.Field == 'Status') {
+                String nv = h.NewValue != null ? String.valueOf(h.NewValue) : '';
+                String ov = h.OldValue != null ? String.valueOf(h.OldValue) : '';
+                if ((nv == 'Work In Progress (WIP)' || nv == 'Working') && !wipEnterTime.containsKey(h.CaseId)) {
+                    wipEnterTime.put(h.CaseId, h.CreatedDate);
+                }
+                if ((ov == 'Work In Progress (WIP)' || ov == 'Working') && !wipExitTime.containsKey(h.CaseId)) {
+                    wipExitTime.put(h.CaseId, h.CreatedDate);
+                }
+            }
         }
 
         List<StoryWrapper> result = new List<StoryWrapper>();
@@ -117,6 +130,21 @@ public with sharing class EodTimeRetroController {
                 }
             }
             w.history = entries;
+            // WIP suggested hours — most recent enter/exit WIP today
+            Datetime wipStart = wipEnterTime.get(c.Id);
+            Datetime wipEnd   = wipExitTime.get(c.Id);
+            if (wipStart != null) {
+                Datetime effectiveEnd = null;
+                if (wipEnd != null && wipEnd > wipStart) {
+                    effectiveEnd = wipEnd;
+                } else if (c.Status == 'Work In Progress (WIP)' || c.Status == 'Working') {
+                    effectiveEnd = Datetime.now();
+                }
+                if (effectiveEnd != null) {
+                    Long diffMs = effectiveEnd.getTime() - wipStart.getTime();
+                    w.suggestedHours = (Decimal.valueOf(diffMs) / 3600000).setScale(1, RoundingMode.HALF_UP);
+                }
+            }
             result.add(w);
         }
         return result;
@@ -244,6 +272,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Decimal            totalMinutes;
         @AuraEnabled public Decimal            totalHours;
         @AuraEnabled public Boolean            hasTime;
+        @AuraEnabled public Decimal            suggestedHours;
         @AuraEnabled public List<HistoryEntry> history;
     }
 

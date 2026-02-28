@@ -307,12 +307,16 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             id: h.id, field: h.field,
             oldValue: h.oldValue || '', newValue: h.newValue || '', hasOld: !!h.oldValue
         }));
+        const suggested = s.suggestedHours != null && s.suggestedHours > 0
+            ? this._round(s.suggestedHours) : null;
         return {
             ...s,
-            totalHours   : this._round(s.totalHours),
-            priorityClass: PRIORITY_CLASSES[s.priority] || 'tag tag-low',
-            rowClass     : s.hasTime ? 'story-row logged' : 'story-row needs-log',
-            newTimeId    : null, newHours: null,
+            totalHours        : this._round(s.totalHours),
+            priorityClass     : PRIORITY_CLASSES[s.priority] || 'tag tag-low',
+            rowClass          : s.hasTime ? 'story-row logged' : 'story-row needs-log',
+            newTimeId         : null, newHours: null,
+            suggestedHours    : suggested,
+            hasSuggestedHours : suggested != null,
             history, hasHistory: history.length > 0
         };
     }

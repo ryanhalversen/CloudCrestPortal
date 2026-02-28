@@ -222,11 +222,15 @@
                                     <template if:true={isCurrentUser}>
                                         <template if:false={s.hasTime}>
                                             <template if:false={s.newTimeId}>
+                                                <template if:true={s.hasSuggestedHours}>
+                                                    <div class="wip-hint">⏱ {s.suggestedHours}h suggested from WIP tracking today</div>
+                                                </template>
                                                 <div class="slds-grid slds-gutters slds-grid_vertical-align-center">
                                                     <div class="slds-col slds-size_2-of-12">
                                                         <lightning-input type="text" label="Hours"
                                                             data-id={s.storyId} class="hrs-input"
-                                                            variant="label-hidden" placeholder="0.0">
+                                                            variant="label-hidden" placeholder="0.0"
+                                                            value={s.suggestedHours}>
                                                         </lightning-input>
                                                     </div>
                                                     <div class="slds-col slds-size_6-of-12">
