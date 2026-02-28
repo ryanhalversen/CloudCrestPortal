@@ -319,6 +319,47 @@
 .delta-on       { background: #eff6ff; color: #1d4ed8; }
 .delta-na       { color: #bbb; font-size: 12px; }
 
+/* ── Type Filter Row ──────────────────────────────────────────────────────── */
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-right: 4px;
+}
+
+.filter-btn {
+    border: 1px solid #dddbda;
+    background: #f3f2f2;
+    font-size: 11px;
+    font-weight: 500;
+    color: #444;
+    padding: 3px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.filter-btn:hover { background: #e8f0fe; border-color: #0176d3; color: #0176d3; }
+
+.filter-active {
+    background: #0176d3;
+    border-color: #0176d3;
+    color: #fff;
+    font-weight: 700;
+}
+
+.filter-active:hover { background: #014786; border-color: #014786; color: #fff; }
+
 /* ── All Projects Table ───────────────────────────────────────────────────── */
 .project-table {
     display: flex;

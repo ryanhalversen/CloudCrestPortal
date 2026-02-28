@@ -10,6 +10,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     @track viewMode      = 'mine'; // 'mine' | 'all'
     @track sortField     = null;
     @track sortDir       = 'asc';
+    @track filterType    = 'all';  // 'all' | 'retainer' | 'results'
     @track hoverProject  = null;
     @track hoverStyle    = '';
 
@@ -20,7 +21,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get myBtnClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
     get allBtnClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
 
-    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.hoverProject = null; } }
+    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.hoverProject = null; this.filterType = 'all'; } }
     showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; this.hoverProject = null; } }
 
     // ── Wire ───────────────────────────────────────────────────────────────────
@@ -39,10 +40,20 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get isAllMode()   { return this.viewMode === 'all'; }
 
     get projects() {
-        if (!this.sortField) return this._projects;
+        let list = this._projects;
+
+        // Filter
+        if (this.filterType === 'results') {
+            list = list.filter(p => (p.paceBadgeLabel || '').toLowerCase().includes('results'));
+        } else if (this.filterType === 'retainer') {
+            list = list.filter(p => !(p.paceBadgeLabel || '').toLowerCase().includes('results'));
+        }
+
+        // Sort
+        if (!this.sortField) return list;
         const field = this.sortField;
         const dir   = this.sortDir === 'asc' ? 1 : -1;
-        return [...this._projects].sort((a, b) => {
+        return [...list].sort((a, b) => {
             let va = a[field], vb = b[field];
             if (va === '--') va = null;
             if (vb === '--') vb = null;
@@ -52,6 +63,16 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             if (typeof va === 'string') return va.localeCompare(vb) * dir;
             return (va - vb) * dir;
         });
+    }
+
+    // ── Filter button classes ──────────────────────────────────────────────────
+    get filterAllClass()      { return this.filterType === 'all'      ? 'filter-btn filter-active' : 'filter-btn'; }
+    get filterRetainerClass() { return this.filterType === 'retainer' ? 'filter-btn filter-active' : 'filter-btn'; }
+    get filterResultsClass()  { return this.filterType === 'results'  ? 'filter-btn filter-active' : 'filter-btn'; }
+
+    handleFilterChange(evt) {
+        this.filterType    = evt.currentTarget.dataset.filter;
+        this.hoverProject  = null;
     }
 
     // ── Sort header label getters ───────────────────────────────────────────────

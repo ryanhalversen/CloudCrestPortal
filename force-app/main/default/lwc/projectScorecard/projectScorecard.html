@@ -89,6 +89,12 @@
 
                 <!-- ── All Projects: Compact Table ── -->
                 <template if:true={isAllMode}>
+                    <div class="filter-row">
+                        <span class="filter-label">Type:</span>
+                        <button class={filterAllClass}      data-filter="all"      onclick={handleFilterChange}>All</button>
+                        <button class={filterRetainerClass} data-filter="retainer" onclick={handleFilterChange}>Retainer</button>
+                        <button class={filterResultsClass}  data-filter="results"  onclick={handleFilterChange}>Results Based</button>
+                    </div>
                     <div class="project-table">
                         <!-- Sortable header -->
                         <div class="table-header-row">
