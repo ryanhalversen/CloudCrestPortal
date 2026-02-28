@@ -107,6 +107,10 @@ export default class EpicManagementPanel extends LightningElement {
         this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
     }
 
+    handleRecordClick(evt) {
+        evt.stopPropagation();
+    }
+
     handleEditClick(evt) {
         evt.stopPropagation();
         const id = evt.currentTarget.dataset.id;
@@ -192,7 +196,8 @@ export default class EpicManagementPanel extends LightningElement {
             dateRange    : this._formatDateRange(start, end),
             progressLabel: total > 0 ? `${done}/${total} done` : 'no stories',
             progressStyle: `width:${pct}%`,
-            estLabel     : e.estimatedHours ? `${e.estimatedHours}h est.` : ''
+            estLabel     : e.estimatedHours ? `${e.estimatedHours}h est.` : '',
+            recordUrl    : `/lightning/r/Sprint_Items__c/${e.epicId}/view`
         };
     }
 

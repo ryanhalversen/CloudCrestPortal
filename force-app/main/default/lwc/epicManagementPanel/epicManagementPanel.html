@@ -17,6 +17,12 @@
                  onclick={handleEpicClick}
                  title={e.name}>
 
+                <a class="chip-record"
+                   href={e.recordUrl}
+                   target="_blank"
+                   onclick={handleRecordClick}
+                   title="Open record">↗</a>
+
                 <button class="chip-edit"
                         data-id={e.epicId}
                         onclick={handleEditClick}
