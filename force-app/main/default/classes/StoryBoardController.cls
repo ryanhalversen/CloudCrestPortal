@@ -116,6 +116,19 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Get Time Entries ──────────────────────────────────────────────────
+    @AuraEnabled
+    public static List<Time__c> getTimeEntries(Id caseId) {
+        return [
+            SELECT Id, Minutes_Logged__c, Additional_Comments__c,
+                   Logged_Date__c, CreatedBy.Name
+            FROM Time__c
+            WHERE Case__c = :caseId
+            ORDER BY Logged_Date__c DESC, CreatedDate DESC
+            LIMIT 100
+        ];
+    }
+
     // ── Update Estimated Hours ────────────────────────────────────────────
     @AuraEnabled
     public static void updateEstimatedHours(Id caseId, Decimal hours) {

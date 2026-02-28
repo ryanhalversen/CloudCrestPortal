@@ -12,6 +12,7 @@ import getProjects       from '@salesforce/apex/StoryBoardController.getProjects
 import updateStoryStatus    from '@salesforce/apex/StoryBoardController.updateStoryStatus';
 import updatePriority       from '@salesforce/apex/StoryBoardController.updatePriority';
 import updateEstimatedHours from '@salesforce/apex/StoryBoardController.updateEstimatedHours';
+import getTimeEntries       from '@salesforce/apex/StoryBoardController.getTimeEntries';
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track estHoursInput       = '';
     @track isSavingEstHours    = false;
     @track estHoursSaveError   = false;
+    @track timeEntries         = [];
+    @track isLoadingTime       = false;
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -209,6 +212,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }));
     }
 
+    get totalTimeLogged() {
+        const total = this.timeEntries.reduce((s, t) => s + t.hours, 0);
+        return this._fmtHours(Number(total.toFixed(2))) || '0h';
+    }
+
     get newStorySubjectClass() {
         return `new-story-input${this.newStorySubjectError ? ' input-error' : ''}`;
     }
@@ -255,6 +263,23 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return `${Number(h.toFixed(2))}h`;
     }
 
+    _mapTimeEntry(t) {
+        const hrs  = t.Minutes_Logged__c ? Number((t.Minutes_Logged__c / 60).toFixed(2)) : 0;
+        let date   = '';
+        if (t.Logged_Date__c) {
+            const [y, m, d] = t.Logged_Date__c.split('-').map(Number);
+            date = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return {
+            id:          t.Id,
+            hours:       hrs,
+            hoursLabel:  this._fmtHours(hrs) || '0h',
+            description: t.Additional_Comments__c || '',
+            date,
+            user:        t.CreatedBy?.Name || ''
+        };
+    }
+
     // ── Handlers ──────────────────────────────────────────────────────────
     handleToggle(e) {
         const val = e.currentTarget.dataset.value;
@@ -284,6 +309,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.estHoursInput      = card.estimatedHours != null ? String(card.estimatedHours) : '';
         this.estHoursSaveError  = false;
         this.isSavingEstHours   = false;
+        this.timeEntries        = [];
+        this.isLoadingTime      = true;
+        getTimeEntries({ caseId: id })
+            .then(rows => { this.timeEntries = rows.map(t => this._mapTimeEntry(t)); })
+            .catch(() => {})
+            .finally(() => { this.isLoadingTime = false; });
     }
 
     handleModalClose() { this.modalCard = null; }
