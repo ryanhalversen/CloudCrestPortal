@@ -12,6 +12,19 @@
     scrollbar-width: thin;
 }
 
+/* ── Strip label ────────────────────────────────────────────────────────── */
+.epic-strip-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    white-space: nowrap;
+    align-self: center;
+    flex-shrink: 0;
+    padding-right: 4px;
+}
+
 /* ── Base chip ──────────────────────────────────────────────────────────── */
 .epic-chip {
     display: flex;
