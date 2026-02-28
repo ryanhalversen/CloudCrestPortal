@@ -369,6 +369,32 @@
 
 .sprint-col:last-child { border-right: none; }
 
+.sprint-col--extension {
+    background: #f8fafc;
+    opacity: 0.85;
+}
+
+.sprint-col--extension .sprint-header {
+    background: #f8fafc;
+}
+
+.sprint-week-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.extension-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #64748b;
+    background: #e2e8f0;
+    border-radius: 10px;
+    padding: 2px 7px;
+}
+
 .sprint-header {
     padding: 10px 12px 8px;
     border-bottom: 1px solid #e4e4e4;

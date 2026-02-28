@@ -237,6 +237,7 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         const capacity = this.hoursPerWeek;
         const weeks    = [];
         let cur = new Date(start), idx = 1;
+        let lastCalendarSunday = null;
 
         while (cur <= end && idx <= 52) {
             // Find the end of this calendar week (Sunday).
@@ -245,6 +246,7 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             const daysToSunday = dow === 0 ? 0 : 7 - dow;
             const weekEnd = new Date(cur);
             weekEnd.setDate(weekEnd.getDate() + daysToSunday);
+            lastCalendarSunday = new Date(weekEnd); // track uncapped Sunday for extension weeks
 
             // Cap at project end date so the last sprint absorbs leftover days
             const displayEnd = weekEnd > end ? new Date(end) : new Date(weekEnd);
@@ -270,6 +272,8 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
                 usedHours:         used,
                 hasCards:          cards.length > 0,
                 cards,
+                isExtension:       false,
+                sprintColClass:    'sprint-col',
                 headerStyle:       `border-top: 3px solid ${color};`,
                 barStyle:          `width:${pct}%; background:${color};`,
                 capacityTextStyle: over ? 'color:#ef4444;font-weight:700;' : '',
@@ -283,6 +287,54 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             cur.setDate(cur.getDate() + 1);
             idx++;
         }
+
+        // Two pipeline weeks beyond the project end date.
+        // Week +1 runs Mon–Sun; Week +2 (the last) ends on Friday for contract renewal alignment.
+        if (lastCalendarSunday && idx <= 52) {
+            let extCur = new Date(lastCalendarSunday);
+            extCur.setDate(extCur.getDate() + 1); // Monday after last project week
+
+            for (let ext = 0; ext < 2 && idx <= 52; ext++) {
+                const isLast = ext === 1;
+                const weekEnd = new Date(extCur);
+                weekEnd.setDate(weekEnd.getDate() + (isLast ? 4 : 6)); // Mon–Fri or Mon–Sun
+
+                const label = `Week ${idx}`;
+                const cards = this.getStoriesForZone(label)
+                    .slice()
+                    .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
+
+                const used  = cards.reduce((sum, s) => sum + (s.estimatedHours || 0), 0);
+                const pct   = capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
+                const over  = capacity > 0 && used > capacity;
+                const barColor = over ? '#ef4444' : pct > 80 ? '#f59e0b' : '#94a3b8';
+
+                weeks.push({
+                    weekLabel:         label,
+                    weekNumber:        idx,
+                    weekStartDate:     new Date(extCur).toISOString().split('T')[0],
+                    weekEndDate:       weekEnd.toISOString().split('T')[0],
+                    dateRange:         this.fmtDate(extCur) + ' – ' + this.fmtDate(weekEnd),
+                    capacityHours:     capacity,
+                    usedHours:         used,
+                    hasCards:          cards.length > 0,
+                    cards,
+                    isExtension:       true,
+                    sprintColClass:    'sprint-col sprint-col--extension',
+                    headerStyle:       `border-top: 3px solid #94a3b8;`,
+                    barStyle:          `width:${pct}%; background:${barColor};`,
+                    capacityTextStyle: over ? 'color:#ef4444;font-weight:700;' : '',
+                    dropClass:         this.activeDropZone === label
+                                           ? 'sprint-drop-zone drag-over'
+                                           : 'sprint-drop-zone'
+                });
+
+                extCur = new Date(weekEnd);
+                extCur.setDate(extCur.getDate() + 1);
+                idx++;
+            }
+        }
+
         return weeks;
     }
 
@@ -502,13 +554,31 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         const end    = this._parseDate(this.project.Project_End_Date__c);
         const labels = [];
         let cur = new Date(start), idx = 1;
+        let lastCalendarSunday = null;
         while (cur <= end && idx <= 52) {
             labels.push(`Week ${idx}`);
-            // Advance to the Monday after this calendar week's Sunday — must match get sprints()
             const dow = cur.getDay();
             const daysToSunday = dow === 0 ? 0 : 7 - dow;
-            cur.setDate(cur.getDate() + daysToSunday + 1);
+            const weekEnd = new Date(cur);
+            weekEnd.setDate(weekEnd.getDate() + daysToSunday);
+            lastCalendarSunday = new Date(weekEnd);
+            cur = new Date(weekEnd);
+            cur.setDate(cur.getDate() + 1);
             idx++;
+        }
+        // Extension weeks — must match get sprints()
+        if (lastCalendarSunday && idx <= 52) {
+            let extCur = new Date(lastCalendarSunday);
+            extCur.setDate(extCur.getDate() + 1);
+            for (let ext = 0; ext < 2 && idx <= 52; ext++) {
+                labels.push(`Week ${idx}`);
+                const isLast = ext === 1;
+                const weekEnd = new Date(extCur);
+                weekEnd.setDate(weekEnd.getDate() + (isLast ? 4 : 6));
+                extCur = new Date(weekEnd);
+                extCur.setDate(extCur.getDate() + 1);
+                idx++;
+            }
         }
         return labels;
     }

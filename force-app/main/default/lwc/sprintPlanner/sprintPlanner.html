@@ -152,9 +152,14 @@
                     <div class="sprints-area">
                         <div class="sprints-scroll">
                             <template for:each={sprints} for:item="sprint">
-                                <div key={sprint.weekLabel} class="sprint-col">
+                                <div key={sprint.weekLabel} class={sprint.sprintColClass}>
                                     <div class="sprint-header" style={sprint.headerStyle}>
-                                        <div class="sprint-week">{sprint.weekLabel}</div>
+                                        <div class="sprint-week-row">
+                                            <span class="sprint-week">{sprint.weekLabel}</span>
+                                            <template if:true={sprint.isExtension}>
+                                                <span class="extension-badge">Pipeline</span>
+                                            </template>
+                                        </div>
                                         <div class="sprint-dates">{sprint.dateRange}</div>
                                         <div class="sprint-capacity">
                                             <div class="capacity-bar-bg">
