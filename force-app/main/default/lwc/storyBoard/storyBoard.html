@@ -99,7 +99,10 @@
                             onpointerup={handlePointerUp}>
                             <div class="col-header" style={col.headerStyle}>
                                 <span class="col-title">{col.status}</span>
-                                <span class="col-badge">{col.count}</span>
+                                <div class="col-header-right">
+                                    <span class="col-badge">{col.count}</span>
+                                    <span class="col-est-hours">{col.estHoursLabel}</span>
+                                </div>
                             </div>
                             <div class="col-cards" data-status={col.status}>
                                 <template if:true={col.hasCards}>

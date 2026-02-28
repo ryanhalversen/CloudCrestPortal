@@ -167,10 +167,14 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get displayColumns() {
-        if (!this.selectedOwnerFilter) return this.columns;
+        const addHours = col => {
+            const estHrs = col.cards.reduce((s, c) => s + (c.estimatedHours || 0), 0);
+            return { ...col, estHoursLabel: this._fmtHours(estHrs) || '0h' };
+        };
+        if (!this.selectedOwnerFilter) return this.columns.map(addHours);
         return this.columns.map(col => {
             const cards = col.cards.filter(c => c.ownerId === this.selectedOwnerFilter);
-            return { ...col, cards, count: cards.length, hasCards: cards.length > 0 };
+            return addHours({ ...col, cards, count: cards.length, hasCards: cards.length > 0 });
         });
     }
 
@@ -224,10 +228,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                               : isFirst           ? '999px 0 0 999px'
                               : isLast            ? '0 999px 999px 0'
                               : '0';
-                const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
-                return {
+                        return {
                     status:  c.status,
-                    tooltip: `${c.status}: ${c.count} stories · ${this._fmtHours(estHrs) || '0h'}`,
+                    tooltip: `${c.status}: ${c.count}`,
                     style:   `width:${pct}%;background:${color};border-radius:${radius};`
                 };
             });
@@ -237,10 +240,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return this.displayColumns.map(c => {
             const color   = STATUS_COLORS[c.status] || '#00b4d8';
             const dim     = c.count === 0;
-            const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
-            return {
+                return {
                 status:     c.status,
-                statsLabel: `${c.count} · ${this._fmtHours(estHrs) || '0h'}`,
+                statsLabel: `${c.count}`,
                 dotStyle:   dim ? 'background:#d1d5db;'  : `background:${color};`,
                 statsStyle: dim ? 'color:#9ca3af;'        : `color:${color};`,
                 dimStyle:   dim ? 'opacity:0.5;'          : ''
