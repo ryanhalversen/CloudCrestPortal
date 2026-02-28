@@ -116,15 +116,13 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
                 const stories  = (data.stories || []).map(s => this.mapStory(s));
                 this.ownerProjects = projects.map(p => {
                     const projectStories = stories.filter(s => s.projectId === p.Id);
-                    const sprints        = this._computeSprintsForProject(p, projectStories);
                     const unassigned     = projectStories.filter(s => !s.sprintWeek);
                     return {
                         id:              p.Id,
                         name:            p.Name,
                         dateRange:       this._fmtProjectRange(p.Project_Start_Date__c, p.Project_End_Date__c),
                         pace:            p.Weekly_Pace_Estimate__c || 0,
-                        unassignedCount: unassigned.length,
-                        sprints
+                        unassignedCount: unassigned.length
                     };
                 });
                 this.errorMessage = '';

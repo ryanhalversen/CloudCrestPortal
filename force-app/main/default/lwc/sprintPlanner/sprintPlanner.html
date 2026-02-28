@@ -63,80 +63,27 @@
 
             <!-- ── OWNER MODE ── -->
             <template if:true={isOwnerMode}>
-                <div class="owner-body">
-                    <template if:true={hasOwnerProjects}>
+                <template if:true={hasOwnerProjects}>
+                    <div class="owner-projects-grid">
                         <template for:each={ownerProjects} for:item="proj">
-                            <div key={proj.id} class="owner-project-row">
-
-                                <!-- Left: summary card -->
-                                <div class="owner-project-card"
-                                    data-project-id={proj.id}
-                                    onclick={handleOwnerProjectCardClick}>
-                                    <div class="owner-card-name">{proj.name}</div>
-                                    <div class="owner-card-dates">{proj.dateRange}</div>
-                                    <div class="owner-card-meta">
-                                        <span class="owner-card-pace">{proj.pace} hrs/wk</span>
-                                    </div>
-                                    <div class="owner-card-unassigned">{proj.unassignedCount} unassigned</div>
-                                    <div class="owner-card-enter">Plan &#x2192;</div>
+                            <div key={proj.id}
+                                class="owner-project-card"
+                                data-project-id={proj.id}
+                                onclick={handleOwnerProjectCardClick}>
+                                <div class="owner-card-name">{proj.name}</div>
+                                <div class="owner-card-dates">{proj.dateRange}</div>
+                                <div class="owner-card-stats">
+                                    <span class="owner-card-pace">{proj.pace} hrs/wk</span>
+                                    <span class="owner-card-unassigned">{proj.unassignedCount} unassigned</span>
                                 </div>
-
-                                <!-- Right: read-only sprint week columns -->
-                                <div class="owner-sprints-scroll">
-                                    <template for:each={proj.sprints} for:item="sprint">
-                                        <div key={sprint.weekLabel} class="owner-sprint-col">
-                                            <div class="sprint-header" style={sprint.headerStyle}>
-                                                <div class="sprint-week-row">
-                                                    <span class="sprint-week">{sprint.weekLabel}</span>
-                                                    <template if:true={sprint.isExtension}>
-                                                        <span class="extension-badge">Pipeline</span>
-                                                    </template>
-                                                </div>
-                                                <div class="sprint-dates">{sprint.dateRange}</div>
-                                                <div class="sprint-capacity">
-                                                    <div class="capacity-bar-bg">
-                                                        <div class="capacity-bar-fill" style={sprint.barStyle}></div>
-                                                    </div>
-                                                    <span class="capacity-text" style={sprint.capacityTextStyle}>
-                                                        {sprint.usedHours}/{sprint.capacityHours}h
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="owner-sprint-cards">
-                                                <template if:true={sprint.hasCards}>
-                                                    <template for:each={sprint.cards} for:item="s">
-                                                        <div key={s.id}
-                                                            class={s.chipClass}
-                                                            data-id={s.id}
-                                                            onclick={handleCardClick}>
-                                                            <div class="chip-subject">{s.subject}</div>
-                                                            <div class="chip-meta">
-                                                                <template if:true={s.priority}>
-                                                                    <span class={s.priorityClass}>{s.priority}</span>
-                                                                </template>
-                                                                <span class="chip-hrs">{s.estimatedHours}h</span>
-                                                            </div>
-                                                            <template if:true={s.department}>
-                                                                <div class="chip-dept">{s.department}</div>
-                                                            </template>
-                                                        </div>
-                                                    </template>
-                                                </template>
-                                                <template if:false={sprint.hasCards}>
-                                                    <div class="drop-hint">No stories</div>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-
+                                <div class="owner-card-cta">View Sprints &#x2192;</div>
                             </div>
                         </template>
-                    </template>
-                    <template if:false={hasOwnerProjects}>
-                        <div class="no-project">No in-progress projects found for this owner.</div>
-                    </template>
-                </div>
+                    </div>
+                </template>
+                <template if:false={hasOwnerProjects}>
+                    <div class="no-project">No in-progress projects found for this owner.</div>
+                </template>
             </template>
 
             <!-- ── SINGLE-PROJECT MODE ── -->
