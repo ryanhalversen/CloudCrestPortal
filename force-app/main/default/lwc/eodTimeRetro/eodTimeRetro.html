@@ -172,6 +172,7 @@
                                         <div class="history-row">
                                             <template for:each={s.history} for:item="h">
                                                 <div key={h.id} class="history-entry">
+                                                    <span class="history-time">{h.createdDate}</span>
                                                     <span class="history-field">{h.field}</span>
                                                     <template if:true={h.hasOld}>
                                                         <span class="history-old">{h.oldValue}</span>

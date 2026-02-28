@@ -317,7 +317,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     _decorate(s) {
         const history = (s.history || []).map(h => ({
             id: h.id, field: h.field,
-            oldValue: h.oldValue || '', newValue: h.newValue || '', hasOld: !!h.oldValue
+            oldValue: h.oldValue || '', newValue: h.newValue || '', hasOld: !!h.oldValue,
+            createdDate: h.createdDate || ''
         }));
         const suggested = s.suggestedHours != null && s.suggestedHours > 0
             ? this._round(s.suggestedHours) : null;

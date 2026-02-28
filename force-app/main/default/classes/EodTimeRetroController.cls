@@ -120,12 +120,16 @@ public with sharing class EodTimeRetroController {
             w.hasTime       = !w.timeEntries.isEmpty();
             List<HistoryEntry> entries = new List<HistoryEntry>();
             if (historyByStory.containsKey(c.Id)) {
-                for (CaseHistory h : historyByStory.get(c.Id)) {
+                List<CaseHistory> caseHist = historyByStory.get(c.Id);
+                // Reverse DESC list to display oldest → newest
+                for (Integer i = caseHist.size() - 1; i >= 0; i--) {
+                    CaseHistory h = caseHist[i];
                     HistoryEntry he = new HistoryEntry();
-                    he.id       = h.Id;
-                    he.field    = h.Field;
-                    he.oldValue = h.OldValue != null ? String.valueOf(h.OldValue) : null;
-                    he.newValue = h.NewValue != null ? String.valueOf(h.NewValue) : null;
+                    he.id          = h.Id;
+                    he.field       = h.Field;
+                    he.oldValue    = h.OldValue != null ? String.valueOf(h.OldValue) : null;
+                    he.newValue    = h.NewValue != null ? String.valueOf(h.NewValue) : null;
+                    he.createdDate = h.CreatedDate.format('h:mm a');
                     entries.add(he);
                 }
             }
@@ -281,6 +285,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public String field;
         @AuraEnabled public String oldValue;
         @AuraEnabled public String newValue;
+        @AuraEnabled public String createdDate;
     }
 
     public class AccountGroup {
