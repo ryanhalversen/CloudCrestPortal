@@ -3,10 +3,12 @@ import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { subscribe, MessageContext } from 'lightning/messageService';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import userId from '@salesforce/user/Id';
 import STORY_SUBMITTED_CHANNEL  from '@salesforce/messageChannel/StorySubmitted__c';
 import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected__c';
 import getProjects         from '@salesforce/apex/SprintPlannerController.getProjects';
 import getPlannerData      from '@salesforce/apex/SprintPlannerController.getPlannerData';
+import getProjectsByOwner  from '@salesforce/apex/SprintPlannerController.getProjectsByOwner';
 import updateHoursEstimate from '@salesforce/apex/SprintPlannerController.updateHoursEstimate';
 import assignToSprint      from '@salesforce/apex/StoryBoardController.assignToSprint';
 import removeFromSprint    from '@salesforce/apex/StoryBoardController.removeFromSprint';
@@ -18,6 +20,10 @@ const PRIORITY_CLASSES = {
     'High':     'priority-badge priority-high',
     'Critical': 'priority-badge priority-critical'
 };
+const STATUS_ORDER = [
+    'New', 'Scheduled', 'Work In Progress', 'Waiting for User',
+    'In Review', 'In UAT', 'On Hold', 'Blocked', 'Cancelled', 'Other'
+];
 
 export default class SprintPlanner extends NavigationMixin(LightningElement) {
 
@@ -30,6 +36,12 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
     @track tooltipStyle      = '';
     @track projectOptions    = [];
     @track selectedProjectId = 'all';
+    @track selectedOwnerId   = '';
+    @track ownerProjects     = [];
+    @track ownerOptions      = [];
+
+    _currentUserId = userId;
+    _allProjects   = [];
 
     get departmentOptions() {
         const depts = [...new Set(this.allStories.map(s => s.department).filter(Boolean))].sort();
@@ -52,6 +64,14 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
     get _apexProjectId() {
         return this.selectedProjectId === 'all' ? null : this.selectedProjectId;
     }
+
+    get isOwnerMode() {
+        return !!(this.selectedOwnerId && this.selectedProjectId === 'all');
+    }
+
+    get hasOwnerProjects() { return this.ownerProjects.length > 0; }
+
+    get hasOwnerOptions() { return this.ownerOptions.length > 1; }
 
     connectedCallback() {
         this.loadPlannerData();
@@ -88,6 +108,35 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             });
     }
 
+    loadOwnerData() {
+        this.isLoading = true;
+        getProjectsByOwner({ ownerId: this.selectedOwnerId })
+            .then(data => {
+                const projects = data.projects || [];
+                const stories  = (data.stories || []).map(s => this.mapStory(s));
+                this.ownerProjects = projects.map(p => {
+                    const projectStories = stories.filter(s => s.projectId === p.Id);
+                    const sprints        = this._computeSprintsForProject(p, projectStories);
+                    const unassigned     = projectStories.filter(s => !s.sprintWeek);
+                    return {
+                        id:              p.Id,
+                        name:            p.Name,
+                        dateRange:       this._fmtProjectRange(p.Project_Start_Date__c, p.Project_End_Date__c),
+                        pace:            p.Weekly_Pace_Estimate__c || 0,
+                        unassignedCount: unassigned.length,
+                        sprints
+                    };
+                });
+                this.errorMessage = '';
+            })
+            .catch(err => {
+                this.errorMessage = err?.body?.message || 'Failed to load owner projects.';
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+    }
+
     _scrollToCurrentSprint() {
         if (!this.project || !this.sprints.length) return;
         const today = new Date();
@@ -117,7 +166,11 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
     wiredMessageContext(ctx) {
         if (ctx && !this._subscription) {
             this._subscription = subscribe(ctx, STORY_SUBMITTED_CHANNEL, () => {
-                this.loadPlannerData();
+                if (this.isOwnerMode) {
+                    this.loadOwnerData();
+                } else {
+                    this.loadPlannerData();
+                }
             });
             subscribe(ctx, PROJECT_SELECTED_CHANNEL, ({ projectId }) => {
                 console.log('[SprintPlanner] LMS received projectId:', projectId);
@@ -135,10 +188,36 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
     @wire(getProjects)
     wiredProjects({ data }) {
         if (data && data.length > 0) {
+            this._allProjects = data;
             this.projectOptions = [
                 { label: 'All In Progress', value: 'all' },
                 ...data.map(p => ({ label: p.Name, value: p.Id }))
             ];
+            // Build owner options from unique Project_Lead_Sprint__c values
+            const ownerMap = new Map();
+            data.forEach(p => {
+                if (p.Project_Lead_Sprint__c && !ownerMap.has(p.Project_Lead_Sprint__c)) {
+                    ownerMap.set(p.Project_Lead_Sprint__c, p.Project_Lead_Sprint__r?.Name || p.Project_Lead_Sprint__c);
+                }
+            });
+            this.ownerOptions = [
+                { label: 'All Owners', value: '' },
+                ...Array.from(ownerMap.entries()).map(([value, label]) => ({ label, value }))
+            ];
+            // Auto-select current user if they own projects
+            if (ownerMap.has(this._currentUserId)) {
+                this.selectedOwnerId = this._currentUserId;
+                const ownerProjs = data.filter(p => p.Project_Lead_Sprint__c === this._currentUserId);
+                this.projectOptions = [
+                    { label: 'All Projects', value: 'all' },
+                    ...ownerProjs.map(p => ({ label: p.Name, value: p.Id }))
+                ];
+                this.loadOwnerData();
+                requestAnimationFrame(() => {
+                    const ownerSel = this.template.querySelector('.owner-select');
+                    if (ownerSel) ownerSel.value = this._currentUserId;
+                });
+            }
         }
     }
 
@@ -182,6 +261,8 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             createdDate:     s.CreatedDate || '',
             sprintWeek:      s.Sprint_Week__c || null,
             sprintStartDate: s.Sprint_Start_Date__c || null,
+            status:          s.Status || 'New',
+            projectId:       s.Projects__c || null,
             priorityClass:   PRIORITY_CLASSES[s.Priority] || 'priority-badge priority-low',
             chipClass:       missing ? 'story-chip missing-hours' : 'story-chip',
             draggable:       missing ? 'false' : 'true'
@@ -208,6 +289,18 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             s = [...s].sort((a, b) => new Date(b.createdDate) - new Date(a.createdDate));
         }
         return s;
+    }
+
+    get groupedBacklogStories() {
+        const groups = {};
+        this.filteredUnassignedStories.forEach(s => {
+            const st = STATUS_ORDER.includes(s.status) ? s.status : 'Other';
+            if (!groups[st]) groups[st] = [];
+            groups[st].push(s);
+        });
+        return STATUS_ORDER
+            .filter(st => groups[st] && groups[st].length > 0)
+            .map(st => ({ status: st, stories: groups[st], count: groups[st].length }));
     }
 
     get filteredUnassignedCount() { return this.filteredUnassignedStories.length; }
@@ -338,6 +431,113 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         return weeks;
     }
 
+    // ── Read-only sprint computation for owner mode ─────────────────────────
+    _computeSprintsForProject(project, stories) {
+        if (!project) return [];
+        const start    = this._parseDate(project.Project_Start_Date__c);
+        const end      = this._parseDate(project.Project_End_Date__c);
+        if (!start || !end) return [];
+        const capacity = project.Weekly_Pace_Estimate__c || 0;
+
+        // Build a local sprint map from the passed stories (no side effects on this.sprintMap)
+        const localMap = { backlog: [] };
+        stories.forEach(s => {
+            if (s.sprintWeek) {
+                const label = `Week ${s.sprintWeek}`;
+                if (!localMap[label]) localMap[label] = [];
+                localMap[label].push(s.id);
+            } else {
+                localMap.backlog.push(s.id);
+            }
+        });
+
+        const getStoriesForLabel = (label) => {
+            return (localMap[label] || [])
+                .map(id => stories.find(s => s.id === id))
+                .filter(Boolean)
+                .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
+        };
+
+        const weeks = [];
+        let cur = new Date(start), idx = 1;
+        let lastCalendarSunday = null;
+
+        while (cur <= end && idx <= 52) {
+            const dow = cur.getDay();
+            const daysToSunday = dow === 0 ? 0 : 7 - dow;
+            const weekEnd = new Date(cur);
+            weekEnd.setDate(weekEnd.getDate() + daysToSunday);
+            lastCalendarSunday = new Date(weekEnd);
+
+            const displayEnd = weekEnd > end ? new Date(end) : new Date(weekEnd);
+            const label = `Week ${idx}`;
+            const cards = getStoriesForLabel(label);
+            const used  = cards.reduce((sum, s) => sum + (s.estimatedHours || 0), 0);
+            const pct   = capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
+            const over  = capacity > 0 && used > capacity;
+            const color = over ? '#ef4444' : pct > 80 ? '#f59e0b' : '#00b4d8';
+
+            weeks.push({
+                weekLabel:         label,
+                weekNumber:        idx,
+                weekStartDate:     new Date(cur).toISOString().split('T')[0],
+                weekEndDate:       displayEnd.toISOString().split('T')[0],
+                dateRange:         this.fmtDate(cur) + ' – ' + this.fmtDate(displayEnd),
+                capacityHours:     capacity,
+                usedHours:         used,
+                hasCards:          cards.length > 0,
+                cards,
+                isExtension:       false,
+                headerStyle:       `border-top: 3px solid ${color};`,
+                barStyle:          `width:${pct}%; background:${color};`,
+                capacityTextStyle: over ? 'color:#ef4444;font-weight:700;' : ''
+            });
+
+            cur = new Date(weekEnd);
+            cur.setDate(cur.getDate() + 1);
+            idx++;
+        }
+
+        if (lastCalendarSunday && idx <= 52) {
+            let extCur = new Date(lastCalendarSunday);
+            extCur.setDate(extCur.getDate() + 1);
+
+            for (let ext = 0; ext < 2 && idx <= 52; ext++) {
+                const isLast = ext === 1;
+                const weekEnd = new Date(extCur);
+                weekEnd.setDate(weekEnd.getDate() + (isLast ? 4 : 6));
+                const label = `Week ${idx}`;
+                const cards = getStoriesForLabel(label);
+                const used  = cards.reduce((sum, s) => sum + (s.estimatedHours || 0), 0);
+                const pct   = capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
+                const over  = capacity > 0 && used > capacity;
+                const barColor = over ? '#ef4444' : pct > 80 ? '#f59e0b' : '#94a3b8';
+
+                weeks.push({
+                    weekLabel:         label,
+                    weekNumber:        idx,
+                    weekStartDate:     new Date(extCur).toISOString().split('T')[0],
+                    weekEndDate:       weekEnd.toISOString().split('T')[0],
+                    dateRange:         this.fmtDate(extCur) + ' – ' + this.fmtDate(weekEnd),
+                    capacityHours:     capacity,
+                    usedHours:         used,
+                    hasCards:          cards.length > 0,
+                    cards,
+                    isExtension:       true,
+                    headerStyle:       `border-top: 3px solid #94a3b8;`,
+                    barStyle:          `width:${pct}%; background:${barColor};`,
+                    capacityTextStyle: over ? 'color:#ef4444;font-weight:700;' : ''
+                });
+
+                extCur = new Date(weekEnd);
+                extCur.setDate(extCur.getDate() + 1);
+                idx++;
+            }
+        }
+
+        return weeks;
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
     getStoriesForZone(zone) {
         return (this.sprintMap[zone] || [])
@@ -348,17 +548,69 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
     findZoneForStory(id) { return Object.keys(this.sprintMap).find(z => (this.sprintMap[z] || []).includes(id)); }
     fmtDate(d)           { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
 
+    _fmtProjectRange(startStr, endStr) {
+        const s = this._parseDate(startStr);
+        const e = this._parseDate(endStr);
+        if (!s && !e) return '';
+        if (!s) return '– ' + this.fmtDate(e);
+        if (!e) return this.fmtDate(s) + ' –';
+        return this.fmtDate(s) + ' – ' + this.fmtDate(e);
+    }
+
     // ── Filter / Sort ──────────────────────────────────────────────────────
     handlePriorityFilter(e) { this.filterPriority = e.target.value; }
     handleDeptFilter(e)     { this.filterDept     = e.target.value; }
     handleSort(e)           { this.sortBy         = e.target.value; }
-    handleProjectChange(e)  {
+
+    handleOwnerChange(e) {
+        this.selectedOwnerId   = e.target.value;
+        this.selectedProjectId = 'all';
+        this.sprintMap    = {};
+        this.allStories   = [];
+        this.project      = null;
+        this.tooltipStory = null;
+        if (this.selectedOwnerId) {
+            const ownerProjs = this._allProjects.filter(p => p.Project_Lead_Sprint__c === this.selectedOwnerId);
+            this.projectOptions = [
+                { label: 'All Projects', value: 'all' },
+                ...ownerProjs.map(p => ({ label: p.Name, value: p.Id }))
+            ];
+            this.loadOwnerData();
+        } else {
+            this.projectOptions = [
+                { label: 'All In Progress', value: 'all' },
+                ...this._allProjects.map(p => ({ label: p.Name, value: p.Id }))
+            ];
+            this.loadPlannerData();
+        }
+        requestAnimationFrame(() => {
+            const sel = this.template.querySelector('.project-select');
+            if (sel) sel.value = 'all';
+        });
+    }
+
+    handleProjectChange(e) {
         this.sprintMap    = {};
         this.allStories   = [];
         this.project      = null;
         this.tooltipStory = null;
         this._setProject(e.target.value);
+        if (this.isOwnerMode) {
+            this.loadOwnerData();
+        } else {
+            this.loadPlannerData();
+        }
+    }
+
+    handleOwnerProjectCardClick(e) {
+        const projectId = e.currentTarget.dataset.projectId;
+        if (!projectId) return;
+        this._setProject(projectId);
         this.loadPlannerData();
+        requestAnimationFrame(() => {
+            const sel = this.template.querySelector('.project-select');
+            if (sel) sel.value = projectId;
+        });
     }
 
     // ── Card interactions ──────────────────────────────────────────────────

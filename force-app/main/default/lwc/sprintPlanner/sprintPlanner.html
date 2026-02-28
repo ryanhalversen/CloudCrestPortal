@@ -9,6 +9,16 @@
                 </div>
                 <div>
                     <h2 class="planner-title">Sprint Planner</h2>
+                    <template if:true={hasOwnerOptions}>
+                        <div class="project-select-wrap">
+                            <select class="owner-select" onchange={handleOwnerChange}>
+                                <template for:each={ownerOptions} for:item="opt">
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                </template>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                        </div>
+                    </template>
                     <div class="project-select-wrap">
                         <select class="project-select" onchange={handleProjectChange}>
                             <template for:each={projectOptions} for:item="opt">
@@ -50,220 +60,311 @@
 
         <!-- ── Main Layout ── -->
         <template if:false={isLoading}>
-            <template if:true={project}>
-                <div class="planner-body">
 
-                    <!-- LEFT: Backlog -->
-                    <div class="backlog-panel">
-                        <div class="panel-header">
-                            <span class="panel-title">Backlog</span>
-                            <span class="panel-badge">{filteredUnassignedCount}</span>
-                        </div>
+            <!-- ── OWNER MODE ── -->
+            <template if:true={isOwnerMode}>
+                <div class="owner-body">
+                    <template if:true={hasOwnerProjects}>
+                        <template for:each={ownerProjects} for:item="proj">
+                            <div key={proj.id} class="owner-project-row">
 
-                        <!-- Filter + Sort bar -->
-                        <div class="filter-bar">
-                            <p class="filter-section-label">Filter</p>
-                            <div class="select-wrapper">
-                                <select class="filter-select" onchange={handlePriorityFilter}>
-                                    <option value="">All Priorities</option>
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                                <span class="select-arrow">▾</span>
-                            </div>
-                            <div class="select-wrapper">
-                                <select class="filter-select" onchange={handleDeptFilter}>
-                                    <option value="">All Depts</option>
-                                    <template for:each={departmentOptions} for:item="d">
-                                        <option key={d} value={d}>{d}</option>
+                                <!-- Left: summary card -->
+                                <div class="owner-project-card"
+                                    data-project-id={proj.id}
+                                    onclick={handleOwnerProjectCardClick}>
+                                    <div class="owner-card-name">{proj.name}</div>
+                                    <div class="owner-card-dates">{proj.dateRange}</div>
+                                    <div class="owner-card-meta">
+                                        <span class="owner-card-pace">{proj.pace} hrs/wk</span>
+                                    </div>
+                                    <div class="owner-card-unassigned">{proj.unassignedCount} unassigned</div>
+                                    <div class="owner-card-enter">Plan &#x2192;</div>
+                                </div>
+
+                                <!-- Right: read-only sprint week columns -->
+                                <div class="owner-sprints-scroll">
+                                    <template for:each={proj.sprints} for:item="sprint">
+                                        <div key={sprint.weekLabel} class="owner-sprint-col">
+                                            <div class="sprint-header" style={sprint.headerStyle}>
+                                                <div class="sprint-week-row">
+                                                    <span class="sprint-week">{sprint.weekLabel}</span>
+                                                    <template if:true={sprint.isExtension}>
+                                                        <span class="extension-badge">Pipeline</span>
+                                                    </template>
+                                                </div>
+                                                <div class="sprint-dates">{sprint.dateRange}</div>
+                                                <div class="sprint-capacity">
+                                                    <div class="capacity-bar-bg">
+                                                        <div class="capacity-bar-fill" style={sprint.barStyle}></div>
+                                                    </div>
+                                                    <span class="capacity-text" style={sprint.capacityTextStyle}>
+                                                        {sprint.usedHours}/{sprint.capacityHours}h
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="owner-sprint-cards">
+                                                <template if:true={sprint.hasCards}>
+                                                    <template for:each={sprint.cards} for:item="s">
+                                                        <div key={s.id}
+                                                            class={s.chipClass}
+                                                            data-id={s.id}
+                                                            onclick={handleCardClick}>
+                                                            <div class="chip-subject">{s.subject}</div>
+                                                            <div class="chip-meta">
+                                                                <template if:true={s.priority}>
+                                                                    <span class={s.priorityClass}>{s.priority}</span>
+                                                                </template>
+                                                                <span class="chip-hrs">{s.estimatedHours}h</span>
+                                                            </div>
+                                                            <template if:true={s.department}>
+                                                                <div class="chip-dept">{s.department}</div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </template>
+                                                <template if:false={sprint.hasCards}>
+                                                    <div class="drop-hint">No stories</div>
+                                                </template>
+                                            </div>
+                                        </div>
                                     </template>
-                                </select>
-                                <span class="select-arrow">▾</span>
-                            </div>
-                            <p class="filter-section-label">Sort</p>
-                            <div class="select-wrapper">
-                                <select class="filter-select" onchange={handleSort}>
-                                    <option value="default">Default</option>
-                                    <option value="oldest">Oldest First</option>
-                                    <option value="newest">Newest First</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="hours">Hours</option>
-                                    <option value="subject">Subject A–Z</option>
-                                </select>
-                                <span class="select-arrow">▾</span>
-                            </div>
-                        </div>
+                                </div>
 
-                        <!-- Missing hours warning -->
-                        <template if:true={hasMissingHours}>
-                            <div class="missing-hours-banner">
-                                <lightning-icon icon-name="utility:warning" size="xx-small"></lightning-icon>
-                                <span>{missingHoursCount} stories need hour estimates</span>
                             </div>
                         </template>
+                    </template>
+                    <template if:false={hasOwnerProjects}>
+                        <div class="no-project">No in-progress projects found for this owner.</div>
+                    </template>
+                </div>
+            </template>
 
-                        <div class="backlog-list"
-                            ondragover={handleDragOver}
-                            ondrop={handleDropBacklog}
-                            data-zone="backlog">
-                            <template if:true={hasFilteredUnassigned}>
-                                <template for:each={filteredUnassignedStories} for:item="s">
-                                    <div key={s.id}
-                                        class={s.chipClass}
-                                        draggable={s.draggable}
-                                        data-id={s.id}
-                                        data-zone="backlog"
-                                        ondragstart={handleDragStart}
-                                        ondragend={handleDragEnd}
-                                        onmouseenter={handleCardHover}
-                                        onmouseleave={handleCardLeave}
-                                        onclick={handleCardClick}>
-                                        <div class="chip-subject">{s.subject}</div>
-                                        <div class="chip-meta">
-                                            <span class={s.priorityClass}>{s.priority}</span>
-                                            <template if:true={s.missingHours}>
-                                                <span class="missing-hrs-badge">
-                                                    <lightning-icon icon-name="utility:warning" size="xx-small"></lightning-icon>
-                                                    No hrs
-                                                </span>
-                                            </template>
-                                            <template if:false={s.missingHours}>
-                                                <span class="chip-hrs">{s.estimatedHours}h</span>
-                                            </template>
-                                        </div>
-                                        <template if:true={s.department}>
-                                            <div class="chip-dept">{s.department}</div>
+            <!-- ── SINGLE-PROJECT MODE ── -->
+            <template if:false={isOwnerMode}>
+                <template if:true={project}>
+                    <div class="planner-body">
+
+                        <!-- LEFT: Backlog -->
+                        <div class="backlog-panel">
+                            <div class="panel-header">
+                                <span class="panel-title">Backlog</span>
+                                <span class="panel-badge">{filteredUnassignedCount}</span>
+                            </div>
+
+                            <!-- Filter + Sort bar -->
+                            <div class="filter-bar">
+                                <p class="filter-section-label">Filter</p>
+                                <div class="select-wrapper">
+                                    <select class="filter-select" onchange={handlePriorityFilter}>
+                                        <option value="">All Priorities</option>
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+                                <div class="select-wrapper">
+                                    <select class="filter-select" onchange={handleDeptFilter}>
+                                        <option value="">All Depts</option>
+                                        <template for:each={departmentOptions} for:item="d">
+                                            <option key={d} value={d}>{d}</option>
                                         </template>
-                                    </div>
-                                </template>
-                            </template>
-                            <template if:false={hasFilteredUnassigned}>
-                                <div class="empty-backlog">
-                                    <template if:true={hasActiveFilters}>No stories match filters</template>
-                                    <template if:false={hasActiveFilters}>All stories planned!</template>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+                                <p class="filter-section-label">Sort</p>
+                                <div class="select-wrapper">
+                                    <select class="filter-select" onchange={handleSort}>
+                                        <option value="default">Default</option>
+                                        <option value="oldest">Oldest First</option>
+                                        <option value="newest">Newest First</option>
+                                        <option value="priority">Priority</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="subject">Subject A–Z</option>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+                            </div>
+
+                            <!-- Missing hours warning -->
+                            <template if:true={hasMissingHours}>
+                                <div class="missing-hours-banner">
+                                    <lightning-icon icon-name="utility:warning" size="xx-small"></lightning-icon>
+                                    <span>{missingHoursCount} stories need hour estimates</span>
                                 </div>
                             </template>
-                        </div>
-                    </div>
 
-                    <!-- RIGHT: Sprint weeks -->
-                    <div class="sprints-area">
-                        <div class="sprints-scroll">
-                            <template for:each={sprints} for:item="sprint">
-                                <div key={sprint.weekLabel} class={sprint.sprintColClass}>
-                                    <div class="sprint-header" style={sprint.headerStyle}>
-                                        <div class="sprint-week-row">
-                                            <span class="sprint-week">{sprint.weekLabel}</span>
-                                            <template if:true={sprint.isExtension}>
-                                                <span class="extension-badge">Pipeline</span>
-                                            </template>
-                                        </div>
-                                        <div class="sprint-dates">{sprint.dateRange}</div>
-                                        <div class="sprint-capacity">
-                                            <div class="capacity-bar-bg">
-                                                <div class="capacity-bar-fill" style={sprint.barStyle}></div>
+                            <div class="backlog-list"
+                                ondragover={handleDragOver}
+                                ondrop={handleDropBacklog}
+                                data-zone="backlog">
+                                <template if:true={hasFilteredUnassigned}>
+                                    <template for:each={groupedBacklogStories} for:item="group">
+                                        <div key={group.status} class="backlog-group">
+                                            <div class="backlog-group-header">
+                                                <span class="backlog-group-label">{group.status}</span>
+                                                <span class="backlog-group-count">{group.count}</span>
                                             </div>
-                                            <span class="capacity-text" style={sprint.capacityTextStyle}>
-                                                {sprint.usedHours}/{sprint.capacityHours}h
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class={sprint.dropClass}
-                                        ondragover={handleDragOver}
-                                        ondragleave={handleDragLeave}
-                                        ondrop={handleDropSprint}
-                                        data-week={sprint.weekLabel}>
-                                        <template if:true={sprint.hasCards}>
-                                            <template for:each={sprint.cards} for:item="s">
+                                            <template for:each={group.stories} for:item="s">
                                                 <div key={s.id}
                                                     class={s.chipClass}
-                                                    draggable="true"
+                                                    draggable={s.draggable}
                                                     data-id={s.id}
-                                                    data-zone={sprint.weekLabel}
+                                                    data-zone="backlog"
                                                     ondragstart={handleDragStart}
                                                     ondragend={handleDragEnd}
                                                     onmouseenter={handleCardHover}
                                                     onmouseleave={handleCardLeave}
                                                     onclick={handleCardClick}>
-                                                    <div class="chip-top-row">
-                                                        <div class="chip-subject">{s.subject}</div>
-                                                        <button
-                                                            class="btn-remove-sprint"
-                                                            data-id={s.id}
-                                                            title="Remove from sprint"
-                                                            onclick={handleRemoveFromSprint}>✕</button>
-                                                    </div>
+                                                    <div class="chip-subject">{s.subject}</div>
                                                     <div class="chip-meta">
-                                                        <template if:true={s.priority}>
-                                                            <span class={s.priorityClass}>{s.priority}</span>
+                                                        <span class={s.priorityClass}>{s.priority}</span>
+                                                        <template if:true={s.missingHours}>
+                                                            <span class="missing-hrs-badge">
+                                                                <lightning-icon icon-name="utility:warning" size="xx-small"></lightning-icon>
+                                                                No hrs
+                                                            </span>
                                                         </template>
-                                                        <span class="chip-hrs">{s.estimatedHours}h</span>
+                                                        <template if:false={s.missingHours}>
+                                                            <span class="chip-hrs">{s.estimatedHours}h</span>
+                                                        </template>
                                                     </div>
                                                     <template if:true={s.department}>
                                                         <div class="chip-dept">{s.department}</div>
                                                     </template>
                                                 </div>
                                             </template>
-                                        </template>
-                                        <template if:false={sprint.hasCards}>
-                                            <div class="drop-hint">Drop stories here</div>
-                                        </template>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={hasFilteredUnassigned}>
+                                    <div class="empty-backlog">
+                                        <template if:true={hasActiveFilters}>No stories match filters</template>
+                                        <template if:false={hasActiveFilters}>All stories planned!</template>
                                     </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- ── Hover Tooltip ── -->
-                <template if:true={tooltipStory}>
-                    <div class="story-tooltip"
-                        style={tooltipStyle}
-                        onmouseenter={handleTooltipEnter}
-                        onmouseleave={handleTooltipLeave}>
-                        <div class="tooltip-header">
-                            <span class={tooltipStory.priorityClass}>{tooltipStory.priority}</span>
-                            <template if:true={tooltipStory.department}>
-                                <span class="tooltip-dept">{tooltipStory.department}</span>
-                            </template>
-                        </div>
-                        <div class="tooltip-subject">{tooltipStory.subject}</div>
-                        <template if:true={tooltipStory.description}>
-                            <div class="tooltip-description">{tooltipStory.description}</div>
-                        </template>
-                        <template if:false={tooltipStory.description}>
-                            <div class="tooltip-no-desc">No description provided</div>
-                        </template>
-                        <div class="tooltip-hrs-row">
-                            <label class="tooltip-hrs-label">Hours Estimate</label>
-                            <div class="tooltip-hrs-input-wrap">
-                                <input
-                                    type="number"
-                                    class="tooltip-hrs-input"
-                                    min="0"
-                                    step="0.5"
-                                    value={tooltipStory.estimatedHours}
-                                    data-id={tooltipStory.id}
-                                    onchange={handleHoursUpdate} />
-                                <span class="tooltip-hrs-unit">hrs</span>
+                                </template>
                             </div>
                         </div>
-                        <template if:true={tooltipStory.missingHours}>
-                            <div class="tooltip-warning">Add an estimate to enable sprint planning</div>
-                        </template>
-                        <template if:true={tooltipStory.saveError}>
-                            <div class="tooltip-save-error">⚠ Failed to save — please try again</div>
-                        </template>
-                    </div>
-                </template>
 
+                        <!-- RIGHT: Sprint weeks -->
+                        <div class="sprints-area">
+                            <div class="sprints-scroll">
+                                <template for:each={sprints} for:item="sprint">
+                                    <div key={sprint.weekLabel} class={sprint.sprintColClass}>
+                                        <div class="sprint-header" style={sprint.headerStyle}>
+                                            <div class="sprint-week-row">
+                                                <span class="sprint-week">{sprint.weekLabel}</span>
+                                                <template if:true={sprint.isExtension}>
+                                                    <span class="extension-badge">Pipeline</span>
+                                                </template>
+                                            </div>
+                                            <div class="sprint-dates">{sprint.dateRange}</div>
+                                            <div class="sprint-capacity">
+                                                <div class="capacity-bar-bg">
+                                                    <div class="capacity-bar-fill" style={sprint.barStyle}></div>
+                                                </div>
+                                                <span class="capacity-text" style={sprint.capacityTextStyle}>
+                                                    {sprint.usedHours}/{sprint.capacityHours}h
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class={sprint.dropClass}
+                                            ondragover={handleDragOver}
+                                            ondragleave={handleDragLeave}
+                                            ondrop={handleDropSprint}
+                                            data-week={sprint.weekLabel}>
+                                            <template if:true={sprint.hasCards}>
+                                                <template for:each={sprint.cards} for:item="s">
+                                                    <div key={s.id}
+                                                        class={s.chipClass}
+                                                        draggable="true"
+                                                        data-id={s.id}
+                                                        data-zone={sprint.weekLabel}
+                                                        ondragstart={handleDragStart}
+                                                        ondragend={handleDragEnd}
+                                                        onmouseenter={handleCardHover}
+                                                        onmouseleave={handleCardLeave}
+                                                        onclick={handleCardClick}>
+                                                        <div class="chip-top-row">
+                                                            <div class="chip-subject">{s.subject}</div>
+                                                            <button
+                                                                class="btn-remove-sprint"
+                                                                data-id={s.id}
+                                                                title="Remove from sprint"
+                                                                onclick={handleRemoveFromSprint}>&#x2715;</button>
+                                                        </div>
+                                                        <div class="chip-meta">
+                                                            <template if:true={s.priority}>
+                                                                <span class={s.priorityClass}>{s.priority}</span>
+                                                            </template>
+                                                            <span class="chip-hrs">{s.estimatedHours}h</span>
+                                                        </div>
+                                                        <template if:true={s.department}>
+                                                            <div class="chip-dept">{s.department}</div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                            <template if:false={sprint.hasCards}>
+                                                <div class="drop-hint">Drop stories here</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ── Hover Tooltip ── -->
+                    <template if:true={tooltipStory}>
+                        <div class="story-tooltip"
+                            style={tooltipStyle}
+                            onmouseenter={handleTooltipEnter}
+                            onmouseleave={handleTooltipLeave}>
+                            <div class="tooltip-header">
+                                <span class={tooltipStory.priorityClass}>{tooltipStory.priority}</span>
+                                <template if:true={tooltipStory.department}>
+                                    <span class="tooltip-dept">{tooltipStory.department}</span>
+                                </template>
+                            </div>
+                            <div class="tooltip-subject">{tooltipStory.subject}</div>
+                            <template if:true={tooltipStory.description}>
+                                <div class="tooltip-description">{tooltipStory.description}</div>
+                            </template>
+                            <template if:false={tooltipStory.description}>
+                                <div class="tooltip-no-desc">No description provided</div>
+                            </template>
+                            <div class="tooltip-hrs-row">
+                                <label class="tooltip-hrs-label">Hours Estimate</label>
+                                <div class="tooltip-hrs-input-wrap">
+                                    <input
+                                        type="number"
+                                        class="tooltip-hrs-input"
+                                        min="0"
+                                        step="0.5"
+                                        value={tooltipStory.estimatedHours}
+                                        data-id={tooltipStory.id}
+                                        onchange={handleHoursUpdate} />
+                                    <span class="tooltip-hrs-unit">hrs</span>
+                                </div>
+                            </div>
+                            <template if:true={tooltipStory.missingHours}>
+                                <div class="tooltip-warning">Add an estimate to enable sprint planning</div>
+                            </template>
+                            <template if:true={tooltipStory.saveError}>
+                                <div class="tooltip-save-error">&#x26A0; Failed to save — please try again</div>
+                            </template>
+                        </div>
+                    </template>
+
+                </template>
+                <template if:false={project}>
+                    <div class="no-project">No project found for your account.</div>
+                </template>
             </template>
-            <template if:false={project}>
-                <div class="no-project">No project found for your account.</div>
-            </template>
+
         </template>
 
     </div>

@@ -51,7 +51,8 @@
     margin: 2px 0 4px 0;
 }
 
-.project-select {
+.project-select,
+.owner-select {
     appearance: none;
     background: transparent;
     border: none;
@@ -63,7 +64,8 @@
     font-family: inherit;
 }
 
-.project-select:focus { outline: none; }
+.project-select:focus,
+.owner-select:focus { outline: none; }
 
 .project-select-wrap .select-arrow {
     position: absolute;
