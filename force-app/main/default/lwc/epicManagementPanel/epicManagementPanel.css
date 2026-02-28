@@ -40,6 +40,36 @@
     padding-right: 4px;
 }
 
+/* ── View toggle ────────────────────────────────────────────────────────── */
+.view-toggle {
+    display: flex;
+    gap: 2px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: 2px;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.view-btn {
+    padding: 3px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    color: #6b7280;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+.view-btn-active {
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* ── Base chip ──────────────────────────────────────────────────────────── */
 .epic-chip {
     display: flex;
@@ -174,6 +204,7 @@
     font-weight: 500;
     flex-shrink: 0;
     white-space: nowrap;
+    align-self: center;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
@@ -347,3 +378,227 @@
     opacity: 0.55;
     cursor: not-allowed;
 }
+
+/* ── Timeline container ─────────────────────────────────────────────────── */
+.tl-container {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: visible;
+    min-height: 80px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Today line */
+.tl-today {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #f97316;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── Header / axis ──────────────────────────────────────────────────────── */
+.tl-header-row {
+    display: flex;
+    height: 24px;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    z-index: 1;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tl-label-col {
+    width: 160px;
+    flex-shrink: 0;
+}
+
+.tl-axis {
+    position: relative;
+    flex: 1;
+    min-width: 600px;
+}
+
+.tl-month-label {
+    position: absolute;
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 600;
+    top: 4px;
+    padding-left: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ── Epic rows ──────────────────────────────────────────────────────────── */
+.tl-row {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.tl-row .tl-label-col {
+    padding: 0 8px;
+}
+
+.tl-epic-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.tl-track {
+    position: relative;
+    flex: 1;
+    min-width: 600px;
+    height: 100%;
+}
+
+/* ── Epic bar ───────────────────────────────────────────────────────────── */
+.tl-bar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 16px;
+    background: #00b4d8;
+    border-radius: 4px;
+    cursor: grab;
+    display: flex;
+    align-items: stretch;
+    transition: box-shadow 0.15s;
+    min-width: 6px;
+    z-index: 1;
+}
+
+.tl-bar:active {
+    cursor: grabbing;
+    box-shadow: 0 3px 10px rgba(0, 180, 216, 0.3);
+}
+
+.tl-bar-handle {
+    width: 6px;
+    cursor: ew-resize;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px 0 0 4px;
+    flex-shrink: 0;
+}
+
+.tl-bar-right {
+    border-radius: 0 4px 4px 0;
+    margin-left: auto;
+}
+
+/* ── Milestones ─────────────────────────────────────────────────────────── */
+.tl-milestone {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: #f97316;
+    cursor: pointer;
+    z-index: 3;
+    user-select: none;
+    line-height: 1;
+}
+
+.tl-milestone:hover {
+    color: #ea580c;
+}
+
+.tl-milestone-label {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #374151;
+    white-space: nowrap;
+    font-weight: 600;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+.tl-add-ms {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: 1px dashed #d1d5db;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: border-color 0.12s, color 0.12s;
+}
+
+.tl-add-ms:hover {
+    border-color: #00b4d8;
+    color: #00b4d8;
+}
+
+/* ── Milestone editor ───────────────────────────────────────────────────── */
+.ms-editor {
+    position: fixed;
+    z-index: 9100;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 220px;
+}
+
+.ms-input {
+    padding: 5px 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    color: #111827;
+}
+
+.ms-input:focus {
+    border-color: #00b4d8;
+}
+
+.ms-editor-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-delete {
+    padding: 5px 10px;
+    background: #fee2e2;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #b91c1c;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-delete:hover { background: #fecaca; }

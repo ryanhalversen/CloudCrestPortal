@@ -141,4 +141,109 @@ public class EpicManagementPanelControllerTest {
         System.assertEquals(50,                     updated.Hours_Estimate__c, 'Hours should be updated');
         System.assertEquals('Updated description',  updated.Description__c,    'Description should be updated');
     }
+
+    // ── Milestone tests ───────────────────────────────────────────────────
+    // Note: these tests require Feed Tracking enabled on Sprint_Items__c in org.
+    // Enable via Setup → Object Manager → Sprint Items → Feed Tracking.
+
+    @isTest
+    static void testGetMilestonesForEpic() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+
+        insert new List<FeedItem>{
+            new FeedItem(ParentId = epic.Id, Body = 'MILESTONE | Go Live | 2026-03-15'),
+            new FeedItem(ParentId = epic.Id, Body = 'MILESTONE | Customer Review | 2026-02-28')
+        };
+
+        Test.startTest();
+        List<EpicManagementPanelController.MilestoneWrapper> result =
+            EpicManagementPanelController.getMilestonesForEpic(epic.Id);
+        Test.stopTest();
+
+        System.assertEquals(2, result.size(), 'Should return 2 milestones');
+
+        EpicManagementPanelController.MilestoneWrapper goLive = null;
+        for (EpicManagementPanelController.MilestoneWrapper m : result) {
+            if (m.label == 'Go Live') { goLive = m; break; }
+        }
+        System.assertNotEquals(null, goLive, 'Go Live milestone should be returned');
+        System.assertEquals(Date.newInstance(2026, 3, 15), goLive.milestoneDate, 'Date should match');
+        System.assertNotEquals(null, goLive.feedItemId, 'FeedItem Id should be set');
+    }
+
+    @isTest
+    static void testGetMilestonesForEpic_nullId() {
+        Test.startTest();
+        List<EpicManagementPanelController.MilestoneWrapper> result =
+            EpicManagementPanelController.getMilestonesForEpic(null);
+        Test.stopTest();
+
+        System.assertEquals(0, result.size(), 'Should return empty list for null id');
+    }
+
+    @isTest
+    static void testSaveMilestone_create() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+
+        Test.startTest();
+        Id feedItemId = EpicManagementPanelController.saveMilestone(
+            epic.Id, null, 'Go Live', Date.newInstance(2026, 3, 15)
+        );
+        Test.stopTest();
+
+        System.assertNotEquals(null, feedItemId, 'FeedItem Id should be returned');
+        FeedItem fi = [SELECT Body FROM FeedItem WHERE Id = :feedItemId];
+        System.assertEquals('MILESTONE | Go Live | 2026-03-15', fi.Body, 'Body should match');
+    }
+
+    @isTest
+    static void testSaveMilestone_update() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+
+        FeedItem fi = new FeedItem(ParentId = epic.Id, Body = 'MILESTONE | Old Label | 2026-01-01');
+        insert fi;
+
+        Test.startTest();
+        EpicManagementPanelController.saveMilestone(
+            epic.Id, fi.Id, 'New Label', Date.newInstance(2026, 4, 30)
+        );
+        Test.stopTest();
+
+        FeedItem updated = [SELECT Body FROM FeedItem WHERE Id = :fi.Id];
+        System.assertEquals('MILESTONE | New Label | 2026-04-30', updated.Body, 'Body should be updated');
+    }
+
+    @isTest
+    static void testDeleteMilestone() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+
+        FeedItem fi = new FeedItem(ParentId = epic.Id, Body = 'MILESTONE | Test | 2026-03-01');
+        insert fi;
+        Id fiId = fi.Id;
+
+        Test.startTest();
+        EpicManagementPanelController.deleteMilestone(fiId);
+        Test.stopTest();
+
+        List<FeedItem> remaining = [SELECT Id FROM FeedItem WHERE Id = :fiId];
+        System.assertEquals(0, remaining.size(), 'FeedItem should be deleted');
+    }
+
+    @isTest
+    static void testUpdateEpicDates() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+        Date newStart = Date.newInstance(2026, 4, 1);
+        Date newEnd   = Date.newInstance(2026, 6, 30);
+
+        Test.startTest();
+        EpicManagementPanelController.updateEpicDates(epic.Id, newStart, newEnd);
+        Test.stopTest();
+
+        Sprint_Items__c updated = [
+            SELECT Planned_Start_Date__c, Planned_Completed_Date__c
+            FROM Sprint_Items__c WHERE Id = :epic.Id
+        ];
+        System.assertEquals(newStart, updated.Planned_Start_Date__c,     'Start date should be updated');
+        System.assertEquals(newEnd,   updated.Planned_Completed_Date__c, 'End date should be updated');
+    }
 }

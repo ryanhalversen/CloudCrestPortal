@@ -12,6 +12,14 @@ public without sharing class EpicManagementPanelController {
         @AuraEnabled public Integer completedStories;
     }
 
+    public class MilestoneWrapper {
+        @AuraEnabled public Id     feedItemId;
+        @AuraEnabled public String label;
+        @AuraEnabled public Date   milestoneDate;
+        @AuraEnabled public String changedBy;
+        @AuraEnabled public String changedDate;
+    }
+
     // ── Get Epics ─────────────────────────────────────────────────────────
     @AuraEnabled(cacheable=true)
     public static List<EpicWrapper> getEpicsForProject(Id projectId) {
@@ -98,6 +106,81 @@ public without sharing class EpicManagementPanelController {
                 Description__c            = description
             );
             update epic;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Get Milestones ────────────────────────────────────────────────────
+    @AuraEnabled
+    public static List<MilestoneWrapper> getMilestonesForEpic(Id epicId) {
+        if (epicId == null) return new List<MilestoneWrapper>();
+        List<MilestoneWrapper> result = new List<MilestoneWrapper>();
+        for (FeedItem fi : [
+            SELECT Id, Body, CreatedDate, LastEditDate, CreatedBy.Name
+            FROM FeedItem
+            WHERE ParentId = :epicId
+            ORDER BY CreatedDate ASC
+        ]) {
+            if (fi.Body == null || !fi.Body.startsWith('MILESTONE | ')) continue;
+            List<String> parts = fi.Body.split(' \\| ');
+            if (parts.size() < 3) continue;
+            MilestoneWrapper w = new MilestoneWrapper();
+            w.feedItemId  = fi.Id;
+            w.label       = parts[1];
+            try { w.milestoneDate = Date.valueOf(parts[2].trim()); } catch (Exception e) { continue; }
+            w.changedBy   = fi.CreatedBy.Name;
+            w.changedDate = fi.LastEditDate != null
+                ? fi.LastEditDate.format('M/d/yyyy')
+                : fi.CreatedDate.format('M/d/yyyy');
+            result.add(w);
+        }
+        return result;
+    }
+
+    // ── Save Milestone ────────────────────────────────────────────────────
+    @AuraEnabled
+    public static Id saveMilestone(Id epicId, Id feedItemId, String label, Date milestoneDate) {
+        String body = 'MILESTONE | ' + label + ' | ' + String.valueOf(milestoneDate);
+        try {
+            if (feedItemId == null) {
+                FeedItem fi = new FeedItem(ParentId = epicId, Body = body);
+                insert fi;
+                return fi.Id;
+            } else {
+                update new FeedItem(Id = feedItemId, Body = body);
+                return feedItemId;
+            }
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Delete Milestone ──────────────────────────────────────────────────
+    @AuraEnabled
+    public static void deleteMilestone(Id feedItemId) {
+        try {
+            delete new FeedItem(Id = feedItemId);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Update Epic Dates (lightweight, for timeline drag) ────────────────
+    @AuraEnabled
+    public static void updateEpicDates(Id epicId, Date startDate, Date endDate) {
+        try {
+            update new Sprint_Items__c(
+                Id                        = epicId,
+                Planned_Start_Date__c     = startDate,
+                Planned_Completed_Date__c = endDate
+            );
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {

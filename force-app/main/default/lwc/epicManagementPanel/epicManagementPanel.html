@@ -2,51 +2,148 @@
 <template>
     <div class={stripClass}>
 
+        <!-- Always visible: label + view toggle -->
         <span class="epic-strip-label">Epics</span>
-
-        <!-- All Stories chip -->
-        <div class={allChipClass} onclick={handleAllEpics} title="Show all stories">
-            <span class="chip-label">All Stories</span>
+        <div class="view-toggle">
+            <button class={chipsToggleClass}    data-view="chips"    onclick={handleToggleView}>Chips</button>
+            <button class={timelineToggleClass} data-view="timeline" onclick={handleToggleView}>Timeline</button>
         </div>
 
-        <!-- Epic chips -->
-        <template for:each={decoratedEpics} for:item="e">
-            <div key={e.epicId}
-                 class={e.chipClass}
-                 data-id={e.epicId}
-                 onclick={handleEpicClick}
-                 title={e.name}>
+        <!-- Chips mode: All Stories chip + epic chips -->
+        <template if:true={isChipsView}>
 
-                <a class="chip-record"
-                   href={e.recordUrl}
-                   target="_blank"
-                   onclick={handleRecordClick}
-                   title="Open record">↗</a>
-
-                <button class="chip-edit"
-                        data-id={e.epicId}
-                        onclick={handleEditClick}
-                        title="Edit epic">✎</button>
-
-                <div class="chip-name">{e.name}</div>
-
-                <template if:true={e.dateRange}>
-                    <div class="chip-dates">{e.dateRange}</div>
-                </template>
-
-                <div class="chip-progress-track">
-                    <div class="chip-progress-fill" style={e.progressStyle}></div>
-                </div>
-                <div class="chip-meta">{e.progressLabel}<template if:true={e.estLabel}> · {e.estLabel}</template></div>
+            <div class={allChipClass} onclick={handleAllEpics} title="Show all stories">
+                <span class="chip-label">All Stories</span>
             </div>
+
+            <template for:each={decoratedEpics} for:item="e">
+                <div key={e.epicId}
+                     class={e.chipClass}
+                     data-id={e.epicId}
+                     onclick={handleEpicClick}
+                     title={e.name}>
+
+                    <a class="chip-record"
+                       href={e.recordUrl}
+                       target="_blank"
+                       onclick={handleRecordClick}
+                       title="Open record">↗</a>
+
+                    <button class="chip-edit"
+                            data-id={e.epicId}
+                            onclick={handleEditClick}
+                            title="Edit epic">✎</button>
+
+                    <div class="chip-name">{e.name}</div>
+
+                    <template if:true={e.dateRange}>
+                        <div class="chip-dates">{e.dateRange}</div>
+                    </template>
+
+                    <div class="chip-progress-track">
+                        <div class="chip-progress-fill" style={e.progressStyle}></div>
+                    </div>
+                    <div class="chip-meta">{e.progressLabel}<template if:true={e.estLabel}> · {e.estLabel}</template></div>
+                </div>
+            </template>
+
         </template>
 
-        <!-- New Epic button -->
+        <!-- New Epic button: always visible when projectId is set -->
         <template if:true={projectId}>
             <button class="chip-add" onclick={handleNewClick}>+ New Epic</button>
         </template>
 
     </div>
+
+    <!-- ── Timeline ── -->
+    <template if:true={isTimelineView}>
+        <div class="tl-container">
+
+            <!-- Today line -->
+            <div class="tl-today" style={todayLineStyle}></div>
+
+            <!-- Date axis header -->
+            <div class="tl-header-row">
+                <div class="tl-label-col"></div>
+                <div class="tl-axis">
+                    <template for:each={timelineDateHeaders} for:item="h">
+                        <div key={h.label} class="tl-month-label" style={h.style}>{h.label}</div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Epic rows -->
+            <template for:each={timelineEpics} for:item="ep">
+                <div key={ep.epicId} class="tl-row">
+
+                    <div class="tl-label-col">
+                        <span class="tl-epic-name" title={ep.name}>{ep.name}</span>
+                    </div>
+
+                    <div class="tl-track">
+
+                        <!-- Epic bar (only when start + end dates are set) -->
+                        <template if:true={ep.hasBar}>
+                            <div class="tl-bar"
+                                 style={ep.barStyle}
+                                 data-id={ep.epicId}
+                                 onpointerdown={handleBarPointerDown}
+                                 onpointermove={handleBarPointerMove}
+                                 onpointerup={handleBarPointerUp}>
+                                <div class="tl-bar-handle tl-bar-left"  data-type="left"  data-id={ep.epicId}></div>
+                                <div class="tl-bar-handle tl-bar-right" data-type="right" data-id={ep.epicId}></div>
+                            </div>
+                        </template>
+
+                        <!-- Milestone diamonds -->
+                        <template for:each={ep.milestones} for:item="m">
+                            <div key={m.feedItemId}
+                                 class="tl-milestone"
+                                 style={m.dotStyle}
+                                 data-epic-id={ep.epicId}
+                                 data-id={m.feedItemId}
+                                 onclick={handleMilestoneClick}
+                                 title={m.label}>
+                                ◆
+                                <span class="tl-milestone-label">{m.label}</span>
+                            </div>
+                        </template>
+
+                        <!-- Add milestone button -->
+                        <button class="tl-add-ms"
+                                data-id={ep.epicId}
+                                onclick={handleAddMilestone}
+                                title="Add milestone">+</button>
+
+                    </div>
+                </div>
+            </template>
+
+        </div>
+
+        <!-- Milestone inline editor (position:fixed, positioned via JS) -->
+        <template if:true={_editingMilestone}>
+            <div class="ms-editor" style={milestoneEditorStyle}>
+                <input class="ms-input"
+                       type="text"
+                       value={_editingMilestone.label}
+                       oninput={handleMilestoneLabelChange}
+                       placeholder="Label…" />
+                <input class="ms-input"
+                       type="date"
+                       value={_editingMilestone.date}
+                       onchange={handleMilestoneDateChange} />
+                <div class="ms-editor-actions">
+                    <button class="btn-save"   onclick={handleMilestoneSave}>Save</button>
+                    <template if:true={_editingMilestone.feedItemId}>
+                        <button class="btn-delete" onclick={handleMilestoneDelete}>Delete</button>
+                    </template>
+                    <button class="btn-cancel" onclick={handleMilestoneCancel}>Cancel</button>
+                </div>
+            </div>
+        </template>
+    </template>
 
     <!-- ── Create / Edit Modal ── -->
     <template if:true={showModal}>
