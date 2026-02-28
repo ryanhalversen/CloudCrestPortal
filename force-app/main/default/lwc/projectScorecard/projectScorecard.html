@@ -87,28 +87,40 @@
                 <template if:true={isAllMode}>
                     <div class="project-table">
                         <div class="table-header-row">
-                            <span class="th th-name">Project</span>
-                            <span class="th th-pace">Pace</span>
-                            <span class="th th-bars">Timeline / Hours</span>
-                            <span class="th th-delta">Delta</span>
-                            <span class="th th-rem">Rem.</span>
-                            <span class="th th-action"></span>
+                            <span class="th">Project</span>
+                            <span class="th">Pace</span>
+                            <span class="th th-stat">Purch.</span>
+                            <span class="th th-stat">Del.</span>
+                            <span class="th">Timeline / Hours</span>
+                            <span class="th">Delta</span>
+                            <span class="th th-stat">Rem.</span>
+                            <span class="th"></span>
                         </div>
                         <template for:each={projects} for:item="p">
                             <div key={p.Id} class="table-row" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
-                                <div class="td td-name-group">
+                                <div class="td-name-group">
                                     <div class="td-name">{p.Name}</div>
                                     <div class="td-account">{p.accountName}</div>
                                 </div>
                                 <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
-                                <div class="td td-bars">
+                                <div>
+                                    <div class="td-stat">{p.hoursPurchased}</div>
+                                    <div class="td-stat-label">hrs</div>
+                                </div>
+                                <div>
+                                    <div class="td-stat">{p.hoursDelivered}</div>
+                                    <div class="td-stat-label">hrs</div>
+                                </div>
+                                <div class="td-bars">
                                     <div class="mini-dual">
+                                        <span class="mini-bar-label">T</span>
                                         <div class="mini-track">
                                             <div class="mini-fill mini-timeline" style={p.progressStyle}></div>
                                         </div>
                                         <span class="mini-pct">{p.timelinePercent}%</span>
                                     </div>
                                     <div class="mini-dual">
+                                        <span class="mini-bar-label">H</span>
                                         <div class="mini-track">
                                             <div class="mini-fill" style={p.hoursBarStyle}></div>
                                         </div>
@@ -116,7 +128,7 @@
                                     </div>
                                 </div>
                                 <span class={p.deltaClass}>{p.deltaLabel}</span>
-                                <span class="td td-rem">{p.hoursRemaining}h</span>
+                                <div class="td-rem">{p.hoursRemaining}h</div>
                                 <button class="btn-row-open" data-id={p.Id} onclick={navigateToRecord}>↗</button>
                             </div>
                         </template>

@@ -321,33 +321,37 @@
 .project-table {
     display: flex;
     flex-direction: column;
+    background: #ffffff;
     border: 1px solid #dddbda;
     border-radius: 6px;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
+/* Columns: Name | Pace | Purch | Del | Bars | Delta | Rem | Open */
 .table-header-row,
 .table-row {
     display: grid;
-    grid-template-columns: 1fr 88px 150px 78px 44px 24px;
-    gap: 8px;
+    grid-template-columns: minmax(140px, 1.8fr) 100px 60px 60px minmax(160px, 1fr) 90px 60px 28px;
+    gap: 10px;
     align-items: center;
-    padding: 5px 10px;
+    padding: 6px 14px;
 }
 
 .table-header-row {
     background: #f3f2f2;
-    border-bottom: 1px solid #dddbda;
+    border-bottom: 2px solid #dddbda;
 }
 
 .table-row {
-    border-bottom: 1px solid #f3f2f2;
+    background: #ffffff;
+    border-bottom: 1px solid #f0f0f0;
     cursor: pointer;
     transition: background 0.1s;
 }
 
 .table-row:last-child { border-bottom: none; }
-.table-row:hover      { background: #f8fbff; }
+.table-row:hover      { background: #f0f7ff; }
 
 .th {
     font-size: 9px;
@@ -357,14 +361,16 @@
     color: #706e6b;
 }
 
+.th-stat { text-align: center; }
+
 .td-name-group {
     min-width: 0;
 }
 
 .td-name {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    color: #080707;
+    color: #181818;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -372,28 +378,50 @@
 
 .td-account {
     font-size: 9px;
-    color: #9ca3af;
+    color: #888;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.td-rem {
-    font-size: 11px;
+.td-stat {
+    text-align: center;
+    font-size: 12px;
     font-weight: 700;
-    color: #1a1a2e;
-    text-align: right;
+    color: #181818;
+}
+
+.td-stat-label {
+    font-size: 9px;
+    color: #999;
+    text-align: center;
+    margin-top: 1px;
+}
+
+.td-rem {
+    font-size: 12px;
+    font-weight: 700;
+    color: #181818;
+    text-align: center;
 }
 
 /* ── Table mini-bars ──────────────────────────────────────────────────────── */
 .mini-dual {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 2px;
+    gap: 5px;
+    margin-bottom: 3px;
 }
 
 .mini-dual:last-child { margin-bottom: 0; }
+
+.mini-bar-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #aaa;
+    width: 8px;
+    flex-shrink: 0;
+}
 
 .mini-track {
     flex: 1;
