@@ -160,7 +160,7 @@
                                         <div>
                                             <span class={s.priorityClass}>{s.priority}</span>
                                             <span class="story-id">#{s.caseNumber}</span>
-                                            <div class="story-name">{s.subject}</div>
+                                            <div class="story-name">{s.storyLabel}</div>
                                             <div class="story-detail">
                                                 Status: {s.status} · Last modified today
                                             </div>
@@ -195,13 +195,13 @@
                                         </div>
                                         <div class="time-chips">
                                             <template for:each={s.timeEntries} for:item="te">
-                                                <span key={te.Id}
+                                                <span key={te.timeId}
                                                       class="time-chip"
-                                                      data-id={te.Id}
+                                                      data-id={te.timeId}
                                                       onclick={handleTimeChipNavigate}>
-                                                    🕐 {te.Hours_Logged__c}h
-                                                    <template if:true={te.Additional_Comments__c}>
-                                                        · {te.Additional_Comments__c}
+                                                    🕐 {te.hoursLogged}h
+                                                    <template if:true={te.displayLabel}>
+                                                        · {te.displayLabel}
                                                     </template>
                                                 </span>
                                             </template>

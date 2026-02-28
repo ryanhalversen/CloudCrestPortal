@@ -1,0 +1,119 @@
+<!-- epicManagementPanel.html -->
+<template>
+    <div class="epic-strip">
+
+        <!-- All Stories chip -->
+        <div class={allChipClass} onclick={handleAllEpics} title="Show all stories">
+            <span class="chip-label">All Stories</span>
+        </div>
+
+        <!-- Epic chips -->
+        <template for:each={decoratedEpics} for:item="e">
+            <div key={e.epicId}
+                 class={e.chipClass}
+                 data-id={e.epicId}
+                 onclick={handleEpicClick}
+                 title={e.name}>
+
+                <button class="chip-edit"
+                        data-id={e.epicId}
+                        onclick={handleEditClick}
+                        title="Edit epic">✎</button>
+
+                <div class="chip-name">{e.name}</div>
+
+                <template if:true={e.dateRange}>
+                    <div class="chip-dates">{e.dateRange}</div>
+                </template>
+
+                <div class="chip-progress-track">
+                    <div class="chip-progress-fill" style={e.progressStyle}></div>
+                </div>
+                <div class="chip-meta">{e.progressLabel}<template if:true={e.estLabel}> · {e.estLabel}</template></div>
+            </div>
+        </template>
+
+        <!-- New Epic button -->
+        <template if:true={projectId}>
+            <button class="chip-add" onclick={handleNewClick}>+ New Epic</button>
+        </template>
+
+    </div>
+
+    <!-- ── Create / Edit Modal ── -->
+    <template if:true={showModal}>
+        <div class="epic-modal-backdrop" onclick={handleBackdropClick}>
+            <div class="epic-modal" onclick={handleModalContainerClick}>
+
+                <div class="epic-modal-header">
+                    <h3 class="epic-modal-title">{modalTitle}</h3>
+                    <button class="epic-modal-close" onclick={handleModalClose}>✕</button>
+                </div>
+
+                <div class="epic-modal-body">
+
+                    <div class="epic-field">
+                        <label class="epic-label">Name <span class="epic-required">*</span></label>
+                        <input type="text"
+                               class="epic-input"
+                               value={modalName}
+                               oninput={handleNameChange}
+                               placeholder="Epic name…"
+                               maxlength="80" />
+                    </div>
+
+                    <div class="epic-field-row">
+                        <div class="epic-field">
+                            <label class="epic-label">Start Date</label>
+                            <input type="date"
+                                   class="epic-input"
+                                   value={modalStart}
+                                   onchange={handleStartChange} />
+                        </div>
+                        <div class="epic-field">
+                            <label class="epic-label">End Date</label>
+                            <input type="date"
+                                   class="epic-input"
+                                   value={modalEnd}
+                                   onchange={handleEndChange} />
+                        </div>
+                    </div>
+
+                    <div class="epic-field">
+                        <label class="epic-label">Estimated Hours</label>
+                        <input type="number"
+                               class="epic-input"
+                               value={modalEstHours}
+                               oninput={handleEstHoursChange}
+                               min="0"
+                               step="1"
+                               placeholder="0" />
+                    </div>
+
+                    <div class="epic-field">
+                        <label class="epic-label">Description</label>
+                        <textarea class="epic-textarea epic-desc-textarea"
+                                  oninput={handleDescChange}
+                                  placeholder="Optional description…"
+                                  rows="3"></textarea>
+                    </div>
+
+                    <template if:true={modalError}>
+                        <div class="epic-error">{modalError}</div>
+                    </template>
+
+                </div>
+
+                <div class="epic-modal-footer">
+                    <button class="btn-cancel" onclick={handleModalClose} disabled={isSaving}>Cancel</button>
+                    <button class="btn-save" onclick={handleModalSave} disabled={isSaving}>
+                        <template if:true={isSaving}>Saving…</template>
+                        <template if:false={isSaving}>{saveLabel}</template>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
+</template>

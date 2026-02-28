@@ -15,6 +15,7 @@ import updateEstimatedHours from '@salesforce/apex/StoryBoardController.updateEs
 import getTimeEntries       from '@salesforce/apex/StoryBoardController.getTimeEntries';
 import getNextSteps         from '@salesforce/apex/StoryBoardController.getNextSteps';
 import addNextStep          from '@salesforce/apex/StoryBoardController.addNextStep';
+import updateNextStep       from '@salesforce/apex/StoryBoardController.updateNextStep';
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -88,6 +89,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track nextSteps           = [];
     @track nextStepInput       = '';
     @track isSavingStep        = false;
+    @track editingStepId       = null;
+    @track editingStepText     = '';
+    @track isSavingStepEdit    = false;
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -100,6 +104,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track newStorySaveError    = false;
 
     @track selectedProjectId   = null;
+    @track selectedEpicId      = null;
     @track selectedOwnerFilter = '';
     viewMode                   = 'mine';
     _currentUserId             = userId;
@@ -136,13 +141,14 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             });
             subscribe(ctx, PROJECT_SELECTED_CHANNEL, ({ projectId }) => {
                 this.selectedProjectId = projectId || null;
+                this.selectedEpicId    = null;
                 this.isLoading = true;
             });
         }
     }
 
     // ── Data Wire ─────────────────────────────────────────────────────────
-    @wire(getStories, { mineOnly: '$mineOnly', projectId: '$selectedProjectId' })
+    @wire(getStories, { mineOnly: '$mineOnly', projectId: '$selectedProjectId', epicId: '$selectedEpicId' })
     wiredStories(result) {
         this._wiredStoriesResult = result;
         this.isLoading = false;
@@ -220,6 +226,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     get totalTimeLogged() {
         const total = this.timeEntries.reduce((s, t) => s + t.hours, 0);
         return this._fmtHours(Number(total.toFixed(2))) || '0h';
+    }
+
+    get editableNextSteps() {
+        return this.nextSteps.map(s => ({ ...s, isEditing: s.id === this.editingStepId }));
     }
 
     get newStorySubjectClass() {
@@ -309,6 +319,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     handleProjectChange(e) {
         this.selectedProjectId = e.detail.value || null;
+        this.selectedEpicId    = null;
+        this.isLoading = true;
+    }
+
+    handleEpicSelect(evt) {
+        this.selectedEpicId = evt.detail.epicId || null;
         this.isLoading = true;
     }
 
@@ -431,6 +447,40 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }
     }
 
+    // ── Edit Next Step ────────────────────────────────────────────────────
+    handleEditStep(e) {
+        const id = e.currentTarget.dataset.id;
+        const step = this.nextSteps.find(s => s.id === id);
+        if (!step) return;
+        this.editingStepId   = id;
+        this.editingStepText = step.note;
+    }
+
+    handleEditStepChange(e) { this.editingStepText = e.target.value; }
+
+    handleEditStepCancel() {
+        this.editingStepId   = null;
+        this.editingStepText = '';
+    }
+
+    async handleEditStepSave() {
+        const note = (this.editingStepText || '').trim();
+        if (!note) return;
+        this.isSavingStepEdit = true;
+        try {
+            await updateNextStep({ commentId: this.editingStepId, note });
+            this.nextSteps = this.nextSteps.map(s =>
+                s.id === this.editingStepId ? { ...s, note } : s
+            );
+            this.editingStepId   = null;
+            this.editingStepText = '';
+        } catch (err) {
+            console.error('Failed to update next step', err);
+        } finally {
+            this.isSavingStepEdit = false;
+        }
+    }
+
     // ── New Story Modal ───────────────────────────────────────────────────
     handleNewStoryClick() {
         this.newStorySubject      = '';
@@ -470,6 +520,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 description: this.newStoryDescription.trim() || null,
                 priority:    this.newStoryPriority    || null,
                 department:  this.newStoryDepartment  || null,
+                epicId:      this.selectedEpicId      || null,
             });
             this.showNewStoryModal = false;
             this._toast('Story created', `"${this.newStorySubject.trim()}" was added to the board`, 'success');

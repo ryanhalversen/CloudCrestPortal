@@ -61,15 +61,38 @@ public with sharing class EodTimeRetroController {
 
         List<Time__c> times = [
             SELECT Id, Case__c, Minutes_Logged__c, Additional_Comments__c,
-                   Start_Time__c, Stop_Time__c, Logged_Date__c, Active__c
+                   Start_Time__c, Stop_Time__c, Logged_Date__c, Active__c,
+                   Salesforce_Event_Id__c
             FROM Time__c
             WHERE Case__c IN :storyIds AND CreatedById = :userId AND Logged_Date__c = :targetDate
         ];
 
-        Map<Id, List<Time__c>> timeByStory = new Map<Id, List<Time__c>>();
+        // Look up Event subjects for any time entries logged from calendar events
+        Set<String> eventIdSet = new Set<String>();
         for (Time__c t : times) {
-            if (!timeByStory.containsKey(t.Case__c)) timeByStory.put(t.Case__c, new List<Time__c>());
-            timeByStory.get(t.Case__c).add(t);
+            if (t.Salesforce_Event_Id__c != null) eventIdSet.add(t.Salesforce_Event_Id__c);
+        }
+        Map<String, String> eventSubjectById = new Map<String, String>();
+        if (!eventIdSet.isEmpty()) {
+            for (Event ev : [SELECT Id, Subject FROM Event WHERE Id IN :eventIdSet]) {
+                eventSubjectById.put(String.valueOf(ev.Id), ev.Subject);
+            }
+        }
+
+        Map<Id, List<TimeEntryWrapper>> timeByStory = new Map<Id, List<TimeEntryWrapper>>();
+        for (Time__c t : times) {
+            if (!timeByStory.containsKey(t.Case__c)) timeByStory.put(t.Case__c, new List<TimeEntryWrapper>());
+            TimeEntryWrapper tw = new TimeEntryWrapper();
+            tw.timeId        = t.Id;
+            Decimal mins     = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
+            tw.minutesLogged = mins;
+            tw.hoursLogged   = (mins / 60).setScale(1, RoundingMode.HALF_UP);
+            tw.note          = t.Additional_Comments__c;
+            String evId      = t.Salesforce_Event_Id__c;
+            String evSubject = (evId != null) ? eventSubjectById.get(evId) : null;
+            tw.fromEvent     = evSubject != null;
+            tw.displayLabel  = evSubject != null ? evSubject : t.Additional_Comments__c;
+            timeByStory.get(t.Case__c).add(tw);
         }
 
         List<CaseHistory> historyList = [
@@ -112,9 +135,9 @@ public with sharing class EodTimeRetroController {
             w.epicId        = c.Epic__c;
             w.projectId     = c.Projects__c;
             w.projectName   = c.Projects__r?.Name;
-            w.timeEntries   = timeByStory.containsKey(c.Id) ? timeByStory.get(c.Id) : new List<Time__c>();
+            w.timeEntries   = timeByStory.containsKey(c.Id) ? timeByStory.get(c.Id) : new List<TimeEntryWrapper>();
             Decimal totalMins = 0;
-            for (Time__c t : w.timeEntries) totalMins += (t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0);
+            for (TimeEntryWrapper tw : w.timeEntries) totalMins += tw.minutesLogged;
             w.totalMinutes  = totalMins;
             w.totalHours    = (totalMins / 60).setScale(1, RoundingMode.HALF_UP);
             w.hasTime       = !w.timeEntries.isEmpty();
@@ -272,7 +295,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Id                 epicId;
         @AuraEnabled public Id                 projectId;
         @AuraEnabled public String             projectName;
-        @AuraEnabled public List<Time__c>      timeEntries;
+        @AuraEnabled public List<TimeEntryWrapper> timeEntries;
         @AuraEnabled public Decimal            totalMinutes;
         @AuraEnabled public Decimal            totalHours;
         @AuraEnabled public Boolean            hasTime;
@@ -286,6 +309,15 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public String oldValue;
         @AuraEnabled public String newValue;
         @AuraEnabled public String createdDate;
+    }
+
+    public class TimeEntryWrapper {
+        @AuraEnabled public String  timeId;
+        @AuraEnabled public Decimal minutesLogged;
+        @AuraEnabled public Decimal hoursLogged;
+        @AuraEnabled public String  note;
+        @AuraEnabled public Boolean fromEvent;
+        @AuraEnabled public String  displayLabel; // event subject if fromEvent, else note
     }
 
     public class AccountGroup {

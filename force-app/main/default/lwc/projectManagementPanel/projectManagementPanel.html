@@ -1,0 +1,204 @@
+<!-- force-app/main/default/lwc/projectManagementPanel/projectManagementPanel.html -->
+<template>
+    <div class="mgmt-wrapper">
+
+        <!-- ── Meetings Section ── -->
+        <div class="mgmt-section mgmt-meetings">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <div class="section-icon">
+                        <lightning-icon icon-name="utility:event" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                    </div>
+                    <span class="section-title">Meetings</span>
+                    <template if:false={isLoadingEvents}>
+                        <span class="section-badge">{eventCount}</span>
+                    </template>
+                </div>
+                <div class="section-header-right">
+                    <lightning-combobox
+                        name="userFilter"
+                        variant="label-hidden"
+                        placeholder="My Calendar"
+                        options={userFilterOptions}
+                        value={filterUserId}
+                        onchange={handleUserFilterChange}
+                        class="user-filter-combobox">
+                    </lightning-combobox>
+                    <div class="date-nav">
+                        <button class="date-nav-btn" onclick={handlePrevDay} title="Previous day">&#8249;</button>
+                        <button class="date-nav-label" onclick={handleTodayClick} title="Jump to today">{dateLabel}</button>
+                        <button class="date-nav-btn" onclick={handleNextDay} title="Next day">&#8250;</button>
+                    </div>
+                </div>
+            </div>
+
+            <template if:true={isLoadingEvents}>
+                <div class="section-loading">
+                    <lightning-spinner size="x-small" alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoadingEvents}>
+                <template if:true={eventsError}>
+                    <div class="section-error">{eventsError}</div>
+                </template>
+                <template if:false={eventsError}>
+                    <template if:true={hasEvents}>
+                        <div class="event-list">
+                            <template for:each={todayEvents} for:item="ev">
+                                <div key={ev.id} class="event-row">
+                                    <span class="event-time">{ev.timeLabel}</span>
+                                    <span class="event-subject">{ev.subject}</span>
+                                    <span class="event-duration">{ev.durationLabel}</span>
+                                    <template if:false={ev.isLogged}>
+                                        <button class="btn-log-event"
+                                            data-id={ev.id}
+                                            onclick={handleEventLog}>
+                                            Log
+                                        </button>
+                                    </template>
+                                    <template if:true={ev.isLogged}>
+                                        <span class="event-logged-badge">✓ Logged</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasEvents}>
+                        <div class="section-empty">No meetings today</div>
+                    </template>
+                </template>
+            </template>
+        </div>
+
+        <!-- ── Divider ── -->
+        <div class="mgmt-divider"></div>
+
+        <!-- ── Quick Log Section ── -->
+        <div class="mgmt-section mgmt-quicklog">
+            <div class="section-header">
+                <div class="section-header-left">
+                    <div class="section-icon">
+                        <lightning-icon icon-name="utility:clock" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                    </div>
+                    <span class="section-title">Quick Log</span>
+                </div>
+            </div>
+            <div class="quicklog-btns">
+                <button class="quicklog-btn"
+                    data-category="Meetings"
+                    onclick={handleQuickLog}>
+                    Meetings
+                </button>
+                <button class="quicklog-btn"
+                    data-category="Project Management"
+                    onclick={handleQuickLog}>
+                    PM Time
+                </button>
+                <button class="quicklog-btn"
+                    data-category="Helpdesk"
+                    onclick={handleQuickLog}>
+                    Helpdesk
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Log Time Modal ── -->
+    <template if:true={showLogModal}>
+        <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+            <div class="log-modal" onclick={handleModalContainerClick}>
+
+                <div class="log-modal-header">
+                    <div class="log-modal-title-group">
+                        <span class="log-modal-title">Log Time</span>
+                        <template if:true={logEventSubject}>
+                            <span class="log-modal-subtitle">{logEventSubject}</span>
+                        </template>
+                    </div>
+                    <button class="modal-close" onclick={handleModalClose}>✕</button>
+                </div>
+
+                <div class="log-modal-body">
+
+                    <!-- Category -->
+                    <div class="log-field-row">
+                        <label class="log-label">Category</label>
+                        <div class="cat-btns">
+                            <template for:each={categoryOptions} for:item="opt">
+                                <button key={opt.value}
+                                    class={opt.btnClass}
+                                    data-value={opt.value}
+                                    onclick={handleCategorySelect}>
+                                    {opt.label}
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Project -->
+                    <div class="log-field-row">
+                        <label class="log-label">Project</label>
+                        <lightning-combobox
+                            name="logProject"
+                            variant="label-hidden"
+                            placeholder="Select project…"
+                            options={projectOptions}
+                            value={logProjectId}
+                            onchange={handleProjectChange}
+                            dropdown-alignment="auto">
+                        </lightning-combobox>
+                    </div>
+
+                    <!-- Duration + Date -->
+                    <div class="log-field-row log-inline-row">
+                        <div class="log-inline-field">
+                            <label class="log-label">Duration (min)</label>
+                            <input
+                                type="number"
+                                class="log-input"
+                                value={logMinutes}
+                                oninput={handleMinutesChange}
+                                min="1"
+                                step="5" />
+                        </div>
+                        <div class="log-inline-field">
+                            <label class="log-label">Date</label>
+                            <input
+                                type="date"
+                                class="log-input"
+                                value={logDate}
+                                onchange={handleDateChange} />
+                        </div>
+                    </div>
+
+                    <!-- Note -->
+                    <div class="log-field-row">
+                        <label class="log-label">Note</label>
+                        <textarea
+                            class="log-textarea"
+                            placeholder="What was covered?"
+                            oninput={handleNoteChange}
+                            rows="2">
+                        </textarea>
+                    </div>
+
+                </div>
+
+                <div class="log-modal-footer">
+                    <template if:true={logError}>
+                        <span class="log-error">⚠ {logError}</span>
+                    </template>
+                    <template if:true={isLogging}>
+                        <span class="log-saving">Logging…</span>
+                    </template>
+                    <button class="btn-cancel" onclick={handleModalClose} disabled={isLogging}>Cancel</button>
+                    <button class="btn-log" onclick={handleLogSubmit} disabled={isLogging}>Log Time</button>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
+</template>

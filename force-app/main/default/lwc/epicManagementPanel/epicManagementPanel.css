@@ -1,0 +1,305 @@
+/* epicManagementPanel.css */
+
+/* ── Strip ─────────────────────────────────────────────────────────────── */
+.epic-strip {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+/* ── Base chip ──────────────────────────────────────────────────────────── */
+.epic-chip {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 150px;
+    max-width: 200px;
+    padding: 9px 12px 8px;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    user-select: none;
+}
+
+.epic-chip:hover {
+    border-color: #00b4d8;
+    box-shadow: 0 2px 8px rgba(0, 180, 216, 0.12);
+}
+
+.epic-chip-active {
+    border-color: #00b4d8;
+    background: #f0fafd;
+    box-shadow: 0 2px 8px rgba(0, 180, 216, 0.2);
+}
+
+/* ── "All Stories" chip ─────────────────────────────────────────────────── */
+.epic-chip-all {
+    min-width: 90px;
+    max-width: 110px;
+    justify-content: center;
+    align-items: center;
+}
+
+.chip-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #374151;
+}
+
+/* ── Epic chip content ──────────────────────────────────────────────────── */
+.chip-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: #111827;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 22px; /* room for edit button */
+}
+
+.chip-dates {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-bottom: 5px;
+    white-space: nowrap;
+}
+
+.chip-progress-track {
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.chip-progress-fill {
+    height: 100%;
+    background: #00b4d8;
+    border-radius: 2px;
+    min-width: 0;
+    transition: width 0.3s;
+}
+
+.chip-meta {
+    font-size: 10px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+/* ── Edit button ────────────────────────────────────────────────────────── */
+.chip-edit {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: #d1d5db;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.1s;
+}
+
+.chip-edit:hover {
+    color: #374151;
+}
+
+/* ── Add Epic button ────────────────────────────────────────────────────── */
+.chip-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    padding: 9px 12px;
+    background: none;
+    border: 1.5px dashed #d1d5db;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.chip-add:hover {
+    border-color: #00b4d8;
+    color: #00b4d8;
+    background: #f0fafd;
+}
+
+/* ── Modal backdrop ─────────────────────────────────────────────────────── */
+.epic-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Modal container ────────────────────────────────────────────────────── */
+.epic-modal {
+    background: #fff;
+    border-radius: 10px;
+    width: 420px;
+    max-width: 92vw;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+}
+
+.epic-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.epic-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.epic-modal-close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+.epic-modal-close:hover { color: #374151; }
+
+.epic-modal-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ── Modal fields ───────────────────────────────────────────────────────── */
+.epic-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.epic-field-row {
+    display: flex;
+    gap: 12px;
+}
+
+.epic-field-row .epic-field {
+    flex: 1;
+}
+
+.epic-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.epic-required {
+    color: #ef4444;
+}
+
+.epic-input {
+    padding: 7px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.epic-input:focus {
+    border-color: #00b4d8;
+    box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.12);
+}
+
+.epic-textarea {
+    padding: 7px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.epic-textarea:focus {
+    border-color: #00b4d8;
+    box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.12);
+}
+
+.epic-error {
+    font-size: 12px;
+    color: #ef4444;
+    padding: 4px 0;
+}
+
+.epic-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel {
+    padding: 7px 16px;
+    background: #fff;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-cancel:hover:not(:disabled) { background: #f3f4f6; }
+
+.btn-save {
+    padding: 7px 18px;
+    background: #00b4d8;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-save:hover:not(:disabled) { background: #0096c7; }
+
+.btn-save:disabled,
+.btn-cancel:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}

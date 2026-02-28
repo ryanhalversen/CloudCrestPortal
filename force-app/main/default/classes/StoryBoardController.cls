@@ -1,19 +1,24 @@
 public without sharing class StoryBoardController {
 
     @AuraEnabled(cacheable=true)
-    public static List<Case> getStories(Boolean mineOnly, Id projectId) {
+    public static List<Case> getStories(Boolean mineOnly, Id projectId, Id epicId) {
         String q =
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
-            'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name ' +
+            'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c ' +
             'FROM Case';
 
-        List<String> filters = new List<String>();
+        List<String> filters = new List<String>{
+            'Subject NOT IN (\'Meetings\', \'Project Management\', \'Helpdesk\')'
+        };
         if (mineOnly) {
             filters.add('OwnerId = \'' + UserInfo.getUserId() + '\'');
         }
         if (projectId != null) {
             filters.add('Projects__c = \'' + projectId + '\'');
+        }
+        if (epicId != null) {
+            filters.add('Epic__c = \'' + epicId + '\'');
         }
         if (!filters.isEmpty()) {
             q += ' WHERE ' + String.join(filters, ' AND ');
@@ -139,6 +144,21 @@ public without sharing class StoryBoardController {
         return cc.Id;
     }
 
+    @AuraEnabled
+    public static void updateNextStep(Id commentId, String note) {
+        try {
+            CaseComment cc = new CaseComment(
+                Id          = commentId,
+                CommentBody = note
+            );
+            update cc;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Get Time Entries ──────────────────────────────────────────────────
     @AuraEnabled
     public static List<Time__c> getTimeEntries(Id caseId) {
@@ -170,15 +190,19 @@ public without sharing class StoryBoardController {
 
     // ── Create Story ──────────────────────────────────────────────────────
     @AuraEnabled
-    public static void createStory(Id projectId, String subject, String description, String priority, String department) {
+    public static void createStory(Id projectId, String subject, String description, String priority, String department, Id epicId) {
         try {
-            List<Sprint_Items__c> epics = [
-                SELECT Id
-                FROM Sprint_Items__c
-                WHERE Name = 'Needs Assignment'
-                AND Projects_new__c = :projectId
-                LIMIT 1
-            ];
+            Id assignEpicId = epicId;
+            if (assignEpicId == null) {
+                List<Sprint_Items__c> defaultEpics = [
+                    SELECT Id
+                    FROM Sprint_Items__c
+                    WHERE Name = 'Needs Assignment'
+                    AND Projects_new__c = :projectId
+                    LIMIT 1
+                ];
+                assignEpicId = defaultEpics.isEmpty() ? null : defaultEpics[0].Id;
+            }
 
             Case c = new Case(
                 Subject       = subject,
@@ -186,7 +210,7 @@ public without sharing class StoryBoardController {
                 Priority      = priority,
                 Department__c = department,
                 Projects__c   = projectId,
-                Epic__c       = epics.isEmpty() ? null : epics[0].Id
+                Epic__c       = assignEpicId
             );
             insert c;
         } catch (DmlException ex) {

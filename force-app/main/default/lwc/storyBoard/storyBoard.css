@@ -98,7 +98,7 @@
 /* ── Distribution Bar ────────────────────────────────────────────────────── */
 .dist-bar-wrapper {
     padding: 14px 28px 16px;
-    border-bottom: 1px solid #f0f2f5;
+    border-top: 1px solid #f0f2f5;
 }
 
 .dist-bar-track {
@@ -585,6 +585,43 @@
     color: #6b7280;
     flex-shrink: 0;
     margin-top: 1px;
+}
+.ns-edit-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: #9ca3af;
+    padding: 2px 5px;
+    border-radius: 4px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    align-self: flex-start;
+}
+.next-step-entry:hover .ns-edit-btn { opacity: 1; }
+.ns-edit-btn:hover { color: #00b4d8; background: #e6f7fb; }
+.ns-edit-form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+.ns-edit-textarea {
+    font-size: 0.8rem;
+    resize: none;
+}
+.ns-edit-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.ns-cancel-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
 }
 .next-steps-count {
     font-size: 0.72rem;

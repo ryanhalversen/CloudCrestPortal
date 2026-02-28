@@ -291,9 +291,9 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (!s) return;
         this.editStoryId   = id;
         this.editEpicId    = s.epicId;
-        this.editTimeId    = s.timeEntries?.[0]?.Id || null;
+        this.editTimeId    = s.timeEntries?.[0]?.timeId || null;
         this.editHours     = s.totalHours;
-        this.editNotes     = s.timeEntries?.[0]?.Additional_Comments__c || '';
+        this.editNotes     = s.timeEntries?.[0]?.note || '';
         this.showEditModal = true;
     }
     handleEditHoursChange(evt) { this.editHours = evt.detail.value; }
@@ -322,6 +322,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         }));
         const suggested = s.suggestedHours != null && s.suggestedHours > 0
             ? this._round(s.suggestedHours) : null;
+        const eventLabels = (s.timeEntries || [])
+            .filter(te => te.fromEvent && te.displayLabel)
+            .map(te => te.displayLabel);
+        const storyLabel = eventLabels.length > 0
+            ? `${s.subject} \u2014 ${eventLabels.join(', ')}`
+            : s.subject;
         return {
             ...s,
             totalHours        : this._round(s.totalHours),
@@ -330,6 +336,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             newTimeId         : null, newHours: null,
             suggestedHours    : suggested,
             hasSuggestedHours : suggested != null,
+            storyLabel,
             history, hasHistory: history.length > 0
         };
     }

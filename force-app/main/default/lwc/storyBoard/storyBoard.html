@@ -48,29 +48,12 @@
             </div>
         </div>
 
-        <!-- ── Distribution Bar ── -->
-        <template if:false={isLoading}>
-            <div class="dist-bar-wrapper">
-                <div class="dist-bar-track">
-                    <template for:each={distBarSegments} for:item="seg">
-                        <div key={seg.status}
-                             class="dist-bar-segment"
-                             style={seg.style}
-                             title={seg.tooltip}>
-                        </div>
-                    </template>
-                </div>
-                <div class="dist-bar-legend">
-                    <template for:each={distBarLegend} for:item="item">
-                        <div key={item.status} class="legend-item" style={item.dimStyle}>
-                            <span class="legend-dot" style={item.dotStyle}></span>
-                            <span class="legend-status">{item.status}</span>
-                            <span class="legend-stats" style={item.statsStyle}>{item.statsLabel}</span>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </template>
+        <!-- ── Epic Strip ── -->
+        <c-epic-management-panel
+            project-id={selectedProjectId}
+            selected-epic-id={selectedEpicId}
+            onepicselect={handleEpicSelect}>
+        </c-epic-management-panel>
 
         <!-- ── Loading ── -->
         <template if:true={isLoading}>
@@ -144,6 +127,30 @@
                                     <div class="col-empty" data-status={col.status}>No stories</div>
                                 </template>
                             </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Distribution Bar ── -->
+        <template if:false={isLoading}>
+            <div class="dist-bar-wrapper">
+                <div class="dist-bar-track">
+                    <template for:each={distBarSegments} for:item="seg">
+                        <div key={seg.status}
+                             class="dist-bar-segment"
+                             style={seg.style}
+                             title={seg.tooltip}>
+                        </div>
+                    </template>
+                </div>
+                <div class="dist-bar-legend">
+                    <template for:each={distBarLegend} for:item="item">
+                        <div key={item.status} class="legend-item" style={item.dimStyle}>
+                            <span class="legend-dot" style={item.dotStyle}></span>
+                            <span class="legend-status">{item.status}</span>
+                            <span class="legend-stats" style={item.statsStyle}>{item.statsLabel}</span>
                         </div>
                     </template>
                 </div>
@@ -282,13 +289,31 @@
                             <template if:false={isLoadingTime}>
                                 <template if:true={nextSteps.length}>
                                     <div class="time-entry-list">
-                                        <template for:each={nextSteps} for:item="s">
+                                        <template for:each={editableNextSteps} for:item="s">
                                             <div key={s.id} class="next-step-entry">
-                                                <span class="ns-arrow">→</span>
-                                                <div class="te-right">
-                                                    <span class="te-desc">{s.note}</span>
-                                                    <span class="te-meta">{s.date}<template if:true={s.user}> · {s.user}</template></span>
-                                                </div>
+                                                <template if:false={s.isEditing}>
+                                                    <span class="ns-arrow">→</span>
+                                                    <div class="te-right">
+                                                        <span class="te-desc">{s.note}</span>
+                                                        <span class="te-meta">{s.date}<template if:true={s.user}> · {s.user}</template></span>
+                                                    </div>
+                                                    <button class="ns-edit-btn" data-id={s.id} onclick={handleEditStep} title="Edit">✎</button>
+                                                </template>
+                                                <template if:true={s.isEditing}>
+                                                    <div class="ns-edit-form">
+                                                        <textarea
+                                                            class="new-story-textarea ns-edit-textarea"
+                                                            oninput={handleEditStepChange}
+                                                            rows="2">{s.note}</textarea>
+                                                        <div class="ns-edit-actions">
+                                                            <button class="btn-save-hrs" onclick={handleEditStepSave} disabled={isSavingStepEdit}>
+                                                                <template if:true={isSavingStepEdit}>Saving…</template>
+                                                                <template if:false={isSavingStepEdit}>Save</template>
+                                                            </button>
+                                                            <button class="btn-cancel ns-cancel-btn" onclick={handleEditStepCancel}>Cancel</button>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </div>
