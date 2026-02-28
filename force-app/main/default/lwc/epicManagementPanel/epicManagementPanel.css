@@ -395,10 +395,21 @@
     top: 0;
     bottom: 0;
     width: 2px;
-    background: #f97316;
-    opacity: 0.7;
+    background: #ef4444;
     pointer-events: none;
     z-index: 2;
+}
+
+.tl-today-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #ef4444;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 /* ── Header / axis ──────────────────────────────────────────────────────── */
