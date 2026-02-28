@@ -400,16 +400,18 @@
     z-index: 2;
 }
 
-.tl-today-label {
+/* Small downward triangle at the top of the today line */
+.tl-today::before {
+    content: '';
     position: absolute;
-    top: 4px;
-    left: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #ef4444;
-    white-space: nowrap;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #ef4444;
 }
 
 /* ── Header / axis ──────────────────────────────────────────────────────── */

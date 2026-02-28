@@ -190,7 +190,9 @@ export default class EpicManagementPanel extends LightningElement {
         const start = this._tlStart;
         const end   = this._tlEnd;
         if (today < start || today > end) return 'display:none;';
-        return `left:${this._datePct(today, start, end)}%;`;
+        // The date axis starts after the 160px label column, so offset accordingly
+        const pct = this._datePct(today, start, end);
+        return `left:calc(160px + (100% - 160px) * ${pct} / 100);`;
     }
 
     get milestoneEditorStyle() {
