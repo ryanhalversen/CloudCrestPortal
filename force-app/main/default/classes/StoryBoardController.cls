@@ -18,7 +18,7 @@ public without sharing class StoryBoardController {
         if (!filters.isEmpty()) {
             q += ' WHERE ' + String.join(filters, ' AND ');
         }
-        q += ' ORDER BY CreatedDate DESC LIMIT 200';
+        q += ' ORDER BY CreatedDate DESC LIMIT 500';
 
         return Database.query(q);
     }
