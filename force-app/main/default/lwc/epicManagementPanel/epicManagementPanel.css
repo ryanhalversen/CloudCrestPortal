@@ -18,17 +18,13 @@
     border-bottom-color: #00b4d8;
 }
 
-.epic-strip.dragging-mode .epic-chip:not(.epic-chip-all) {
-    border-color: #00b4d8;
-    border-style: dashed;
-    cursor: copy;
-}
-
-.epic-strip.dragging-mode .epic-chip:not(.epic-chip-all):hover {
+.epic-chip.chip-drag-over {
     background: #e0f7fc;
+    border-color: #00b4d8;
     border-style: solid;
-    transform: scale(1.03);
-    box-shadow: 0 4px 14px rgba(0, 180, 216, 0.28);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 180, 216, 0.35);
+    cursor: copy;
 }
 
 /* ── Strip label ────────────────────────────────────────────────────────── */

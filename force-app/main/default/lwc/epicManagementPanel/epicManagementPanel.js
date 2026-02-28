@@ -83,6 +83,19 @@ export default class EpicManagementPanel extends LightningElement {
         return null;
     }
 
+    // Highlight only the chip under (x,y); pass null to clear all highlights
+    @api setDragHighlight(x, y) {
+        this.template.querySelectorAll('.epic-chip[data-id]').forEach(chip => {
+            if (x != null && y != null) {
+                const r    = chip.getBoundingClientRect();
+                const over = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+                chip.classList.toggle('chip-drag-over', over);
+            } else {
+                chip.classList.remove('chip-drag-over');
+            }
+        });
+    }
+
     // ── Chip handlers ─────────────────────────────────────────────────────
     handleAllEpics() {
         this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: null } }));

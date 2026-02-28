@@ -78,9 +78,7 @@
                     <template for:each={displayColumns} for:item="col">
                         <div key={col.status}
                             class="board-col"
-                            data-status={col.status}
-                            onpointermove={handlePointerMove}
-                            onpointerup={handlePointerUp}>
+                            data-status={col.status}>
                             <div class="col-header" style={col.headerStyle}>
                                 <span class="col-title">{col.status}</span>
                                 <div class="col-header-right">
@@ -96,6 +94,8 @@
                                             data-id={card.id}
                                             data-status={col.status}
                                             onpointerdown={handlePointerDown}
+                                            onpointermove={handlePointerMove}
+                                            onpointerup={handlePointerUp}
                                             onclick={handleCardClick}
                                             onmouseenter={handleCardHover}
                                             onmouseleave={handleCardLeave}>

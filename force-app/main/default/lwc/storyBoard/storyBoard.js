@@ -561,7 +561,6 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         if (_isDragging && _ghost) {
             _ghost.style.left = `${e.clientX + 12}px`;
             _ghost.style.top  = `${e.clientY + 12}px`;
-            // Only highlight board columns when not hovering over the epic strip
             const epicPanel = this.template.querySelector('c-epic-management-panel');
             const overEpics = epicPanel && (() => {
                 const r = epicPanel.getBoundingClientRect();
@@ -570,7 +569,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             })();
             if (overEpics) {
                 this._clearColumnHighlights();
+                epicPanel.setDragHighlight(e.clientX, e.clientY);
             } else {
+                if (epicPanel) epicPanel.setDragHighlight(null, null);
                 this._highlightColumn(e);
             }
         }
@@ -585,6 +586,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             this._destroyGhost();
             this._clearColumnHighlights();
             this._setDraggingCard(_dragCardId, false);
+            if (epicPanel) epicPanel.setDragHighlight(null, null);
 
             if (epicId) {
                 this._assignEpic(_dragCardId, epicId);
