@@ -359,6 +359,9 @@
     color: #0096c7;
     white-space: nowrap;
 }
+.card-est-missing {
+    color: #b91c1c;
+}
 
 /* ── Drag states ─────────────────────────────────────────────────────────── */
 .card-dragging {

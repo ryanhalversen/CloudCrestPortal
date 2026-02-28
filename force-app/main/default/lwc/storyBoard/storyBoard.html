@@ -121,6 +121,9 @@
                                                 <template if:true={card.estimatedHours}>
                                                     <span class="card-est-hours">⏱ {card.estimatedHours}h</span>
                                                 </template>
+                                                <template if:false={card.estimatedHours}>
+                                                    <span class="card-est-hours card-est-missing">⏱ 0</span>
+                                                </template>
                                                 <span class="card-date">{card.openedDate}</span>
                                             </div>
                                         </div>
@@ -191,11 +194,10 @@
                                 <input
                                     type="number"
                                     class="new-story-input"
-                                    placeholder="e.g. 4"
                                     value={estHoursInput}
                                     oninput={handleEstHoursChange}
                                     min="0"
-                                    step="0.5" />
+                                    step="0.25" />
                                 <button class="btn-save-hrs" onclick={handleEstHoursSave} disabled={isSavingEstHours}>
                                     <template if:true={isSavingEstHours}>Saving…</template>
                                     <template if:false={isSavingEstHours}>Save</template>
