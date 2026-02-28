@@ -42,7 +42,16 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     editNotes   = '';
     _storiesWire;
     _statsWire;
-    _skippedIds = new Set(); // persists skipped stories for the session
+    _skippedIds = new Set(); // persisted to localStorage by date key
+
+    _skipKey() { return `eod_skipped_${new Date().toISOString().split('T')[0]}`; }
+
+    connectedCallback() {
+        try {
+            const stored = localStorage.getItem(this._skipKey());
+            if (stored) this._skippedIds = new Set(JSON.parse(stored));
+        } catch(e) { /* localStorage unavailable */ }
+    }
 
     // ── Wire: team users ──────────────────────────────────────────────────
     @wire(getTeamUsers)
@@ -269,6 +278,9 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         const id = evt.target.dataset.id;
         this._skippedIds.add(id);
         this.stories = this.stories.filter(s => s.storyId !== id);
+        try {
+            localStorage.setItem(this._skipKey(), JSON.stringify([...this._skippedIds]));
+        } catch(e) { /* localStorage unavailable */ }
     }
 
     // ── Edit modal ────────────────────────────────────────────────────────
