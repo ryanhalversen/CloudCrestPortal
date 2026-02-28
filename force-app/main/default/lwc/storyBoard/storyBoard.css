@@ -123,14 +123,6 @@
     filter: brightness(1.12);
 }
 
-.dist-bar-label {
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
-    pointer-events: none;
-}
-
 .dist-bar-legend {
     display: flex;
     flex-wrap: wrap;
@@ -158,9 +150,10 @@
     color: #6b7280;
 }
 
-.legend-count {
+.legend-stats {
     font-size: 0.75rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 /* ── Loading / Error ─────────────────────────────────────────────────────── */

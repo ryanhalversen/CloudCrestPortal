@@ -224,28 +224,36 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                               : isFirst           ? '999px 0 0 999px'
                               : isLast            ? '0 999px 999px 0'
                               : '0';
+                const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
                 return {
-                    status:    c.status,
-                    count:     c.count,
-                    showLabel: pct > 8,
-                    tooltip:   `${c.status}: ${c.count}`,
-                    style:     `width:${pct}%;background:${color};border-radius:${radius};`
+                    status:  c.status,
+                    tooltip: estHrs > 0
+                                 ? `${c.status}: ${c.count} stories · ${this._fmtHours(estHrs)}`
+                                 : `${c.status}: ${c.count} stories`,
+                    style:   `width:${pct}%;background:${color};border-radius:${radius};`
                 };
             });
     }
 
     get distBarLegend() {
         return this.displayColumns.map(c => {
-            const color = STATUS_COLORS[c.status] || '#00b4d8';
-            const dim   = c.count === 0;
+            const color   = STATUS_COLORS[c.status] || '#00b4d8';
+            const dim     = c.count === 0;
+            const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
+            const hrsPart = estHrs > 0 ? ` · ${this._fmtHours(estHrs)}` : '';
             return {
                 status:     c.status,
-                count:      c.count,
-                dotStyle:   dim ? 'background:#d1d5db;' : `background:${color};`,
-                countStyle: dim ? 'color:#9ca3af;'      : `color:${color};`,
-                dimStyle:   dim ? 'opacity:0.5;'        : ''
+                statsLabel: `${c.count}${hrsPart}`,
+                dotStyle:   dim ? 'background:#d1d5db;'  : `background:${color};`,
+                statsStyle: dim ? 'color:#9ca3af;'        : `color:${color};`,
+                dimStyle:   dim ? 'opacity:0.5;'          : ''
             };
         });
+    }
+
+    _fmtHours(h) {
+        if (!h) return '';
+        return `${Number(h.toFixed(2))}h`;
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────

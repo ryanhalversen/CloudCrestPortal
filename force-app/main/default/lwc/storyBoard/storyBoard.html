@@ -57,9 +57,6 @@
                              class="dist-bar-segment"
                              style={seg.style}
                              title={seg.tooltip}>
-                            <template if:true={seg.showLabel}>
-                                <span class="dist-bar-label">{seg.count}</span>
-                            </template>
                         </div>
                     </template>
                 </div>
@@ -68,7 +65,7 @@
                         <div key={item.status} class="legend-item" style={item.dimStyle}>
                             <span class="legend-dot" style={item.dotStyle}></span>
                             <span class="legend-status">{item.status}</span>
-                            <span class="legend-count" style={item.countStyle}>{item.count}</span>
+                            <span class="legend-stats" style={item.statsStyle}>{item.statsLabel}</span>
                         </div>
                     </template>
                 </div>
