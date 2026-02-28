@@ -65,3 +65,13 @@ Salesforce API **v61.0** (set in `sfdx-project.json`).
 ### Deployment Notes
 
 `manifest/projectScorecard-manifest.xml` exists for targeted deployments. `.forceignore` excludes `actionItemParser`, `Experiences`, and `Networks` from default push/pull operations.
+
+## Post-Deployment Workflow
+
+After every successful Salesforce deployment, always commit and push to GitHub:
+
+```bash
+git add . && git commit -m "Deploy: <brief description>" && git push
+```
+
+Never deploy without committing and pushing to GitHub.
