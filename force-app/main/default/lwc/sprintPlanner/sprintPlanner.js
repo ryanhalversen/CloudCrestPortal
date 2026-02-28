@@ -191,11 +191,11 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
                 { label: 'All In Progress', value: 'all' },
                 ...data.map(p => ({ label: p.Name, value: p.Id }))
             ];
-            // Build owner options from unique Project_Lead_Sprint__c values
+            // Build owner options from unique OwnerId values
             const ownerMap = new Map();
             data.forEach(p => {
-                if (p.Project_Lead_Sprint__c && !ownerMap.has(p.Project_Lead_Sprint__c)) {
-                    ownerMap.set(p.Project_Lead_Sprint__c, p.Project_Lead_Sprint__r?.Name || p.Project_Lead_Sprint__c);
+                if (p.OwnerId && !ownerMap.has(p.OwnerId)) {
+                    ownerMap.set(p.OwnerId, p.Owner?.Name || p.OwnerId);
                 }
             });
             this.ownerOptions = [
@@ -205,7 +205,7 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
             // Auto-select current user if they own projects
             if (ownerMap.has(this._currentUserId)) {
                 this.selectedOwnerId = this._currentUserId;
-                const ownerProjs = data.filter(p => p.Project_Lead_Sprint__c === this._currentUserId);
+                const ownerProjs = data.filter(p => p.OwnerId === this._currentUserId);
                 this.projectOptions = [
                     { label: 'All Projects', value: 'all' },
                     ...ownerProjs.map(p => ({ label: p.Name, value: p.Id }))
@@ -568,7 +568,7 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         this.project      = null;
         this.tooltipStory = null;
         if (this.selectedOwnerId) {
-            const ownerProjs = this._allProjects.filter(p => p.Project_Lead_Sprint__c === this.selectedOwnerId);
+            const ownerProjs = this._allProjects.filter(p => p.OwnerId === this.selectedOwnerId);
             this.projectOptions = [
                 { label: 'All Projects', value: 'all' },
                 ...ownerProjs.map(p => ({ label: p.Name, value: p.Id }))

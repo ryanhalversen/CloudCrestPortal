@@ -11,7 +11,7 @@ public with sharing class SprintPlannerController {
         return [
             SELECT Id, Name, Weekly_Pace_Estimate__c,
                    Project_Start_Date__c, Project_End_Date__c,
-                   Project_Lead_Sprint__c, Project_Lead_Sprint__r.Name
+                   OwnerId, Owner.Name
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             ORDER BY Project_Start_Date__c DESC
@@ -80,10 +80,10 @@ public with sharing class SprintPlannerController {
             result.projects = [
                 SELECT Id, Name, Weekly_Pace_Estimate__c,
                        Project_Start_Date__c, Project_End_Date__c,
-                       Project_Lead_Sprint__c, Project_Lead_Sprint__r.Name
+                       OwnerId, Owner.Name
                 FROM Sprint__c
                 WHERE Status__c = 'In Progress'
-                AND Project_Lead_Sprint__c = :ownerId
+                AND OwnerId = :ownerId
                 ORDER BY Project_Start_Date__c DESC
                 LIMIT 50
             ];
