@@ -155,7 +155,8 @@ export default class EpicManagementPanel extends LightningElement {
 
             const milestones = (this._milestones[ep.epicId] || []).map(m => ({
                 ...m,
-                dotStyle: `left:${this._datePct(m.milestoneDate, start, end)}%;`
+                dotStyle:  `left:${this._datePct(m.milestoneDate, start, end)}%;`,
+                dateLabel: this._formatShortDate(m.milestoneDate)
             }));
 
             return { ...ep, hasBar, barStyle, milestones };
@@ -502,6 +503,12 @@ export default class EpicManagementPanel extends LightningElement {
         const total = tlEnd - tlStart;
         if (total <= 0) return 0;
         return Math.max(0, Math.min(100, (d - tlStart) / total * 100));
+    }
+
+    _formatShortDate(iso) {
+        if (!iso) return '';
+        const [y, m, d] = String(iso).split('T')[0].split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
     _parseDate(iso) {
