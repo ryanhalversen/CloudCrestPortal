@@ -71,6 +71,7 @@ let _startX         = 0;
 let _startY         = 0;
 let _ghost          = null;
 let _isDragging     = false;
+let _didDrag        = false;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -333,7 +334,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     handleOwnerFilterChange(e) { this.selectedOwnerFilter = e.detail.value || ''; }
 
     handleCardClick(e) {
-        if (_isDragging) return;
+        if (_didDrag) { _didDrag = false; return; }
         const id = e.currentTarget.dataset.id;
         if (!id) return;
         const card = this.columns.flatMap(c => c.cards).find(c => c.id === id);
@@ -597,6 +598,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 }
             }
         }
+        if (_isDragging) _didDrag = true;
         this.isCardDragging = false;
         _dragCardId         = null;
         _dragFromStatus     = null;
