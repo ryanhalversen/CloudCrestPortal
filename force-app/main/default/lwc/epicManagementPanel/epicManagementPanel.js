@@ -177,8 +177,8 @@ export default class EpicManagementPanel extends LightningElement {
             const leftPct    = Math.max(0,   (monthStart - start) / total * 100);
             const rightPct   = Math.min(100, (monthEnd   - start) / total * 100);
             headers.push({
-                label: cur.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                style: `left:${leftPct}%;width:${rightPct - leftPct}%;`
+                label: cur.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                style: `left:${leftPct}%;width:${rightPct - leftPct}%;text-align:center;`
             });
             cur.setMonth(cur.getMonth() + 1);
         }
