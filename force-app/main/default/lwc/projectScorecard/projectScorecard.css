@@ -243,3 +243,189 @@
     white-space: nowrap;
 }
 .btn-open-record:hover { background: #e6f7fb; }
+
+/* ── Dual Progress Bars ───────────────────────────────────────────────────── */
+.dual-bar-section {
+    margin-bottom: 8px;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.bar-label {
+    width: 50px;
+    font-size: 9px;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.bar-track {
+    flex: 1;
+    height: 6px;
+    background: #e4e4e4;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.bar-timeline { background: #0176d3; }
+
+.bar-pct {
+    width: 28px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.delta-chip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+    padding-left: 56px;
+}
+
+.date-range {
+    font-size: 9px;
+    color: #9ca3af;
+}
+
+/* ── Delta Chip ───────────────────────────────────────────────────────────── */
+.delta-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.delta-over  { background: #fef3c7; color: #92400e; }
+.delta-under { background: #d1fae5; color: #065f46; }
+.delta-on    { background: #eff6ff; color: #1d4ed8; }
+
+/* ── All Projects Table ───────────────────────────────────────────────────── */
+.project-table {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dddbda;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.table-header-row,
+.table-row {
+    display: grid;
+    grid-template-columns: 1fr 88px 150px 78px 44px 24px;
+    gap: 8px;
+    align-items: center;
+    padding: 5px 10px;
+}
+
+.table-header-row {
+    background: #f3f2f2;
+    border-bottom: 1px solid #dddbda;
+}
+
+.table-row {
+    border-bottom: 1px solid #f3f2f2;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.table-row:last-child { border-bottom: none; }
+.table-row:hover      { background: #f8fbff; }
+
+.th {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #706e6b;
+}
+
+.td-name-group {
+    min-width: 0;
+}
+
+.td-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #080707;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-account {
+    font-size: 9px;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-rem {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-align: right;
+}
+
+/* ── Table mini-bars ──────────────────────────────────────────────────────── */
+.mini-dual {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.mini-dual:last-child { margin-bottom: 0; }
+
+.mini-track {
+    flex: 1;
+    height: 4px;
+    background: #e4e4e4;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.mini-fill {
+    height: 100%;
+    border-radius: 2px;
+}
+
+.mini-timeline { background: #0176d3; }
+
+.mini-pct {
+    font-size: 9px;
+    color: #706e6b;
+    width: 24px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.btn-row-open {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: #0176d3;
+    padding: 2px;
+    line-height: 1;
+}
+
+.btn-row-open:hover { color: #014786; }

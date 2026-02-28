@@ -15,62 +15,114 @@
 
         <template if:false={isLoading}>
             <template if:true={hasProjects}>
-                <div class="cards-grid">
-                    <template for:each={projects} for:item="p">
-                        <div key={p.Id} class="project-card" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
 
-                            <div class="card-top">
-                                <div class="project-name">{p.Name}</div>
-                                <div class="card-top-right">
-                                    <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
-                                    <button class="btn-open-record" data-id={p.Id} onclick={navigateToRecord}>
-                                        <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
-                                        Open
-                                    </button>
-                                </div>
-                            </div>
+                <!-- ── My Projects: Card Grid ── -->
+                <template if:false={isAllMode}>
+                    <div class="cards-grid">
+                        <template for:each={projects} for:item="p">
+                            <div key={p.Id} class="project-card" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
 
-                            <div class="timeline-row">
-                                <div class="timeline-meta">
-                                    <span>{p.startDate}</span>
-                                    <span class="timeline-pct">{p.timelinePercent}% through timeline</span>
-                                    <span>{p.endDate}</span>
-                                </div>
-                                <div class="progress-track">
-                                    <div class="progress-fill" style={p.progressStyle}></div>
-                                    <div class="today-marker" style={p.todayMarkerStyle}></div>
-                                </div>
-                            </div>
-
-                            <div class="stats-row">
-                                <div class="stat stat-divider">
-                                    <div class="stat-label">Purchased</div>
-                                    <div class="stat-value">{p.hoursPurchased}</div>
-                                    <div class="stat-sub">hrs</div>
-                                </div>
-                                <div class="stat stat-divider">
-                                    <div class="stat-label">Delivered</div>
-                                    <div class="stat-value">{p.hoursDelivered}</div>
-                                    <div class="mini-bar-bg">
-                                        <div class="mini-bar-fill" style={p.hoursProgressStyle}></div>
+                                <div class="card-top">
+                                    <div class="project-name">{p.Name}</div>
+                                    <div class="card-top-right">
+                                        <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
+                                        <button class="btn-open-record" data-id={p.Id} onclick={navigateToRecord}>
+                                            <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
+                                            Open
+                                        </button>
                                     </div>
-                                    <div class="stat-sub">{p.hoursPercent}% used</div>
                                 </div>
-                                <div class="stat stat-divider">
-                                    <div class="stat-label">Remaining</div>
-                                    <div class="stat-value">{p.hoursRemaining}</div>
-                                    <div class="stat-sub">hrs</div>
-                                </div>
-                                <div class="stat">
-                                    <div class="stat-label">Sprint Hrs</div>
-                                    <div class="stat-value stat-value-sprint">{p.weeklySprintHours}</div>
-                                    <div class="stat-sub">per week</div>
-                                </div>
-                            </div>
 
+                                <!-- Dual Progress Bar -->
+                                <div class="dual-bar-section">
+                                    <div class="bar-row">
+                                        <span class="bar-label">Timeline</span>
+                                        <div class="bar-track">
+                                            <div class="bar-fill bar-timeline" style={p.progressStyle}></div>
+                                        </div>
+                                        <span class="bar-pct">{p.timelinePercent}%</span>
+                                    </div>
+                                    <div class="bar-row">
+                                        <span class="bar-label">Hours</span>
+                                        <div class="bar-track">
+                                            <div class="bar-fill" style={p.hoursBarStyle}></div>
+                                        </div>
+                                        <span class="bar-pct">{p.hoursPercent}%</span>
+                                    </div>
+                                    <div class="delta-chip-row">
+                                        <span class={p.deltaClass}>{p.deltaLabel}</span>
+                                        <span class="date-range">{p.startDate} → {p.endDate}</span>
+                                    </div>
+                                </div>
+
+                                <div class="stats-row">
+                                    <div class="stat stat-divider">
+                                        <div class="stat-label">Purchased</div>
+                                        <div class="stat-value">{p.hoursPurchased}</div>
+                                        <div class="stat-sub">hrs</div>
+                                    </div>
+                                    <div class="stat stat-divider">
+                                        <div class="stat-label">Delivered</div>
+                                        <div class="stat-value">{p.hoursDelivered}</div>
+                                        <div class="stat-sub">hrs</div>
+                                    </div>
+                                    <div class="stat stat-divider">
+                                        <div class="stat-label">Remaining</div>
+                                        <div class="stat-value">{p.hoursRemaining}</div>
+                                        <div class="stat-sub">hrs</div>
+                                    </div>
+                                    <div class="stat">
+                                        <div class="stat-label">Sprint Pace</div>
+                                        <div class="stat-value stat-value-sprint">{p.weeklySprintHours}</div>
+                                        <div class="stat-sub">per week</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- ── All Projects: Compact Table ── -->
+                <template if:true={isAllMode}>
+                    <div class="project-table">
+                        <div class="table-header-row">
+                            <span class="th th-name">Project</span>
+                            <span class="th th-pace">Pace</span>
+                            <span class="th th-bars">Timeline / Hours</span>
+                            <span class="th th-delta">Delta</span>
+                            <span class="th th-rem">Rem.</span>
+                            <span class="th th-action"></span>
                         </div>
-                    </template>
-                </div>
+                        <template for:each={projects} for:item="p">
+                            <div key={p.Id} class="table-row" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
+                                <div class="td td-name-group">
+                                    <div class="td-name">{p.Name}</div>
+                                    <div class="td-account">{p.accountName}</div>
+                                </div>
+                                <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
+                                <div class="td td-bars">
+                                    <div class="mini-dual">
+                                        <div class="mini-track">
+                                            <div class="mini-fill mini-timeline" style={p.progressStyle}></div>
+                                        </div>
+                                        <span class="mini-pct">{p.timelinePercent}%</span>
+                                    </div>
+                                    <div class="mini-dual">
+                                        <div class="mini-track">
+                                            <div class="mini-fill" style={p.hoursBarStyle}></div>
+                                        </div>
+                                        <span class="mini-pct">{p.hoursPercent}%</span>
+                                    </div>
+                                </div>
+                                <span class={p.deltaClass}>{p.deltaLabel}</span>
+                                <span class="td td-rem">{p.hoursRemaining}h</span>
+                                <button class="btn-row-open" data-id={p.Id} onclick={navigateToRecord}>↗</button>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
             </template>
 
             <template if:false={hasProjects}>

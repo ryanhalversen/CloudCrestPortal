@@ -34,6 +34,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
 
     get hasProjects() { return this._projects.length > 0; }
     get projects()    { return this._projects; }
+    get isAllMode()   { return this.viewMode === 'all'; }
 
     // ── Card click — publish project selection to Story Board + Sprint Planner ──
     handleCardClick(e) {
@@ -58,11 +59,13 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
 
     // ── Mapping ────────────────────────────────────────────────────────────────
     _mapProject(p) {
-        const pct  = this._calcTimeline(p.Project_Start_Date__c, p.Project_End_Date__c);
-        const hPct = this._calcHoursPercent(p.Contracted_Hours_Sprint__c, p.Hours_Delivered__c);
+        const pct   = this._calcTimeline(p.Project_Start_Date__c, p.Project_End_Date__c);
+        const hPct  = this._calcHoursPercent(p.Contracted_Hours_Sprint__c, p.Hours_Delivered__c);
+        const delta = hPct - pct;
         return {
             Id:                p.Id,
             Name:              p.Name,
+            accountName:       p.Accountlu__r?.Name ?? '',
             hoursPurchased:    p.Contracted_Hours_Sprint__c  ?? '--',
             hoursDelivered:    p.Hours_Delivered__c          ?? '--',
             hoursRemaining:    p.Completed_Delta_Sprint__c   ?? '--',
@@ -73,11 +76,12 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             endDate:            this._formatDate(p.Project_End_Date__c),
             timelinePercent:    pct,
             progressStyle:      `width:${pct}%`,
-            todayMarkerStyle:   `left:${pct}%`,
             hoursPercent:       hPct,
-            hoursProgressStyle: this._calcHoursBarStyle(hPct),
+            hoursBarStyle:      this._calcHoursBarStyle(hPct),
             paceBadgeClass:     this._getPaceBadgeClass(p.Pace_Status__c),
-            paceBadgeLabel:     p.Pace_Status__c ?? '--'
+            paceBadgeLabel:     p.Pace_Status__c ?? '--',
+            deltaLabel:         this._calcDeltaLabel(delta),
+            deltaClass:         this._calcDeltaClass(delta)
         };
     }
 
@@ -106,6 +110,19 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     _calcHoursBarStyle(pct) {
         const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#0176d3';
         return `width:${pct}%; background:${color};`;
+    }
+
+    _calcDeltaLabel(delta) {
+        const abs = Math.abs(Math.round(delta));
+        if (abs <= 5)      return '≈ On pace';
+        if (delta > 0)     return `↑ ${abs}% over`;
+        return `↓ ${abs}% under`;
+    }
+
+    _calcDeltaClass(delta) {
+        if (Math.abs(delta) <= 5) return 'delta-chip delta-on';
+        if (delta > 0)            return 'delta-chip delta-over';
+        return 'delta-chip delta-under';
     }
 
     _getPaceBadgeClass(pace) {
