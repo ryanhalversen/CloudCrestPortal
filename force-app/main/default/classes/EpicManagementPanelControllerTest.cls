@@ -16,7 +16,7 @@ public class EpicManagementPanelControllerTest {
         );
         insert epic;
 
-        // "Ongoing optimization" epic — should NOT appear in getEpicsForProject results
+        // "Ongoing optimization" epic — should also appear in getEpicsForProject results
         Sprint_Items__c ongoingEpic = new Sprint_Items__c(
             Name            = 'Ongoing Work',
             Projects_new__c = sprint.Id,
@@ -42,11 +42,16 @@ public class EpicManagementPanelControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, result, 'Result should not be null');
-        System.assertEquals(1, result.size(), 'Should return only Sub-Project epics');
-        System.assertEquals('Feature A', result[0].name, 'Epic name should match');
-        System.assertEquals(3, result[0].totalStories, 'Should count 3 total stories');
-        System.assertEquals(1, result[0].completedStories, 'Should count 1 completed story');
-        System.assertEquals(40, result[0].estimatedHours, 'Estimated hours should match');
+        System.assertEquals(2, result.size(), 'Should return both epics regardless of type');
+        // Find Feature A to verify story counts
+        EpicManagementPanelController.EpicWrapper featureA = null;
+        for (EpicManagementPanelController.EpicWrapper w : result) {
+            if (w.name == 'Feature A') { featureA = w; break; }
+        }
+        System.assertNotEquals(null, featureA, 'Feature A should be in results');
+        System.assertEquals(3, featureA.totalStories, 'Should count 3 total stories');
+        System.assertEquals(1, featureA.completedStories, 'Should count 1 completed story');
+        System.assertEquals(40, featureA.estimatedHours, 'Estimated hours should match');
     }
 
     @isTest

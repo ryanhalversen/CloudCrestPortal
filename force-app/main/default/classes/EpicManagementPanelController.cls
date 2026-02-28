@@ -22,7 +22,6 @@ public without sharing class EpicManagementPanelController {
                    Hours_Estimate__c, Time_Logged_to_Deliverable__c, Description__c
             FROM Sprint_Items__c
             WHERE Projects_new__c = :projectId
-            AND   Epic_Type__c    = 'Sub-Project'
             ORDER BY Name ASC
         ];
 
