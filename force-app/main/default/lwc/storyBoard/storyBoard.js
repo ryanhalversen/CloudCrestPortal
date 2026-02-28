@@ -227,9 +227,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
                 return {
                     status:  c.status,
-                    tooltip: estHrs > 0
-                                 ? `${c.status}: ${c.count} stories · ${this._fmtHours(estHrs)}`
-                                 : `${c.status}: ${c.count} stories`,
+                    tooltip: `${c.status}: ${c.count} stories · ${this._fmtHours(estHrs) || '0h'}`,
                     style:   `width:${pct}%;background:${color};border-radius:${radius};`
                 };
             });
@@ -240,10 +238,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             const color   = STATUS_COLORS[c.status] || '#00b4d8';
             const dim     = c.count === 0;
             const estHrs  = c.cards.reduce((s, card) => s + (card.estimatedHours || 0), 0);
-            const hrsPart = estHrs > 0 ? ` · ${this._fmtHours(estHrs)}` : '';
             return {
                 status:     c.status,
-                statsLabel: `${c.count}${hrsPart}`,
+                statsLabel: `${c.count} · ${this._fmtHours(estHrs) || '0h'}`,
                 dotStyle:   dim ? 'background:#d1d5db;'  : `background:${color};`,
                 statsStyle: dim ? 'color:#9ca3af;'        : `color:${color};`,
                 dimStyle:   dim ? 'opacity:0.5;'          : ''
