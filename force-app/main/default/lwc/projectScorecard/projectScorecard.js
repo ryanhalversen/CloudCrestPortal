@@ -140,9 +140,10 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
 
     // ── Mapping ────────────────────────────────────────────────────────────────
     _mapProject(p) {
-        const pct   = this._calcTimeline(p.Project_Start_Date__c, p.Project_End_Date__c);
-        const hPct  = this._calcHoursPercent(p.Contracted_Hours_Sprint__c, p.Hours_Delivered__c);
-        const delta = hPct - pct;
+        const pct            = this._calcTimeline(p.Project_Start_Date__c, p.Project_End_Date__c);
+        const hPct           = this._calcHoursPercent(p.Contracted_Hours_Sprint__c, p.Hours_Delivered__c);
+        const delta          = hPct - pct;
+        const isResultsBased = (p.Pace_Status__c || '').toLowerCase().includes('results');
         return {
             Id:                p.Id,
             Name:              p.Name,
@@ -161,6 +162,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             hoursBarStyle:      this._calcHoursBarStyle(hPct),
             paceBadgeClass:     this._getPaceBadgeClass(p.Pace_Status__c),
             paceBadgeLabel:     p.Pace_Status__c ?? '--',
+            showDelta:          !isResultsBased,
             deltaRaw:           delta,
             deltaLabel:         this._calcDeltaLabel(delta),
             deltaClass:         this._calcDeltaClass(delta)
@@ -203,6 +205,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
 
     _calcDeltaClass(delta) {
         if (Math.abs(delta) <= 5) return 'delta-chip delta-on';
+        if (delta > 20)           return 'delta-chip delta-way-over';
         if (delta > 0)            return 'delta-chip delta-over';
         return 'delta-chip delta-under';
     }

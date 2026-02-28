@@ -143,7 +143,14 @@
                                     </div>
                                 </div>
 
-                                <span class={p.deltaClass}>{p.deltaLabel}</span>
+                                <div>
+                                    <template if:true={p.showDelta}>
+                                        <span class={p.deltaClass}>{p.deltaLabel}</span>
+                                    </template>
+                                    <template if:false={p.showDelta}>
+                                        <span class="delta-na">—</span>
+                                    </template>
+                                </div>
 
                                 <div class="td-rem">{p.hoursRemaining}h</div>
 
@@ -187,9 +194,11 @@
                         </div>
                         <span class="bar-pct">{hoverProject.hoursPercent}%</span>
                     </div>
-                    <div class="hc-delta-row">
-                        <span class={hoverProject.deltaClass}>{hoverProject.deltaLabel}</span>
-                    </div>
+                    <template if:true={hoverProject.showDelta}>
+                        <div class="hc-delta-row">
+                            <span class={hoverProject.deltaClass}>{hoverProject.deltaLabel}</span>
+                        </div>
+                    </template>
                 </div>
 
                 <div class="hc-stats">

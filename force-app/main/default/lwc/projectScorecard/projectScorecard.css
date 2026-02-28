@@ -313,9 +313,11 @@
     white-space: nowrap;
 }
 
-.delta-over  { background: #fef3c7; color: #92400e; }
-.delta-under { background: #d1fae5; color: #065f46; }
-.delta-on    { background: #eff6ff; color: #1d4ed8; }
+.delta-way-over { background: #fee2e2; color: #991b1b; }
+.delta-over     { background: #fef3c7; color: #92400e; }
+.delta-under    { background: #d1fae5; color: #065f46; }
+.delta-on       { background: #eff6ff; color: #1d4ed8; }
+.delta-na       { color: #bbb; font-size: 12px; }
 
 /* ── All Projects Table ───────────────────────────────────────────────────── */
 .project-table {
