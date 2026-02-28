@@ -112,8 +112,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             const ownerMap = {};
             const nameMap  = {};
             data.forEach(p => {
-                ownerMap[p.Id] = p.OwnerId;
-                if (p.Owner) nameMap[p.OwnerId] = p.Owner.Name;
+                // Project_Lead_Sprint__c is the "Project Owner" field; fall back to OwnerId
+                const effectiveOwnerId   = p.Project_Lead_Sprint__c || p.OwnerId;
+                const effectiveOwnerName = (p.Project_Lead_Sprint__c && p.Project_Lead_Sprint__r?.Name)
+                                           || p.Owner?.Name;
+                ownerMap[p.Id] = effectiveOwnerId;
+                if (effectiveOwnerName) nameMap[effectiveOwnerId] = effectiveOwnerName;
             });
             this._projectOwnerMap = ownerMap;
             this._ownerNames      = nameMap;
