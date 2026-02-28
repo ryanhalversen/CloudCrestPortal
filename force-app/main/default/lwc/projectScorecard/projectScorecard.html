@@ -22,9 +22,7 @@
                         <template for:each={projects} for:item="p">
                             <div key={p.Id} class="project-card"
                                  data-id={p.Id} data-name={p.Name}
-                                 onclick={handleCardClick}
-                                 onmouseenter={handleRowEnter}
-                                 onmouseleave={handleRowLeave}>
+                                 onclick={handleCardClick}>
 
                                 <div class="card-top">
                                     <div class="project-name">{p.Name}</div>
@@ -112,9 +110,7 @@
                         <template for:each={projects} for:item="p">
                             <div key={p.Id} class="table-row"
                                  data-id={p.Id} data-name={p.Name}
-                                 onclick={handleCardClick}
-                                 onmouseenter={handleRowEnter}
-                                 onmouseleave={handleRowLeave}>
+                                 onclick={handleCardClick}>
 
                                 <div class="td-name-group">
                                     <div class="td-name">{p.Name}</div>
@@ -174,61 +170,6 @@
             <template if:false={hasProjects}>
                 <div class="state-msg">No In Progress projects found.</div>
             </template>
-        </template>
-
-        <!-- ── Hover Card ── -->
-        <template if:true={hoverProject}>
-            <div class="hover-card" style={hoverStyle}>
-                <div class="hc-top">
-                    <div class="hc-name">{hoverProject.Name}</div>
-                    <span class={hoverProject.paceBadgeClass}>{hoverProject.paceBadgeLabel}</span>
-                </div>
-                <template if:true={hoverProject.accountName}>
-                    <div class="hc-account">{hoverProject.accountName}</div>
-                </template>
-                <div class="hc-dates">{hoverProject.startDate} → {hoverProject.endDate}</div>
-
-                <div class="hc-bars">
-                    <div class="bar-row">
-                        <span class="bar-label">Timeline</span>
-                        <div class="bar-track">
-                            <div class="bar-fill bar-timeline" style={hoverProject.progressStyle}></div>
-                        </div>
-                        <span class="bar-pct">{hoverProject.timelinePercent}%</span>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-label">Hours</span>
-                        <div class="bar-track">
-                            <div class="bar-fill" style={hoverProject.hoursBarStyle}></div>
-                        </div>
-                        <span class="bar-pct">{hoverProject.hoursPercent}%</span>
-                    </div>
-                    <template if:true={hoverProject.showDelta}>
-                        <div class="hc-delta-row">
-                            <span class={hoverProject.deltaClass}>{hoverProject.deltaLabel}</span>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="hc-stats">
-                    <div class="hc-stat">
-                        <div class="hc-stat-val">{hoverProject.hoursPurchased}</div>
-                        <div class="hc-stat-lbl">Purchased</div>
-                    </div>
-                    <div class="hc-stat">
-                        <div class="hc-stat-val">{hoverProject.hoursDelivered}</div>
-                        <div class="hc-stat-lbl">Delivered</div>
-                    </div>
-                    <div class="hc-stat">
-                        <div class="hc-stat-val">{hoverProject.hoursRemaining}</div>
-                        <div class="hc-stat-lbl">Remaining</div>
-                    </div>
-                    <div class="hc-stat">
-                        <div class="hc-stat-val hc-stat-val-pace">{hoverProject.weeklySprintHours}</div>
-                        <div class="hc-stat-lbl">Sprint pace</div>
-                    </div>
-                </div>
-            </div>
         </template>
 
     </div>

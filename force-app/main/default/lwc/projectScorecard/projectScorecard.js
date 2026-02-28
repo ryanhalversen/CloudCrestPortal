@@ -11,8 +11,6 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     @track sortField     = null;
     @track sortDir       = 'asc';
     @track filterType    = 'all';  // 'all' | 'retainer' | 'results'
-    @track hoverProject  = null;
-    @track hoverStyle    = '';
 
     @wire(MessageContext)
     _msgCtx;
@@ -21,8 +19,8 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get myBtnClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
     get allBtnClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
 
-    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.hoverProject = null; this.filterType = 'all'; } }
-    showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; this.hoverProject = null; } }
+    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.filterType = 'all'; } }
+    showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; } }
 
     // ── Wire ───────────────────────────────────────────────────────────────────
     @wire(getProjects, { viewMode: '$viewMode' })
@@ -113,31 +111,6 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             this.sortField = field;
             this.sortDir   = 'asc';
         }
-    }
-
-    // ── Hover card ─────────────────────────────────────────────────────────────
-    handleRowEnter(evt) {
-        const id = evt.currentTarget.dataset.id;
-        this.hoverProject = this._projects.find(p => p.Id === id) || null;
-        if (this.hoverProject) this.hoverStyle = this._calcHoverPos(evt);
-    }
-
-    handleRowLeave() {
-        this.hoverProject = null;
-    }
-
-    _calcHoverPos(evt) {
-        const rect    = evt.currentTarget.getBoundingClientRect();
-        const cardW   = 320;
-        const viewW   = window.innerWidth;
-        const cardH   = 230;
-        let left = rect.right + 12;
-        if (left + cardW > viewW - 12) left = rect.left - cardW - 12;
-        if (left < 8) left = 8;
-        let top = rect.top - 10;
-        if (top + cardH > window.innerHeight - 12) top = window.innerHeight - cardH - 12;
-        if (top < 8) top = 8;
-        return `top:${Math.round(top)}px;left:${Math.round(left)}px;`;
     }
 
     // ── Card click — publish project selection ─────────────────────────────────
