@@ -41,6 +41,18 @@ public without sharing class StoryBoardController {
         ];
     }
 
+    // ── Assign Epic ───────────────────────────────────────────────────────
+    @AuraEnabled
+    public static void assignEpic(Id caseId, Id epicId) {
+        try {
+            update new Case(Id = caseId, Epic__c = epicId);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Assign to Sprint ──────────────────────────────────────────────────
     @AuraEnabled
     public static void assignToSprint(Id caseId, Integer sprintWeek, Date sprintStartDate) {

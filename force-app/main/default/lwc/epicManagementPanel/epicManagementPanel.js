@@ -10,6 +10,7 @@ export default class EpicManagementPanel extends LightningElement {
 
     @api projectId;
     @api selectedEpicId = null;  // controlled by parent (storyBoard)
+    @api isDragging     = false; // true while a story card is being dragged
 
     @track _epics = [];
 
@@ -48,6 +49,10 @@ export default class EpicManagementPanel extends LightningElement {
     }
 
     // ── Computed ──────────────────────────────────────────────────────────
+    get stripClass() {
+        return this.isDragging ? 'epic-strip dragging-mode' : 'epic-strip';
+    }
+
     get allChipClass() {
         return !this.selectedEpicId
             ? 'epic-chip epic-chip-all epic-chip-active'
@@ -66,6 +71,17 @@ export default class EpicManagementPanel extends LightningElement {
 
     get modalTitle() { return this._editEpicId ? 'Edit Epic' : 'New Epic'; }
     get saveLabel()  { return this._editEpicId ? 'Save Changes' : 'Create Epic'; }
+
+    // Called by parent to find which epic chip covers a screen coordinate
+    @api getEpicIdAtPoint(x, y) {
+        for (const chip of this.template.querySelectorAll('.epic-chip[data-id]')) {
+            const r = chip.getBoundingClientRect();
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                return chip.dataset.id;
+            }
+        }
+        return null;
+    }
 
     // ── Chip handlers ─────────────────────────────────────────────────────
     handleAllEpics() {

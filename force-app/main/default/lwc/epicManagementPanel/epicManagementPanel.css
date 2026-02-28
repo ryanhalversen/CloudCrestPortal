@@ -12,6 +12,25 @@
     scrollbar-width: thin;
 }
 
+/* ── Dragging mode ──────────────────────────────────────────────────────── */
+.epic-strip.dragging-mode {
+    background: #f0fafd;
+    border-bottom-color: #00b4d8;
+}
+
+.epic-strip.dragging-mode .epic-chip:not(.epic-chip-all) {
+    border-color: #00b4d8;
+    border-style: dashed;
+    cursor: copy;
+}
+
+.epic-strip.dragging-mode .epic-chip:not(.epic-chip-all):hover {
+    background: #e0f7fc;
+    border-style: solid;
+    transform: scale(1.03);
+    box-shadow: 0 4px 14px rgba(0, 180, 216, 0.28);
+}
+
 /* ── Strip label ────────────────────────────────────────────────────────── */
 .epic-strip-label {
     font-size: 10px;

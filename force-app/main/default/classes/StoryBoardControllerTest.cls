@@ -242,6 +242,20 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testAssignEpic() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.assignEpic(c.Id, epic.Id);
+        Test.stopTest();
+
+        Case updated = [SELECT Epic__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals(epic.Id, updated.Epic__c, 'Epic should be assigned');
+    }
+
+    @isTest
     static void testGetStories_withEpicId() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];

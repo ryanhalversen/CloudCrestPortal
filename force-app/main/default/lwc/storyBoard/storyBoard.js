@@ -17,6 +17,7 @@ import getNextSteps         from '@salesforce/apex/StoryBoardController.getNextS
 import addNextStep          from '@salesforce/apex/StoryBoardController.addNextStep';
 import updateNextStep       from '@salesforce/apex/StoryBoardController.updateNextStep';
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
+import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -105,6 +106,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     @track selectedProjectId   = null;
     @track selectedEpicId      = null;
+    @track isCardDragging      = false;
     @track selectedOwnerFilter = '';
     viewMode                   = 'mine';
     _currentUserId             = userId;
@@ -551,31 +553,52 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         const dx = Math.abs(e.clientX - _startX);
         const dy = Math.abs(e.clientY - _startY);
         if (!_isDragging && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
-            _isDragging = true;
+            _isDragging          = true;
+            this.isCardDragging  = true;
             this._startGhost(e);
             this._setDraggingCard(_dragCardId, true);
         }
         if (_isDragging && _ghost) {
             _ghost.style.left = `${e.clientX + 12}px`;
             _ghost.style.top  = `${e.clientY + 12}px`;
-            this._highlightColumn(e);
+            // Only highlight board columns when not hovering over the epic strip
+            const epicPanel = this.template.querySelector('c-epic-management-panel');
+            const overEpics = epicPanel && (() => {
+                const r = epicPanel.getBoundingClientRect();
+                return e.clientX >= r.left && e.clientX <= r.right
+                    && e.clientY >= r.top  && e.clientY <= r.bottom;
+            })();
+            if (overEpics) {
+                this._clearColumnHighlights();
+            } else {
+                this._highlightColumn(e);
+            }
         }
     }
 
     handlePointerUp(e) {
         if (!_dragCardId) return;
         if (_isDragging) {
-            const toStatus = this._getColumnAtPoint(e.clientX, e.clientY);
+            const epicPanel = this.template.querySelector('c-epic-management-panel');
+            const epicId    = epicPanel ? epicPanel.getEpicIdAtPoint(e.clientX, e.clientY) : null;
+
             this._destroyGhost();
             this._clearColumnHighlights();
             this._setDraggingCard(_dragCardId, false);
-            if (toStatus && toStatus !== _dragFromStatus) {
-                this._moveCard(_dragCardId, _dragFromStatus, toStatus);
+
+            if (epicId) {
+                this._assignEpic(_dragCardId, epicId);
+            } else {
+                const toStatus = this._getColumnAtPoint(e.clientX, e.clientY);
+                if (toStatus && toStatus !== _dragFromStatus) {
+                    this._moveCard(_dragCardId, _dragFromStatus, toStatus);
+                }
             }
         }
-        _dragCardId     = null;
-        _dragFromStatus = null;
-        _isDragging     = false;
+        this.isCardDragging = false;
+        _dragCardId         = null;
+        _dragFromStatus     = null;
+        _isDragging         = false;
     }
 
     // ── Ghost ─────────────────────────────────────────────────────────────
@@ -687,6 +710,18 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             }
             return col;
         });
+    }
+
+    // ── Assign Epic (drag to epic strip) ──────────────────────────────────
+    _assignEpic(caseId, epicId) {
+        assignEpic({ caseId, epicId })
+            .then(() => {
+                const epicName = this.template.querySelector('c-epic-management-panel')
+                    ?._epics?.find(e => e.epicId === epicId)?.name || 'epic';
+                this._toast('Epic assigned', `Story moved to "${epicName}"`, 'success');
+                return refreshApex(this._wiredStoriesResult);
+            })
+            .catch(err => this._toast('Error', err?.body?.message || 'Could not assign epic', 'error'));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
