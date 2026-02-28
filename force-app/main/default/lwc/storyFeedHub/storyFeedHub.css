@@ -1,0 +1,251 @@
+/* ── Layout ── */
+.hub {
+    display: flex;
+    height: 100vh;
+    background: #f4f6f9;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Left Panel ── */
+.hub-left {
+    width: 280px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #e8ecf0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Filter Bar ── */
+.filter-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e8ecf0;
+    background: #f8fafc;
+    flex-shrink: 0;
+}
+.filter-select {
+    flex: 1;
+    font-size: 11px;
+    padding: 5px 8px;
+    border: 1px solid #e8ecf0;
+    border-radius: 6px;
+    background: #fff;
+    color: #1a1a2e;
+    outline: none;
+    cursor: pointer;
+}
+.filter-select:focus { border-color: #1a73e8; }
+
+/* ── Group Header ── */
+.group-header {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #8a9bb0;
+    padding: 10px 20px 4px;
+    list-style: none;
+}
+
+/* ── Week Selector ── */
+.week-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e8ecf0;
+    flex-shrink: 0;
+}
+.week-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+.week-btn {
+    background: none;
+    border: 1px solid #e8ecf0;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    color: #5a6a7e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.week-btn:hover:not(:disabled) {
+    background: #f4f6f9;
+    color: #1a73e8;
+    border-color: #1a73e8;
+}
+.week-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Story List ── */
+.story-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ── Story Item ── */
+.story-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+}
+.story-item:hover {
+    background: #f8fafc;
+    border-left-color: #d0d9e3;
+}
+.story-item-active {
+    background: #f0f6ff !important;
+    border-left-color: #1a73e8 !important;
+}
+.story-subject {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a1a2e;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+.story-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.story-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+.story-status { font-size: 11px; color: #aab4c0; }
+.story-dept   { font-size: 11px; color: #8a9bb0; }
+
+/* ── Open link ── */
+.story-link {
+    font-size: 11px;
+    color: #1a73e8;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    opacity: 0;
+    transition: opacity 0.15s;
+    text-decoration: underline;
+}
+.story-item:hover .story-link { opacity: 1; }
+
+/* ── Priority Pills ── */
+.pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.pill-critical { background: #fde8e8; color: #c0392b; }
+.pill-high     { background: #fff3e0; color: #e65100; }
+.pill-medium   { background: #fff8e1; color: #f9a825; }
+.pill-low      { background: #e8f5e9; color: #2e7d32; }
+
+/* ── Tooltip ── */
+.tooltip {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 8px;
+    width: 220px;
+    background: #1a1a2e;
+    border-radius: 8px;
+    padding: 12px 14px;
+    z-index: 999;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+.story-item:hover .tooltip { display: block; }
+
+.tooltip-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+.tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.tooltip-label { font-size: 11px; color: #8a9bb0; }
+.tooltip-value { font-size: 11px; font-weight: 500; color: #e8ecf0; }
+
+/* ── States ── */
+.list-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 12px;
+}
+.state-msg { font-size: 13px; color: #8a9bb0; text-align: center; }
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e8ecf0;
+    border-top-color: #1a73e8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Right Panel ── */
+.hub-right {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Empty State ── */
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    text-align: center;
+}
+.empty-icon  { font-size: 40px; }
+.empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0;
+}
+.empty-sub {
+    font-size: 13px;
+    color: #8a9bb0;
+    max-width: 320px;
+    line-height: 1.6;
+    margin: 0;
+}

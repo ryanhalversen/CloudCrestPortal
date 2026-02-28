@@ -1,0 +1,286 @@
+<!-- force-app/main/default/lwc/storyBoard/storyBoard.html -->
+<template>
+    <div class="board-wrapper">
+
+        <!-- ── Header ── -->
+        <div class="board-header">
+            <div class="header-left">
+                <div class="header-icon">
+                    <lightning-icon icon-name="utility:kanban" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                </div>
+                <div>
+                    <h2 class="board-title">Story Board</h2>
+                    <p class="board-subtitle">{totalCount} stories total</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <lightning-combobox
+                    name="projectFilter"
+                    placeholder="All Projects"
+                    options={projectOptions}
+                    value={selectedProjectId}
+                    onchange={handleProjectChange}
+                    dropdown-alignment="right">
+                </lightning-combobox>
+
+                <template if:true={showNewStoryButton}>
+                    <button class="btn-new-story" onclick={handleNewStoryClick}>
+                        <lightning-icon icon-name="utility:add" size="x-small" style="--lwc-colorTextIcon:#fff;"></lightning-icon>
+                        New Story
+                    </button>
+                </template>
+
+                <div class="toggle-group">
+                    <button class={myStoriesClass} data-value="mine" onclick={handleToggle}>My Stories</button>
+                    <button class={allStoriesClass} data-value="all"  onclick={handleToggle}>All Stories</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Distribution Bar ── -->
+        <template if:false={isLoading}>
+            <div class="dist-bar-wrapper">
+                <div class="dist-bar-track">
+                    <template for:each={distBarSegments} for:item="seg">
+                        <div key={seg.status}
+                             class="dist-bar-segment"
+                             style={seg.style}
+                             title={seg.tooltip}>
+                            <template if:true={seg.showLabel}>
+                                <span class="dist-bar-label">{seg.count}</span>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                <div class="dist-bar-legend">
+                    <template for:each={distBarLegend} for:item="item">
+                        <div key={item.status} class="legend-item" style={item.dimStyle}>
+                            <span class="legend-dot" style={item.dotStyle}></span>
+                            <span class="legend-status">{item.status}</span>
+                            <span class="legend-count" style={item.countStyle}>{item.count}</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Loading ── -->
+        <template if:true={isLoading}>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- ── Error ── -->
+        <template if:true={errorMessage}>
+            <div class="error-banner">
+                <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                <span>{errorMessage}</span>
+            </div>
+        </template>
+
+        <!-- ── Board ── -->
+        <template if:false={isLoading}>
+            <div class="board-scroll">
+                <div class="board-columns">
+                    <template for:each={columns} for:item="col">
+                        <div key={col.status}
+                            class="board-col"
+                            data-status={col.status}
+                            onpointermove={handlePointerMove}
+                            onpointerup={handlePointerUp}>
+                            <div class="col-header" style={col.headerStyle}>
+                                <span class="col-title">{col.status}</span>
+                                <span class="col-badge">{col.count}</span>
+                            </div>
+                            <div class="col-cards" data-status={col.status}>
+                                <template if:true={col.hasCards}>
+                                    <template for:each={col.cards} for:item="card">
+                                        <div key={card.id}
+                                            class={card.cardClass}
+                                            data-id={card.id}
+                                            data-status={col.status}
+                                            onpointerdown={handlePointerDown}
+                                            onclick={handleCardClick}
+                                            onmouseenter={handleCardHover}
+                                            onmouseleave={handleCardLeave}>
+                                            <template if:true={card.isSaving}>
+                                                <div class="card-saving-overlay">
+                                                    <lightning-spinner size="x-small" alternative-text="Saving"></lightning-spinner>
+                                                </div>
+                                            </template>
+                                            <div class="card-subject">{card.subject}</div>
+                                            <div class="card-meta">
+                                                <span class={card.priorityClass}>{card.priority}</span>
+                                                <template if:true={card.type}>
+                                                    <span class="meta-type">{card.type}</span>
+                                                </template>
+                                            </div>
+                                            <div class="card-footer">
+                                                <span class="card-number">#{card.caseNumber}</span>
+                                                <span class="card-date">{card.openedDate}</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={col.hasCards}>
+                                    <div class="col-empty" data-status={col.status}>No stories</div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Story Detail Modal ── -->
+        <template if:true={modalCard}>
+            <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+                <div class="modal-container" onclick={handleModalContainerClick}>
+                    <div class="modal-header">
+                        <div class="modal-header-meta">
+                            <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                            <span class="modal-case-number">#{modalCard.caseNumber}</span>
+                            <template if:true={modalCard.type}>
+                                <span class="meta-type">{modalCard.type}</span>
+                            </template>
+                        </div>
+                        <div class="modal-header-actions">
+                            <a href={modalCard.recordUrl}
+                                target="_blank"
+                                class="btn-open-record"
+                                title="Open full record">
+                                <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
+                                Open
+                            </a>
+                            <button class="modal-close" onclick={handleModalClose}>✕</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body">
+                        <h3 class="modal-subject">{modalCard.subject}</h3>
+
+                        <template if:true={modalCard.description}>
+                            <p class="modal-description">{modalCard.description}</p>
+                        </template>
+                        <template if:false={modalCard.description}>
+                            <p class="modal-no-desc">No description provided.</p>
+                        </template>
+
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Priority</label>
+                            <div class="modal-priority-options">
+                                <template for:each={priorityOptions} for:item="opt">
+                                    <button key={opt.value}
+                                        class={opt.btnClass}
+                                        data-value={opt.value}
+                                        onclick={handlePrioritySelect}
+                                        disabled={isSavingPriority}>
+                                        {opt.label}
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <template if:true={modalSaveError}>
+                            <span class="modal-save-error">⚠ Failed to save — please try again</span>
+                        </template>
+                        <template if:true={isSavingPriority}>
+                            <span class="modal-saving">Saving…</span>
+                        </template>
+                        <button class="btn-cancel" onclick={handleModalClose}>Close</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── New Story Modal ── -->
+        <template if:true={showNewStoryModal}>
+            <div class="modal-backdrop" onclick={handleNewStoryBackdropClick}>
+                <div class="modal-container" onclick={handleModalContainerClick}>
+
+                    <div class="modal-header">
+                        <div class="modal-header-meta">
+                            <lightning-icon icon-name="utility:add" size="x-small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                            <span class="modal-case-number">New Story</span>
+                        </div>
+                        <div class="modal-header-actions">
+                            <button class="modal-close" onclick={handleNewStoryClose}>✕</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">
+                                Subject <span class="new-story-required">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                class={newStorySubjectClass}
+                                placeholder="Enter story subject…"
+                                value={newStorySubject}
+                                oninput={handleNewStorySubjectChange}
+                                maxlength="255" />
+                            <template if:true={newStorySubjectError}>
+                                <span class="field-error">Subject is required.</span>
+                            </template>
+                        </div>
+
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Description</label>
+                            <textarea
+                                class="new-story-textarea"
+                                placeholder="Optional description…"
+                                value={newStoryDescription}
+                                oninput={handleNewStoryDescriptionChange}
+                                rows="3">
+                            </textarea>
+                        </div>
+
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Priority</label>
+                            <div class="modal-priority-options">
+                                <template for:each={priorityOptions} for:item="opt">
+                                    <button key={opt.value}
+                                        class={opt.newBtnClass}
+                                        data-value={opt.value}
+                                        onclick={handleNewStoryPrioritySelect}>
+                                        {opt.label}
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Department</label>
+                            <lightning-combobox
+                                name="newStoryDepartment"
+                                placeholder="--None--"
+                                options={departmentOptions}
+                                value={newStoryDepartment}
+                                onchange={handleNewStoryDepartmentChange}>
+                            </lightning-combobox>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <template if:true={newStorySaveError}>
+                            <span class="modal-save-error">⚠ Failed to create story — please try again</span>
+                        </template>
+                        <template if:true={isCreatingStory}>
+                            <span class="modal-saving">Creating…</span>
+                        </template>
+                        <button class="btn-cancel" onclick={handleNewStoryClose} disabled={isCreatingStory}>Cancel</button>
+                        <button class="btn-save"   onclick={handleNewStorySubmit} disabled={isCreatingStory}>Create Story</button>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+    </div>
+</template>

@@ -1,0 +1,60 @@
+{
+  "appPageId" : "0c61cdb1-0be8-4ff3-850c-22f1b82f3b9a",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "9bd97626-0472-4eb8-ba88-c7e863b714d5",
+  "label" : "News Detail",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "191b39ad-b219-47fd-922b-2cef06b197e0",
+          "columns" : [ {
+            "UUID" : "df2af70a-3933-47d4-a59d-c18ea4cf1be9",
+            "columnKey" : "1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ ]
+          } ]
+        },
+        "sectionHeight" : 300
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "191b39ad-b219-47fd-922b-2cef06b197e0",
+      "regions" : [ {
+        "id" : "df2af70a-3933-47d4-a59d-c18ea4cf1be9",
+        "regionLabel" : "Column 1",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "36d39732-4078-4a8c-9fb4-bc227fd4f5ab",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "{!Content.contentTypeLabel}.{!Content.title}"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "699c5c27-e951-4346-beea-1a8cb251d74c",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "b3be4f5d-3188-409a-b28c-78a6821f8fe7",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "managed-content-news"
+}

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BusinessProcess xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Internally Created</fullName>
+    <description>Used when manually creating cases</description>
+    <isActive>true</isActive>
+    <values>
+        <fullName>Backlog</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Blocked</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Cancelled</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Completed</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>In Review</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>In UAT</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>New</fullName>
+        <default>true</default>
+    </values>
+    <values>
+        <fullName>On Hold</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Scheduled</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Waiting for User</fullName>
+        <default>false</default>
+    </values>
+    <values>
+        <fullName>Work In Progress %28WIP%29</fullName>
+        <default>false</default>
+    </values>
+</BusinessProcess>

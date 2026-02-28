@@ -1,0 +1,18 @@
+<template>
+    <nav class="portal-nav">
+        <div class="nav-brand">
+            <span class="brand-cc">CloudCrest</span>
+            <span class="brand-divider">|</span>
+            <span class="brand-client">{projectName}</span>
+        </div>
+        <ul class="nav-links">
+            <template for:each={navItems} for:item="item">
+                <li key={item.label}>
+                    <a href="#" data-page={item.pageName} class={item.cssClass} onclick={handleNav}>
+                        {item.label}
+                    </a>
+                </li>
+            </template>
+        </ul>
+    </nav>
+</template>

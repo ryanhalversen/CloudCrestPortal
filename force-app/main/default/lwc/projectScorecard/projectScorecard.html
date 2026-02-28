@@ -1,0 +1,82 @@
+<template>
+    <div class="scorecard-wrapper">
+
+        <div class="scorecard-header">
+            <span class="scorecard-title">Project Scorecards</span>
+            <div class="view-toggle">
+                <button class={myBtnClass} onclick={showMine}>My Projects</button>
+                <button class={allBtnClass} onclick={showAll}>All Projects</button>
+            </div>
+        </div>
+
+        <template if:true={isLoading}>
+            <div class="state-msg">Loading projects...</div>
+        </template>
+
+        <template if:false={isLoading}>
+            <template if:true={hasProjects}>
+                <div class="cards-grid">
+                    <template for:each={projects} for:item="p">
+                        <div key={p.Id} class="project-card" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
+
+                            <div class="card-top">
+                                <div class="project-name">{p.Name}</div>
+                                <div class="card-top-right">
+                                    <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
+                                    <button class="btn-open-record" data-id={p.Id} onclick={navigateToRecord}>
+                                        <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
+                                        Open
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="timeline-row">
+                                <div class="timeline-meta">
+                                    <span>{p.startDate}</span>
+                                    <span class="timeline-pct">{p.timelinePercent}% through timeline</span>
+                                    <span>{p.endDate}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style={p.progressStyle}></div>
+                                    <div class="today-marker" style={p.todayMarkerStyle}></div>
+                                </div>
+                            </div>
+
+                            <div class="stats-row">
+                                <div class="stat stat-divider">
+                                    <div class="stat-label">Purchased</div>
+                                    <div class="stat-value">{p.hoursPurchased}</div>
+                                    <div class="stat-sub">hrs</div>
+                                </div>
+                                <div class="stat stat-divider">
+                                    <div class="stat-label">Delivered</div>
+                                    <div class="stat-value">{p.hoursDelivered}</div>
+                                    <div class="mini-bar-bg">
+                                        <div class="mini-bar-fill" style={p.hoursProgressStyle}></div>
+                                    </div>
+                                    <div class="stat-sub">{p.hoursPercent}% used</div>
+                                </div>
+                                <div class="stat stat-divider">
+                                    <div class="stat-label">Remaining</div>
+                                    <div class="stat-value">{p.hoursRemaining}</div>
+                                    <div class="stat-sub">hrs</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-label">Sprint Hrs</div>
+                                    <div class="stat-value stat-value-sprint">{p.weeklySprintHours}</div>
+                                    <div class="stat-sub">per week</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <template if:false={hasProjects}>
+                <div class="state-msg">No In Progress projects found.</div>
+            </template>
+        </template>
+
+    </div>
+</template>

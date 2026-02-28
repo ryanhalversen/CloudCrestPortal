@@ -1,0 +1,47 @@
+<template>
+    <div class="composer">
+        <div class="composer-top">
+            <div class="avatar">{initials}</div>
+            <textarea
+                class="composer-input"
+                placeholder="Post an update, ask a question, or tag as a decision or blocker..."
+                value={postBody}
+                oninput={handleInput}
+                onkeydown={handleKeyDown}>
+            </textarea>
+        </div>
+
+        <div class="composer-actions">
+            <div class="composer-tools">
+
+                <!-- Tag buttons -->
+                <span class="tools-label">Tag as:</span>
+                <button
+                    class={decisionBtnClass}
+                    data-tag="DECISION"
+                    onclick={handleTagToggle}>
+                    Decision
+                </button>
+                <button
+                    class={blockerBtnClass}
+                    data-tag="BLOCKER"
+                    onclick={handleTagToggle}>
+                    Blocker
+                </button>
+
+            </div>
+
+            <button
+                class="btn-post"
+                disabled={isPostDisabled}
+                onclick={handlePost}>
+                {postLabel}
+            </button>
+        </div>
+
+        <!-- Error -->
+        <template if:true={errorMessage}>
+            <p class="composer-error">{errorMessage}</p>
+        </template>
+    </div>
+</template>

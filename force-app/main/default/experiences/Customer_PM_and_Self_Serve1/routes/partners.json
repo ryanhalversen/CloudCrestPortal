@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "fc5d2de2-7b69-4086-9961-b7dda78604d6",
+  "appPageId" : "0c61cdb1-0be8-4ff3-850c-22f1b82f3b9a",
+  "configurationTags" : [ ],
+  "devName" : "Partners__c",
+  "id" : "5bd8e48a-5105-477a-842e-a3c2c83124a6",
+  "label" : "Partners",
+  "pageAccess" : "Public",
+  "routeType" : "custom-partners",
+  "type" : "route",
+  "urlPrefix" : "partners"
+}

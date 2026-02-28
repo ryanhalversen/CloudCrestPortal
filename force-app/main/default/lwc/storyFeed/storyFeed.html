@@ -1,0 +1,74 @@
+<template>
+    <div class="feed-container">
+
+        <!-- Header -->
+        <div class="feed-header">
+            <div class="header-meta">
+                <span class="story-id">STORY-{story.caseNumber}</span>
+                <span class="story-title">{story.subject}</span>
+            </div>
+            <div class="header-badges">
+                <span class={priorityBadgeClass}>{story.priority}</span>
+                <span class="badge badge-status">{story.status}</span>
+                <template if:true={story.sprintWeek}>
+                    <span class="badge badge-sprint">{story.sprintWeek}</span>
+                </template>
+            </div>
+            <template if:true={story.description}>
+                <p class="story-description">{story.description}</p>
+            </template>
+            <div class="header-details">
+                <template if:true={story.stage}>
+                    <span class="detail-chip">Stage: {story.stage}</span>
+                </template>
+                <template if:true={story.department}>
+                    <span class="detail-chip">Dept: {story.department}</span>
+                </template>
+                <template if:true={story.ownerName}>
+                    <span class="detail-chip">Owner: {story.ownerName}</span>
+                </template>
+                <template if:true={story.plannedCompletion}>
+                    <span class={dueDateChipClass}>Due: {story.plannedCompletion}</span>
+                </template>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="feed-body">
+
+            <!-- Feed Column -->
+            <div class="feed-main">
+
+                <!-- Tabs -->
+                <div class="feed-tabs">
+                    <template for:each={tabs} for:item="tab">
+                        <button
+                            key={tab.value}
+                            class={tab.cssClass}
+                            data-value={tab.value}
+                            onclick={handleTabChange}>
+                            {tab.label}
+                        </button>
+                    </template>
+                </div>
+
+                <!-- Composer -->
+                <c-story-feed-composer
+                    record-id={_recordId}
+                    onpostcreated={handlePostCreated}>
+                </c-story-feed-composer>
+
+                <!-- Feed List -->
+                <c-story-feed-list
+                    record-id={_recordId}
+                    filter-type={activeTab}>
+                </c-story-feed-list>
+
+            </div>
+
+            <!-- Sidebar -->
+            <c-story-feed-sidebar story={story}></c-story-feed-sidebar>
+
+        </div>
+    </div>
+</template>

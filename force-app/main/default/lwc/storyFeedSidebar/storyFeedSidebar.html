@@ -1,0 +1,73 @@
+<template>
+    <div class="sidebar">
+
+        <!-- Story Details -->
+        <div class="sidebar-section">
+            <h3 class="section-title">Story Details</h3>
+
+            <template if:true={story.subject}>
+                <div class="detail-row">
+                    <span class="detail-label">Subject</span>
+                    <span class="detail-value">{story.subject}</span>
+                </div>
+            </template>
+
+            <template if:true={story.status}>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">{story.status}</span>
+                </div>
+            </template>
+
+            <template if:true={story.priority}>
+                <div class="detail-row">
+                    <span class="detail-label">Priority</span>
+                    <span class={priorityClass}>{story.priority}</span>
+                </div>
+            </template>
+
+            <template if:true={story.stage}>
+                <div class="detail-row">
+                    <span class="detail-label">Stage</span>
+                    <span class="detail-value">{story.stage}</span>
+                </div>
+            </template>
+
+            <template if:true={story.department}>
+                <div class="detail-row">
+                    <span class="detail-label">Department</span>
+                    <span class="detail-value">{story.department}</span>
+                </div>
+            </template>
+
+            <template if:true={story.sprintWeek}>
+                <div class="detail-row">
+                    <span class="detail-label">Sprint</span>
+                    <span class="detail-value">{story.sprintWeek}</span>
+                </div>
+            </template>
+
+            <template if:true={story.plannedCompletion}>
+                <div class="detail-row">
+                    <span class="detail-label">Due</span>
+                    <span class={dueDateClass}>{story.plannedCompletion}</span>
+                </div>
+            </template>
+
+            <template if:true={story.ownerName}>
+                <div class="detail-row">
+                    <span class="detail-label">Owner</span>
+                    <span class="detail-value">{story.ownerName}</span>
+                </div>
+            </template>
+
+            <template if:true={story.contactName}>
+                <div class="detail-row">
+                    <span class="detail-label">Contact</span>
+                    <span class="detail-value">{story.contactName}</span>
+                </div>
+            </template>
+        </div>
+
+    </div>
+</template>

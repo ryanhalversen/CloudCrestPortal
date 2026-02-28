@@ -1,0 +1,319 @@
+/* force-app/main/default/lwc/submitAStory/submitAStory.css */
+
+/* ── Card Shell ─────────────────────────────────────────────────────────── */
+.portal-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 32px 20px;
+}
+.header-icon {
+    background: #e6f7fb;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0d1b2a;
+    margin: 0 0 2px;
+    letter-spacing: -0.3px;
+}
+.card-subtitle {
+    font-size: 0.825rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.divider {
+    height: 1px;
+    background: #f0f2f5;
+    margin: 0 32px;
+}
+
+/* ── Error Banner ───────────────────────────────────────────────────────── */
+.error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 8px;
+    color: #be123c;
+    font-size: 0.875rem;
+    padding: 10px 14px;
+    margin: 16px 32px 0;
+}
+
+/* ── Form Body ──────────────────────────────────────────────────────────── */
+.form-body {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    grid-template-rows: auto 1fr auto;
+    gap: 16px;
+    padding: 20px 32px;
+}
+.form-field.full-width { grid-column: 1 / -1; }
+.description-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    grid-column: 1;
+    grid-row: 2;
+}
+.description-col .field-textarea { flex: 1; min-height: 140px; resize: none; }
+.right-col {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+
+/* ── Field Labels ───────────────────────────────────────────────────────── */
+.field-label { font-size: 0.8rem; font-weight: 600; color: #374151; letter-spacing: 0.01em; }
+.required { color: #00b4d8; margin-left: 2px; }
+
+/* ── Inputs ─────────────────────────────────────────────────────────────── */
+.field-input {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #0d1b2a;
+    background: #fafafa;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+    font-family: inherit;
+    outline: none;
+    -webkit-appearance: none;
+}
+.field-input:focus {
+    border-color: #00b4d8;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.12);
+}
+.field-input::placeholder { color: #9ca3af; }
+.field-textarea { line-height: 1.55; }
+
+/* ── Select ─────────────────────────────────────────────────────────────── */
+.select-wrapper { position: relative; }
+.field-select   { cursor: pointer; padding-right: 32px; }
+.select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+/* ── Field Errors ───────────────────────────────────────────────────────── */
+.field-error { font-size: 0.75rem; color: #dc2626; }
+
+/* ── Upload Zone ────────────────────────────────────────────────────────── */
+.upload-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 16px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #fafafa;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: #00b4d8; background: #e6f7fb; }
+.upload-label  { font-size: 0.85rem; color: #374151; margin: 0; }
+.upload-link   { color: #00b4d8; font-weight: 600; cursor: pointer; }
+.upload-link:hover { text-decoration: underline; }
+.upload-hint   { font-size: 0.75rem; color: #9ca3af; margin: 0; }
+.hidden-uploader { display: none; }
+
+/* ── File Chips ─────────────────────────────────────────────────────────── */
+.file-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #e6f7fb;
+    border: 1px solid #bae6fd;
+    border-radius: 20px;
+    padding: 3px 10px 3px 8px;
+    font-size: 0.78rem;
+    color: #0369a1;
+}
+.chip-remove { cursor: pointer; font-size: 0.7rem; color: #64748b; margin-left: 2px; }
+.chip-remove:hover { color: #dc2626; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.form-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 0 32px 24px;
+}
+.btn-submit {
+    background: #00b4d8;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 26px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    min-width: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+}
+.btn-submit:hover:not([disabled]) { background: #0096b4; transform: translateY(-1px); }
+.btn-submit:active:not([disabled]) { transform: translateY(0); }
+.btn-submit[disabled] { background: #a5d8e6; cursor: not-allowed; }
+
+.btn-ghost .slds-button,
+.btn-ghost lightning-button button {
+    color: #6b7280;
+    border-color: #e5e7eb;
+    border-radius: 8px;
+}
+.btn-ghost .slds-button:hover,
+.btn-ghost lightning-button button:hover {
+    background: #f9fafb;
+    color: #374151;
+}
+
+/* ── Success State ──────────────────────────────────────────────────────── */
+.success-state {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 36px;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+.success-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    min-width: 220px;
+}
+.success-icon {
+    background: #e6f7fb;
+    border-radius: 50%;
+    padding: 16px;
+    display: flex;
+}
+.success-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0d1b2a;
+    margin: 6px 0 0;
+}
+.success-sub {
+    color: #6b7280;
+    font-size: 0.875rem;
+    max-width: 360px;
+    margin: 0;
+    line-height: 1.55;
+}
+.success-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.btn-primary .slds-button,
+.btn-primary lightning-button button {
+    background: #00b4d8;
+    border-color: #00b4d8;
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.btn-primary .slds-button:hover,
+.btn-primary lightning-button button:hover {
+    background: #0096b4;
+    border-color: #0096b4;
+}
+
+/* ── Submitted Story Card ───────────────────────────────────────────────── */
+.success-card {
+    background: #f8fafc;
+    border: 1.5px solid #00b4d8;
+    border-radius: 12px;
+    padding: 20px 24px;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(0,180,216,0.1);
+}
+.success-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.success-card-type {
+    font-size: 0.72rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+.success-card-dept {
+    font-size: 0.72rem;
+    color: #0369a1;
+    background: #e0f2fe;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+.success-card-subject {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0d1b2a;
+    line-height: 1.35;
+}
+.success-card-desc {
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ── Priority Badges ────────────────────────────────────────────────────── */
+.priority-badge { font-size: 0.68rem; font-weight: 700; border-radius: 4px; padding: 2px 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+.priority-low      { background: #dcfce7; color: #15803d; }
+.priority-medium   { background: #fef9c3; color: #a16207; }
+.priority-high     { background: #ffedd5; color: #c2410c; }
+.priority-critical { background: #fee2e2; color: #b91c1c; }

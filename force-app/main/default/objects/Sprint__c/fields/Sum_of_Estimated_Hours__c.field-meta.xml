@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sum_of_Estimated_Hours__c</fullName>
+    <label>Sum of Estimated Hours</label>
+    <summarizedField>Sprint_Items__c.Hours_Estimate__c</summarizedField>
+    <summaryFilterItems>
+        <field>Sprint_Items__c.Status__c</field>
+        <operation>notEqual</operation>
+        <value>Blocked, Complete, On Hold, Cancelled</value>
+    </summaryFilterItems>
+    <summaryForeignKey>Sprint_Items__c.Projects_new__c</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Summary</type>
+</CustomField>

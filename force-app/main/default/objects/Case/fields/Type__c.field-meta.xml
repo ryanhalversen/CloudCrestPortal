@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Type__c</fullName>
+    <description>Used to organize the type of request we are getting from users and assigning to the correct party internally or externally</description>
+    <label>Story Type</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>General Support / How-To</fullName>
+                <default>false</default>
+                <label>General Support / How-To</label>
+            </value>
+            <value>
+                <fullName>System Issues / Bugs</fullName>
+                <default>false</default>
+                <label>System Issues / Bugs</label>
+            </value>
+            <value>
+                <fullName>Configuration / Enhancement</fullName>
+                <default>false</default>
+                <label>Configuration / Enhancement</label>
+            </value>
+            <value>
+                <fullName>User Access / Permissions</fullName>
+                <default>false</default>
+                <label>User Access / Permissions</label>
+            </value>
+            <value>
+                <fullName>Integration / API Issues</fullName>
+                <default>false</default>
+                <label>Integration / API Issues</label>
+            </value>
+            <value>
+                <fullName>Critical System Failures</fullName>
+                <default>false</default>
+                <label>Critical System Failures</label>
+            </value>
+            <value>
+                <fullName>Views, Reporting, Dashboards</fullName>
+                <default>false</default>
+                <label>Views, Reporting, Dashboards</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

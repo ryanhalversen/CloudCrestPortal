@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Date_Completion_Sprint__c</fullName>
+    <formula>IF(
+    TODAY() &lt;= Project_Start_Date__c,
+    0,
+    IF(
+        TODAY() &gt;= Project_End_Date__c,
+        1,
+        (TODAY() - Project_Start_Date__c) / (Project_End_Date__c - Project_Start_Date__c)
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Date Completion %</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Percent</type>
+</CustomField>

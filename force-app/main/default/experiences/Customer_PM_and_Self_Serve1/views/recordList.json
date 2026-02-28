@@ -1,0 +1,323 @@
+{
+  "appPageId" : "0c61cdb1-0be8-4ff3-850c-22f1b82f3b9a",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "a5ee8852-1b79-4253-bdab-ff64e31c2d0a",
+  "label" : "Record List",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "enableInlineEdit" : true,
+        "filterName" : "All_Open_Projects",
+        "layout" : "COMPACT",
+        "pageSize" : 25,
+        "scope" : "Sprint__c",
+        "showActionBar" : false,
+        "showChartsPanel" : false,
+        "showDisplay" : "showall",
+        "showFilterPanel" : false,
+        "showImageIcon" : true,
+        "showManualRefreshButton" : false,
+        "showObjectName" : false,
+        "showPinnedList" : true,
+        "showSearchBar" : false
+      },
+      "componentName" : "forceCommunity:objectHome",
+      "id" : "b936962b-7b2a-4d76-86a3-259f6d73e2ca",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "9f578d01-4828-4cf3-8d21-8c984c21f023",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "tabsetConfig" : {
+          "UUID" : "2729bde9-153f-413f-8957-a71ede22ace8",
+          "activeTab" : "",
+          "tabs" : [ {
+            "UUID" : "dc8d44f0-1b85-4254-b860-5b40383ba64f",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "9eba6",
+            "tabName" : "KanBan"
+          }, {
+            "UUID" : "a44edfdd-deab-43aa-bf9c-682da4e7b7e6",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "1",
+            "tabName" : "Not Started"
+          }, {
+            "UUID" : "36fa8b1c-e61b-49ed-b778-c593ef48fb0c",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "2",
+            "tabName" : "In Progress"
+          }, {
+            "UUID" : "a3c1fdc4-3fad-4c4b-b84d-9b0d10af8352",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "3",
+            "tabName" : "Need Input"
+          }, {
+            "UUID" : "d3b7dbf5-68b8-4267-a87e-1ed606da861e",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "96ea0",
+            "tabName" : "Final Approval"
+          }, {
+            "UUID" : "b858613e-1a29-417a-be8b-fa2d0dd9017a",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "c1bb0",
+            "tabName" : "Completed"
+          }, {
+            "UUID" : "ee7930e3-a4dd-424a-b8cd-07dae273e556",
+            "allowGuestUser" : false,
+            "locked" : false,
+            "seedComponents" : [ ],
+            "tabKey" : "42c17",
+            "tabName" : "On Hold / Cancelled"
+          } ],
+          "useOverflowMenu" : true
+        }
+      },
+      "componentName" : "forceCommunity:tabLayout",
+      "id" : "2729bde9-153f-413f-8957-a71ede22ace8",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "Kanban",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "kanban",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : true,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "8d61cace-311c-4066-b811-3769c8fb1421",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "dc8d44f0-1b85-4254-b860-5b40383ba64f",
+        "regionLabel" : "KanBan",
+        "regionName" : "9eba6",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "objectApiName" : "{!objectName}"
+          },
+          "componentName" : "runtime_pipeline_inspector:pipelineInspectorHomeExperienceContainer",
+          "id" : "61a3fc0d-61c8-4861-b024-61b3c0086274",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        }, {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "Not_Started",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : true,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "0bcbd6d0-7905-4b3b-b8ca-9b795cfc8450",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "a44edfdd-deab-43aa-bf9c-682da4e7b7e6",
+        "regionLabel" : "Not Started",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "In_Progress",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : false,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "d75ff23f-585c-4525-95d1-a0364bb12b4b",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "36fa8b1c-e61b-49ed-b778-c593ef48fb0c",
+        "regionLabel" : "In Progress",
+        "regionName" : "2",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "Need_Input_From_Customer",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : true,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "1a53cddc-46ad-4b96-9a63-3bea5ebd5baa",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "a3c1fdc4-3fad-4c4b-b84d-9b0d10af8352",
+        "regionLabel" : "Need Input",
+        "regionName" : "3",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "Final_Approval",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : true,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "562f35bf-27a2-472c-a971-0ac44a0995d5",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "d3b7dbf5-68b8-4267-a87e-1ed606da861e",
+        "regionLabel" : "Final Approval",
+        "regionName" : "96ea0",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "Complete",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : false,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "bedb2f65-62c7-4565-a684-d0f80b545d33",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "b858613e-1a29-417a-be8b-fa2d0dd9017a",
+        "regionLabel" : "Completed",
+        "regionName" : "c1bb0",
+        "renditionMap" : { },
+        "type" : "region"
+      }, {
+        "components" : [ {
+          "componentAttributes" : {
+            "enableInlineEdit" : false,
+            "filterName" : "On_Hold",
+            "layout" : "FULL",
+            "pageSize" : 25,
+            "scope" : "Sprint_Items__c",
+            "showActionBar" : false,
+            "showChartsPanel" : false,
+            "showDisplay" : "grid",
+            "showFilterPanel" : false,
+            "showImageIcon" : false,
+            "showManualRefreshButton" : true,
+            "showObjectName" : false,
+            "showPinnedList" : false,
+            "showSearchBar" : true
+          },
+          "componentName" : "forceCommunity:objectHome",
+          "id" : "b7581418-8b7e-4885-be74-fbe96dc8d6ad",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "ee7930e3-a4dd-424a-b8cd-07dae273e556",
+        "regionLabel" : "On Hold / Cancelled",
+        "regionName" : "42c17",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "7c3eb815-f009-420d-b04a-62dd5f8d774f",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "3aaf43f6-00c0-4674-96cb-1d9ea4701174",
+    "regionName" : "footer",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "list"
+}

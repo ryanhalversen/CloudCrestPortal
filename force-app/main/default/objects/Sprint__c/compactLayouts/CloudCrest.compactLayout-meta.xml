@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CloudCrest</fullName>
+    <fields>Name</fields>
+    <fields>OwnerId</fields>
+    <fields>Account__c</fields>
+    <fields>Pace_Status__c</fields>
+    <fields>Client_Stakeholder__c</fields>
+    <fields>Contracted_Hours_Sprint__c</fields>
+    <fields>Completed_Delta_Sprint__c</fields>
+    <fields>Hours_Delivered__c</fields>
+    <label>CloudCrest</label>
+</CompactLayout>

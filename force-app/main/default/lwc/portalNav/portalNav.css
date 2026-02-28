@@ -1,0 +1,90 @@
+/* portalNav.css */
+.portal-nav {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    background: #1a2332;
+    border-bottom: 1px solid #2d3f55;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 32px 0;
+    box-sizing: border-box;
+}
+
+/* Branding — centered, large */
+.nav-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.brand-cc {
+    font-size: 28px;
+    font-weight: 800;
+    color: #4da6ff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.brand-divider {
+    color: #3d5068;
+    font-size: 28px;
+}
+
+.brand-client {
+    font-size: 22px;
+    color: #c8dff0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 600px;
+}
+
+/* Nav Links — full width, equally spaced */
+.nav-links {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid #2d3f55;
+    box-sizing: border-box;
+}
+
+.nav-links li {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+}
+
+.nav-link {
+    display: inline-block;
+    padding: 12px 40px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    letter-spacing: 0.5px;
+    transition: color 0.15s ease;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    color: #4da6ff !important;
+    text-decoration: none !important;
+    background: transparent;
+}
+
+.nav-link.active {
+    color: #4da6ff !important;
+    font-weight: 800;
+    border-bottom: 3px solid #4da6ff;
+}

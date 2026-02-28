@@ -1,0 +1,63 @@
+/* execOverview.css */
+.eo-page { width: 100%; margin: 0; padding: 32px 48px 60px; background: #f0f4f8; box-sizing: border-box; }
+.eo-header { margin-bottom: 28px; }
+.eo-title { font-size: 24px; font-weight: 800; color: #1a2332; }
+.eo-sub { font-size: 13px; color: #6b7f93; margin-top: 4px; }
+
+.eo-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); width: 100%; box-sizing: border-box; }
+.eo-mb { margin-bottom: 24px; }
+.eo-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7f93; margin-bottom: 16px; }
+
+.eo-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; width: 100%; }
+.eo-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; width: 100%; }
+
+/* KPI */
+.eo-kpi { font-size: 42px; font-weight: 800; color: #1a2332; line-height: 1; }
+.eo-kpi-label { font-size: 13px; color: #6b7f93; margin-top: 6px; }
+.eo-green { color: #16a34a; }
+.eo-red { color: #dc2626; }
+.eo-muted { color: #6b7f93; }
+
+/* Bars */
+.eo-bar-row { margin-bottom: 14px; }
+.eo-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.eo-bar-track { background: #e8edf2; border-radius: 20px; height: 10px; }
+.eo-bar-fill { height: 10px; border-radius: 20px; transition: width 0.4s ease; }
+
+/* Priority */
+.eo-pri-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.eo-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; min-width: 90px; text-align: center; }
+.eo-badge-critical { background: #fee2e2; color: #dc2626; }
+.eo-badge-high     { background: #ffedd5; color: #ea580c; }
+.eo-badge-medium   { background: #fef9c3; color: #ca8a04; }
+.eo-badge-low      { background: #dcfce7; color: #16a34a; }
+.eo-badge-na       { background: #f1f5f9; color: #64748b; }
+.eo-pri-count { font-size: 13px; font-weight: 700; color: #1a2332; min-width: 30px; text-align: right; }
+
+/* Type tiles */
+.eo-type-grid { display: flex; flex-direction: row; gap: 12px; flex-wrap: wrap; }
+.eo-type-tile { flex: 1; min-width: 120px; background: #f0f4f8; border-radius: 10px; padding: 16px; text-align: center; border-top: 4px solid #ccc; }
+.eo-type-count { font-size: 28px !important; font-weight: 800 !important; line-height: 1; display: block; }
+.eo-type-label { font-size: 11px; color: #6b7f93; margin-top: 4px; font-weight: 600; display: block; }
+
+/* Trend chart */
+.eo-trend-sub { font-size: 12px; color: #6b7f93; margin-bottom: 20px; }
+.eo-trend-wrap { display: flex; align-items: flex-end; gap: 12px; height: 180px; border-bottom: 2px solid #e8edf2; padding-bottom: 4px; margin-bottom: 8px; }
+.eo-trend-col { flex: 1; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 1px; position: relative; }
+.eo-seg { width: 100%; }
+.eo-trend-label { text-align: center; font-size: 10px; color: #6b7f93; margin-top: 6px; }
+.eo-legend { display: flex; gap: 20px; flex-wrap: wrap; margin: 12px 0 16px; }
+.eo-legend-item { font-size: 12px; color: #6b7f93; display: flex; align-items: center; gap: 5px; }
+.eo-legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.eo-callout { background: #f0fdf4; border-left: 3px solid #16a34a; padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px; color: #166534; }
+
+/* Ring */
+.eo-ring-wrap { display: flex; align-items: center; gap: 32px; }
+.eo-ring { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+.eo-ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+.eo-ring-pct { font-size: 28px; font-weight: 800; color: #1a2332; }
+.eo-ring-lbl { font-size: 11px; color: #6b7f93; }
+.eo-ring-stats { flex: 1; }
+.eo-stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; font-weight: 600; color: #1a2332; }
+.eo-stat-row:last-child { border-bottom: none; }
+.eo-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }

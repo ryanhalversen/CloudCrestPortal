@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>ProjectSelected</masterLabel>
+    <isExposed>true</isExposed>
+    <description>Published when a project scorecard is clicked to filter Story Board and Sprint Planner.</description>
+    <lightningMessageFields>
+        <fieldName>projectId</fieldName>
+        <description>The Salesforce Id of the selected project</description>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <fieldName>projectName</fieldName>
+        <description>The name of the selected project</description>
+    </lightningMessageFields>
+</LightningMessageChannel>

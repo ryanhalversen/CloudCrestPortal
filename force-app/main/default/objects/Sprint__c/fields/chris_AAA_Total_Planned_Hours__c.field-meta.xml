@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>chris_AAA_Total_Planned_Hours__c</fullName>
+    <description>If the project is fully planned from the start, this should equal the retainer.  As the admin adjusts the plan due to pivots or PTO, this difference from the total retainer will illustrate gaps.</description>
+    <inlineHelpText>Total of planned time to be dedicated to this retainer project, as the sum of weekly AAA plans.</inlineHelpText>
+    <label>AAA - Total Planned Hours</label>
+    <summarizedField>chris_Account_and_Admin__c.cc_Planned__c</summarizedField>
+    <summaryForeignKey>chris_Account_and_Admin__c.Project_Retainer_Master__c</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Summary</type>
+</CustomField>

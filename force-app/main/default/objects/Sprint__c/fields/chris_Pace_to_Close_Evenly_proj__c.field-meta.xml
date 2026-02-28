@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>chris_Pace_to_Close_Evenly_proj__c</fullName>
+    <externalId>false</externalId>
+    <formula>( Contracted_Hours_Sprint__c +  Hours_Rolled_Over__c -  Logged_Hours__c )/
+ (
+  if( ( Project_End_Date__c - today() ) /7 &lt; 1, 1,
+  ( Project_End_Date__c - today() ) /7 )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>Required logged hours/week to complete all hours within the exact contract period.  Does not include weekend days in the calculation.</inlineHelpText>
+    <label>Pace to Close Evenly</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

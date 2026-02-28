@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "a5ee8852-1b79-4253-bdab-ff64e31c2d0a",
+  "appPageId" : "0c61cdb1-0be8-4ff3-850c-22f1b82f3b9a",
+  "configurationTags" : [ ],
+  "devName" : "Deliverables_List__c",
+  "id" : "3b4f8831-999c-4c56-8f93-6a3ecb44fc8e",
+  "label" : "Deliverables List",
+  "objectApiName" : "Sprint_Items__c",
+  "routeType" : "list-a0g",
+  "type" : "route",
+  "urlPrefix" : "sprint-items"
+}

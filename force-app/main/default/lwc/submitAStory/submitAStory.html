@@ -1,0 +1,195 @@
+<!-- force-app/main/default/lwc/submitAStory/submitAStory.html -->
+<template>
+    <div class="portal-card">
+
+        <!-- ── SUCCESS STATE ── -->
+        <template if:true={submitted}>
+            <div class="success-state">
+                <div class="success-left">
+                    <div class="success-icon">
+                        <lightning-icon icon-name="utility:success" size="large" style="--lwc-colorTextIconSuccess:#00b4d8;"></lightning-icon>
+                    </div>
+                    <h2 class="success-title">Story Submitted!</h2>
+                    <p class="success-sub">Your story has been received and is now visible below. Our team will review it shortly.</p>
+                    <div class="success-actions">
+                        <lightning-button label="Submit Another Story" onclick={handleReset} class="btn-primary"></lightning-button>
+                    </div>
+                </div>
+                <template if:true={hasSubmittedStory}>
+                    <div class="success-card">
+                        <div class="success-card-header">
+                            <span class={submittedStory.priorityClass}>{submittedStory.priority}</span>
+                            <template if:true={submittedStory.storyType}>
+                                <span class="success-card-type">{submittedStory.storyType}</span>
+                            </template>
+                            <template if:true={submittedStory.department}>
+                                <span class="success-card-dept">{submittedStory.department}</span>
+                            </template>
+                        </div>
+                        <div class="success-card-subject">{submittedStory.subject}</div>
+                        <template if:true={submittedStory.description}>
+                            <div class="success-card-desc">{submittedStory.description}</div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ── FORM STATE ── -->
+        <template if:false={submitted}>
+
+            <div class="card-header">
+                <div class="header-icon">
+                    <lightning-icon icon-name="utility:case" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                </div>
+                <div>
+                    <h2 class="card-title">Submit a Story</h2>
+                    <p class="card-subtitle">Tell us what you need and we'll get it on the board.</p>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Error banner -->
+            <template if:true={errorMessage}>
+                <div class="error-banner">
+                    <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                    <span>{errorMessage}</span>
+                </div>
+            </template>
+
+            <div class="form-body">
+
+                <!-- ROW 1: Subject (full width) -->
+                <div class="form-field full-width">
+                    <label class="field-label">Subject <span class="required">*</span></label>
+                    <input
+                        type="text"
+                        class="field-input"
+                        placeholder="Brief summary of the request"
+                        data-field="subject"
+                        value={formData.subject}
+                        oninput={handleInput}
+                        maxlength="255" />
+                    <template if:true={errors.subject}>
+                        <span class="field-error">{errors.subject}</span>
+                    </template>
+                </div>
+
+                <!-- ROW 2: Description (left, tall) + right column (Priority, Type, Department stacked) -->
+                <div class="form-field description-col">
+                    <label class="field-label">Description <span class="required">*</span></label>
+                    <textarea
+                        class="field-input field-textarea"
+                        placeholder="Describe the request in detail — context, expected outcome, any relevant background..."
+                        data-field="description"
+                        oninput={handleInput}>{formData.description}</textarea>
+                    <template if:true={errors.description}>
+                        <span class="field-error">{errors.description}</span>
+                    </template>
+                </div>
+
+                <div class="right-col">
+
+                    <!-- Priority -->
+                    <div class="form-field">
+                        <label class="field-label">Priority <span class="required">*</span></label>
+                        <div class="select-wrapper">
+                            <select class="field-input field-select" data-field="priority" onchange={handleInput}>
+                                <option value="">-- Select Priority --</option>
+                                <template for:each={priorityOptions} for:item="opt">
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                </template>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                            <template if:true={errors.department}>
+                            <span class="field-error">{errors.department}</span>
+                        </template>
+                    </div>
+                        <template if:true={errors.priority}>
+                            <span class="field-error">{errors.priority}</span>
+                        </template>
+                    </div>
+
+                    <!-- Story Type -->
+                    <div class="form-field">
+                        <label class="field-label">Story Type <span class="required">*</span></label>
+                        <div class="select-wrapper">
+                            <select class="field-input field-select" data-field="storyType" onchange={handleInput} disabled={loadingPicklists}>
+                                <option value="">-- Select Type --</option>
+                                <template for:each={storyTypeOptions} for:item="opt">
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                </template>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                        </div>
+                        <template if:true={errors.storyType}>
+                            <span class="field-error">{errors.storyType}</span>
+                        </template>
+                    </div>
+
+                    <!-- Department -->
+                    <div class="form-field">
+                        <label class="field-label">Department <span class="required">*</span></label>
+                        <div class="select-wrapper">
+                            <select class="field-input field-select" data-field="department" onchange={handleInput} disabled={loadingPicklists}>
+                                <option value="">-- Select Department --</option>
+                                <template for:each={departmentOptions} for:item="opt">
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                </template>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                        </div>
+                    </div>
+
+                </div><!-- /right-col -->
+
+                <!-- ROW 3: Attachments (full width) -->
+                <div class="form-field full-width">
+                    <label class="field-label">Attachments</label>
+                    <div class={uploadZoneClass}
+                        ondragover={handleDragOver}
+                        ondragleave={handleDragLeave}
+                        ondrop={handleDrop}>
+                        <lightning-icon icon-name="utility:upload" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                        <p class="upload-label">Drag &amp; drop files here, or <span class="upload-link" onclick={handleUploadClick}>browse</span></p>
+                        <p class="upload-hint">Max 25 MB per file</p>
+                        <lightning-file-upload
+                            name="fileUploader"
+                            accept={acceptedFormats}
+                            record-id={recordId}
+                            onuploadfinished={handleUploadFinished}
+                            multiple
+                            class="hidden-uploader">
+                        </lightning-file-upload>
+                    </div>
+                    <template if:true={hasFiles}>
+                        <div class="file-chips">
+                            <template for:each={uploadedFiles} for:item="f">
+                                <span key={f.documentId} class="file-chip">
+                                    <lightning-icon icon-name="utility:attach" size="xx-small"></lightning-icon>
+                                    {f.name}
+                                    <span class="chip-remove" data-id={f.documentId} onclick={handleRemoveFile}>✕</span>
+                                </span>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+            </div><!-- /form-body -->
+
+            <div class="form-footer">
+                <lightning-button label="Cancel" onclick={handleCancel} class="btn-ghost"></lightning-button>
+                <button class="btn-submit" onclick={handleSubmit} disabled={isSubmitting}>
+                    <template if:true={isSubmitting}>
+                        <lightning-spinner alternative-text="Submitting" size="small"></lightning-spinner>
+                    </template>
+                    <template if:false={isSubmitting}>
+                        Submit Story
+                    </template>
+                </button>
+            </div>
+
+        </template>
+    </div>
+</template>

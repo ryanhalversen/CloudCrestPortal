@@ -1,0 +1,124 @@
+<template>
+    <div class="hub">
+
+        <!-- Left Panel -->
+        <div class="hub-left">
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label class="filter-label">Filter</label>
+                    <select class="filter-select" onchange={handleGroupChange}>
+                        <option value="ALL">All Stories</option>
+                        <option value="SPRINT">By Sprint</option>
+                        <option value="PRIORITY">By Priority</option>
+                        <option value="DEPARTMENT">By Department</option>
+                        <option value="STATUS">By Status</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Sort</label>
+                    <select class="filter-select" onchange={handleSortChange}>
+                        <option value="PRIORITY">Priority</option>
+                        <option value="DATE">Date</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Week Selector — only shown when grouping by sprint -->
+            <template if:true={isSprintView}>
+                <div class="week-selector">
+                    <button class="week-btn" onclick={handlePrevWeek} disabled={isFirstWeek}>‹</button>
+                    <span class="week-label">Sprint Week {currentWeek}</span>
+                    <button class="week-btn" onclick={handleNextWeek}>›</button>
+                </div>
+            </template>
+
+            <!-- Loading -->
+            <template if:true={isLoading}>
+                <div class="list-state">
+                    <div class="spinner"></div>
+                </div>
+            </template>
+
+            <!-- Empty -->
+            <template if:true={isEmpty}>
+                <div class="list-state">
+                    <p class="state-msg">No open stories found.</p>
+                </div>
+            </template>
+
+            <!-- Story List -->
+            <template if:true={hasStories}>
+                <ul class="story-list">
+                    <template for:each={stories} for:item="story">
+                        <li
+                            key={story.id}
+                            class={story.itemClass}
+                            data-id={story.id}
+                            onclick={handleStorySelect}>
+
+                            <div class="story-subject">{story.subject}</div>
+                            <div class="story-meta">
+                                <span class={story.priorityClass}>{story.priority}</span>
+                                <span class="story-dept">{story.department}</span>
+                            </div>
+                            <div class="story-footer">
+                                <span class="story-status">{story.status}</span>
+                                <a
+                                    class="story-link"
+                                    href={story.orgUrl}
+                                    target="_blank"
+                                    onclick={handleLinkClick}>
+                                    Open ↗
+                                </a>
+                            </div>
+
+                            <!-- Tooltip — shown via CSS hover, no JS needed -->
+                            <div class="tooltip">
+                                <div class="tooltip-title">{story.subject}</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Status</span>
+                                    <span class="tooltip-value">{story.status}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Priority</span>
+                                    <span class="tooltip-value">{story.priority}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Stage</span>
+                                    <span class="tooltip-value">{story.stage}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Department</span>
+                                    <span class="tooltip-value">{story.department}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">Sprint</span>
+                                    <span class="tooltip-value">Week {story.sprintWeek}</span>
+                                </div>
+                            </div>
+
+                        </li>
+                    </template>
+                </ul>
+            </template>
+
+        </div>
+
+        <!-- Right Panel -->
+        <div class="hub-right">
+            <template if:false={selectedRecordId}>
+                <div class="empty-state">
+                    <div class="empty-icon">💬</div>
+                    <h3 class="empty-title">Select a story to view its feed</h3>
+                    <p class="empty-sub">Choose a story from the left panel to view and post updates, decisions, and blockers.</p>
+                </div>
+            </template>
+            <template if:true={selectedRecordId}>
+                <c-story-feed record-id={selectedRecordId}></c-story-feed>
+            </template>
+        </div>
+
+    </div>
+</template>

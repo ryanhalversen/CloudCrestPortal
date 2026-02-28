@@ -1,0 +1,121 @@
+.composer {
+    background: #fff;
+    border: 1px solid #e8ecf0;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 16px 24px 0;
+}
+
+/* ── Top row ── */
+.composer-top {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1a73e8;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.composer-input {
+    flex: 1;
+    border: 1px solid #e8ecf0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #1a1a2e;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    min-height: 42px;
+    transition: border 0.15s, min-height 0.15s;
+    width: 100%;
+}
+.composer-input:focus {
+    border-color: #1a73e8;
+    min-height: 80px;
+}
+.composer-input::placeholder { color: #aab4c0; }
+
+/* ── Actions row ── */
+.composer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f4f8;
+}
+.composer-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tools-label {
+    font-size: 11px;
+    color: #aab4c0;
+}
+
+/* ── Tag pills ── */
+.tag-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 1px solid;
+    background: transparent;
+    transition: all 0.15s;
+}
+.tag-decision {
+    border-color: #1a73e8;
+    color: #1a73e8;
+}
+.tag-decision.tag-active,
+.tag-decision:hover {
+    background: #1a73e8;
+    color: #fff;
+}
+.tag-blocker {
+    border-color: #c0392b;
+    color: #c0392b;
+}
+.tag-blocker.tag-active,
+.tag-blocker:hover {
+    background: #c0392b;
+    color: #fff;
+}
+
+/* ── Post button ── */
+.btn-post {
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-post:hover:not(:disabled) { background: #1557b0; }
+.btn-post:disabled {
+    background: #c5d9f7;
+    cursor: not-allowed;
+}
+
+/* ── Error ── */
+.composer-error {
+    font-size: 12px;
+    color: #c0392b;
+    margin-top: 8px;
+    padding-left: 48px;
+}

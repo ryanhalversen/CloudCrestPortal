@@ -1,0 +1,64 @@
+<template>
+    <div class="feed-list">
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="feed-state">
+                <div class="spinner"></div>
+                <p>Loading posts...</p>
+            </div>
+        </template>
+
+        <!-- Error -->
+        <template if:true={hasError}>
+            <div class="feed-state feed-error">
+                <p>Unable to load posts. Please refresh and try again.</p>
+            </div>
+        </template>
+
+        <!-- Empty -->
+        <template if:true={isEmpty}>
+            <div class="feed-state">
+                <p class="empty-msg">No posts yet — be the first to post an update.</p>
+            </div>
+        </template>
+
+        <!-- Posts -->
+        <template if:true={hasPosts}>
+            <template for:each={posts} for:item="post">
+
+                <!-- Tracked Change (status/field update) -->
+                <template if:true={post.isTrackedChange}>
+                    <div key={post.id} class="tracked-change-post">
+                        <div class="tracked-change-header">
+                            <span class="tracked-change-icon">⟳</span>
+                            <span class="tracked-change-author">{post.authorName}</span>
+                            <span class="tracked-change-label">made changes</span>
+                            <span class="tracked-change-date">{post.createdDate}</span>
+                        </div>
+                        <template for:each={post.trackedChanges} for:item="change">
+                            <div key={change.fieldName} class="tracked-change-row">
+                                <span class="change-field">{change.fieldName}</span>
+                                <span class="change-old">{change.oldValue}</span>
+                                <span class="change-arrow">→</span>
+                                <span class="change-new">{change.newValue}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Regular Post -->
+                <template if:true={post.isRegularPost}>
+                    <c-story-feed-post
+                        key={post.id}
+                        post={post}
+                        record-id={recordId}
+                        onreplycreated={handleReplyCreated}>
+                    </c-story-feed-post>
+                </template>
+
+            </template>
+        </template>
+
+    </div>
+</template>

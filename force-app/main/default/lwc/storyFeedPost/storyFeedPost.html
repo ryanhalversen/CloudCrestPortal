@@ -1,0 +1,77 @@
+<template>
+    <div class={postClass}>
+
+        <!-- Tag label -->
+        <template if:true={isTagged}>
+            <span class={tagBadgeClass}>{post.postType}</span>
+        </template>
+
+        <!-- Post Header -->
+        <div class="post-header">
+            <div class="avatar">{authorInitials}</div>
+            <div class="post-meta">
+                <span class="author-name">{post.authorName}</span>
+                <span class="post-time">{post.createdDate}</span>
+            </div>
+        </div>
+
+        <!-- Post Body -->
+        <div class="post-body">{post.body}</div>
+
+        <!-- Post Footer -->
+        <div class="post-footer">
+            <button class="footer-btn" onclick={handleToggleReplies}>
+                <template if:true={hasReplies}>
+                    {replyLabel} {replyToggleIcon}
+                </template>
+                <template if:false={hasReplies}>
+                    Reply
+                </template>
+            </button>
+        </div>
+
+        <!-- Replies -->
+        <template if:true={showReplies}>
+            <div class="thread">
+
+                <!-- Existing replies -->
+                <template for:each={repliesWithInitials} for:item="reply">
+                    <div key={reply.id} class="thread-post">
+                        <div class="thread-avatar">{reply.initials}</div>
+                        <div class="thread-body">
+                            <span class="thread-author">{reply.authorName}</span>
+                            <span class="thread-time">{reply.createdDate}</span>
+                            <p class="thread-text">{reply.body}</p>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Reply composer -->
+                <div class="reply-composer">
+                    <div class="avatar avatar-sm">{currentUserInitials}</div>
+                    <div class="reply-input-wrap">
+                        <textarea
+                            class="reply-input"
+                            placeholder="Write a reply..."
+                            value={replyBody}
+                            oninput={handleReplyInput}
+                            onkeydown={handleReplyKeyDown}>
+                        </textarea>
+                        <button
+                            class="btn-reply"
+                            disabled={isReplyDisabled}
+                            onclick={handleReply}>
+                            {replyBtnLabel}
+                        </button>
+                    </div>
+                </div>
+
+                <template if:true={replyError}>
+                    <p class="reply-error">{replyError}</p>
+                </template>
+
+            </div>
+        </template>
+
+    </div>
+</template>

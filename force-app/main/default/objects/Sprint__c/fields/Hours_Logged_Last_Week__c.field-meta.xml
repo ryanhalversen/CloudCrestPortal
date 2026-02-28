@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Hours_Logged_Last_Week__c</fullName>
+    <label>Hours Logged Last Week</label>
+    <summarizedField>Time_Log__c.Hours_Logged__c</summarizedField>
+    <summaryFilterItems>
+        <field>Time_Log__c.Logged_Last_Week__c</field>
+        <operation>equals</operation>
+        <value>True</value>
+    </summaryFilterItems>
+    <summaryForeignKey>Time_Log__c.Sprint__c</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Summary</type>
+</CustomField>

@@ -1,0 +1,291 @@
+<!-- eodTimeRetro.html -->
+<template>
+    <lightning-card title="End of Day · Time Recap" icon-name="standard:timesheet">
+
+        <!-- STATS ROW -->
+        <div class="slds-grid slds-gutters slds-p-horizontal_medium slds-m-bottom_medium">
+
+            <!-- TODAY -->
+            <div class="slds-col">
+                <div class={statCardTodayClass} onclick={handleStatClick} data-period="today">
+                    <div class="stat-label">Today</div>
+                    <div class="stat-value stat-today">{stats.todayHours}h</div>
+                    <div class="stat-sub">{todayEntryCount} entries</div>
+                </div>
+            </div>
+
+            <!-- THIS WEEK -->
+            <div class="slds-col">
+                <div class={statCardWeekClass} onclick={handleStatClick} data-period="week">
+                    <div class="stat-label">This Week</div>
+                    <div class="stat-value stat-week">{stats.weekHours}h</div>
+                </div>
+            </div>
+
+            <!-- THIS MONTH -->
+            <div class="slds-col">
+                <div class={statCardMonthClass} onclick={handleStatClick} data-period="month">
+                    <div class="stat-label">This Month</div>
+                    <div class="stat-value stat-month">{stats.monthHours}h</div>
+                </div>
+            </div>
+
+            <!-- UNLOGGED / LOG TODAY -->
+            <div class="slds-col">
+                <div class={statCardLogClass} onclick={handleCloseBreakdown}>
+                    <div class="stat-label">Unlogged</div>
+                    <div class="stat-value stat-unlogged">{unloggedCount}</div>
+                    <div class="stat-sub">
+                        <template if:true={showBreakdown}>← log today</template>
+                        <template if:false={showBreakdown}>stories need time</template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS ROW: user picker + unlogged badge -->
+        <div class="slds-grid slds-p-horizontal_medium slds-m-bottom_small slds-grid_vertical-align-center slds-gutters">
+            <div class="slds-col slds-size_3-of-12">
+                <lightning-combobox
+                    label="Viewing"
+                    variant="label-hidden"
+                    value={selectedUserId}
+                    options={userOptions}
+                    onchange={handleUserChange}>
+                </lightning-combobox>
+            </div>
+            <div class="slds-col slds-shrink slds-m-left_small">
+                <template if:true={hasUnlogged}>
+                    <span class="unlogged-badge pulse">⚠ {unloggedCount} unlogged</span>
+                </template>
+                <template if:false={hasUnlogged}>
+                    <span class="logged-badge">✓ All logged — great work!</span>
+                </template>
+            </div>
+        </div>
+
+        <!-- DATE PICKER ROW -->
+        <div class="slds-p-horizontal_medium slds-m-bottom_medium">
+            <div class="lookback-row">
+                <span class="lookback-label">📅 View date:</span>
+                <template for:each={lookbackDays} for:item="d">
+                    <button key={d.value}
+                            class={d.btnClass}
+                            data-date={d.value}
+                            onclick={handleLookback}>
+                        {d.label}
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="slds-p-horizontal_medium">
+
+            <!-- ── TIME BREAKDOWN VIEW (when a stat card is active) ── -->
+            <template if:true={showBreakdown}>
+                <div class="breakdown-header">
+                    <span class="section-label">{breakdownTitle}</span>
+                    <button class="close-breakdown" onclick={handleCloseBreakdown}>✕ Back to stories</button>
+                </div>
+
+                <template if:true={isLoadingBreakdown}>
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </template>
+
+                <template if:false={isLoadingBreakdown}>
+                    <template if:true={noBreakdown}>
+                        <div class="empty-state">No time entries for this period.</div>
+                    </template>
+                    <template for:each={breakdown} for:item="b">
+                        <div key={b.accountId} class="breakdown-group">
+                            <div class="breakdown-account-header">
+                                <span class="breakdown-account-name">📁 {b.accountName}</span>
+                                <span class="breakdown-account-hours">{b.totalHours}h</span>
+                            </div>
+                            <template for:each={b.entries} for:item="e">
+                                <div key={e.timeId} class="breakdown-entry"
+                                     data-id={e.timeId}
+                                     onclick={handleTimeChipNavigate}>
+                                    <span class="breakdown-story">{e.subject}</span>
+                                    <span class="breakdown-hours">{e.hours}h</span>
+                                    <template if:true={e.notes}>
+                                        <span class="breakdown-notes">· {e.notes}</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </template>
+
+            <!-- ── STORY LIST VIEW (default) ── -->
+            <template if:false={showBreakdown}>
+                <p class="section-label">{storiesLabel}</p>
+
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </template>
+
+                <template if:false={isLoading}>
+                    <template if:true={noStories}>
+                        <div class="empty-state">No stories modified on this date.</div>
+                    </template>
+
+                    <!-- Project groups -->
+                    <template for:each={projectGroups} for:item="pg">
+                        <div key={pg.projectId} class="project-group">
+                            <div class="project-header">
+                                <span class="project-icon">📁</span>
+                                <span class="project-name">{pg.projectName}</span>
+                                <span class="project-count">{pg.count} stories</span>
+                            </div>
+
+                            <template for:each={pg.stories} for:item="s">
+                                <div key={s.storyId} class={s.rowClass}>
+
+                                    <!-- Needs-log flag -->
+                                    <template if:false={s.hasTime}>
+                                        <template if:false={s.newTimeId}>
+                                            <div class="needs-log-flag">
+                                                <span class="pulse-dot"></span> No time logged yet
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    <!-- Story header -->
+                                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small story-header-click"
+                                         data-id={s.storyId}
+                                         onclick={handleCardNavigate}>
+                                        <div>
+                                            <span class={s.priorityClass}>{s.priority}</span>
+                                            <span class="story-id">#{s.caseNumber}</span>
+                                            <div class="story-name">{s.subject}</div>
+                                            <div class="story-detail">
+                                                Status: {s.status} · Last modified today
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- History pills -->
+                                    <template if:true={s.hasHistory}>
+                                        <div class="history-row">
+                                            <template for:each={s.history} for:item="h">
+                                                <div key={h.id} class="history-entry">
+                                                    <span class="history-field">{h.field}</span>
+                                                    <template if:true={h.hasOld}>
+                                                        <span class="history-old">{h.oldValue}</span>
+                                                        <span class="history-arrow">→</span>
+                                                    </template>
+                                                    <span class="history-new">{h.newValue}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Already logged -->
+                                    <template if:true={s.hasTime}>
+                                        <div class="logged-row">
+                                            ✓ {s.totalHours}h logged today
+                                            <template if:true={isCurrentUser}>
+                                                <a onclick={handleEdit} data-id={s.storyId}
+                                                    class="slds-m-left_small edit-link">+ add more</a>
+                                            </template>
+                                        </div>
+                                        <div class="time-chips">
+                                            <template for:each={s.timeEntries} for:item="te">
+                                                <span key={te.Id}
+                                                      class="time-chip"
+                                                      data-id={te.Id}
+                                                      onclick={handleTimeChipNavigate}>
+                                                    🕐 {te.Hours_Logged__c}h
+                                                    <template if:true={te.Additional_Comments__c}>
+                                                        · {te.Additional_Comments__c}
+                                                    </template>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Newly logged chip -->
+                                    <template if:true={s.newTimeId}>
+                                        <div class="time-chips slds-m-top_x-small">
+                                            <span class="time-chip time-chip-new"
+                                                  data-id={s.newTimeId}
+                                                  onclick={handleTimeChipNavigate}>
+                                                🕐 {s.newHours}h logged — click to view record
+                                            </span>
+                                        </div>
+                                    </template>
+
+                                    <!-- Log form (own view + not yet logged) -->
+                                    <template if:true={isCurrentUser}>
+                                        <template if:false={s.hasTime}>
+                                            <template if:false={s.newTimeId}>
+                                                <div class="slds-grid slds-gutters slds-grid_vertical-align-center">
+                                                    <div class="slds-col slds-size_2-of-12">
+                                                        <lightning-input type="text" label="Hours"
+                                                            data-id={s.storyId} class="hrs-input"
+                                                            variant="label-hidden" placeholder="0.0">
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_6-of-12">
+                                                        <lightning-input type="text" label="Notes"
+                                                            data-id={s.storyId} class="notes-input"
+                                                            variant="label-hidden" placeholder="Brief note (optional)">
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-12">
+                                                        <lightning-button variant="success" label="Log"
+                                                            data-id={s.storyId} onclick={handleLog}>
+                                                        </lightning-button>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-12">
+                                                        <lightning-button variant="neutral" label="Skip"
+                                                            data-id={s.storyId} onclick={handleSkip}>
+                                                        </lightning-button>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </template>
+                                    </template>
+
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+
+        <!-- EDIT MODAL -->
+        <template if:true={showEditModal}>
+            <section role="dialog" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 class="slds-modal__title">Add / Edit Time Entry</h2>
+                        <button class="slds-button slds-button_icon slds-modal__close" onclick={closeModal}>
+                            <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        </button>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-input type="number" label="Hours" min="0" max="24"
+                            step="0.5" value={editHours} onchange={handleEditHoursChange}>
+                        </lightning-input>
+                        <lightning-input type="text" label="Notes" value={editNotes}
+                            onchange={handleEditNotesChange} class="slds-m-top_small">
+                        </lightning-input>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button label="Cancel" onclick={closeModal}></lightning-button>
+                        <lightning-button variant="brand" label="Save"
+                            onclick={handleEditSave} class="slds-m-left_small">
+                        </lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+    </lightning-card>
+</template>

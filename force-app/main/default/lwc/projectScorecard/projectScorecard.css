@@ -1,0 +1,245 @@
+/* ── Wrapper ──────────────────────────────────────────────────────────────── */
+.scorecard-wrapper {
+    padding: 10px 12px;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+}
+
+/* ── Header / Toggle ──────────────────────────────────────────────────────── */
+.scorecard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.scorecard-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 3px;
+    background: #e4e4e4;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.toggle-btn {
+    border: none;
+    background: transparent;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    color: #706e6b;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+.toggle-btn.active {
+    background: #fff;
+    color: #0176d3;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ── 2×2 Grid ─────────────────────────────────────────────────────────────── */
+.cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* ── Individual Card ──────────────────────────────────────────────────────── */
+.project-card {
+    background: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 6px;
+    padding: 10px 12px;
+    min-width: 0;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.project-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    border-color: #0176d3;
+}
+
+/* ── Card Top Row ─────────────────────────────────────────────────────────── */
+.card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.project-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #080707;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Pace Badge ───────────────────────────────────────────────────────────── */
+.pace-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.pace-behind { background: #fef0c7; color: #b54708; }
+.pace-on     { background: #d1fadf; color: #027a48; }
+.pace-ahead  { background: #dbeafe; color: #1d4ed8; }
+.pace-none   { background: #f0f0f0; color: #706e6b; }
+
+/* ── Timeline ─────────────────────────────────────────────────────────────── */
+.timeline-row {
+    margin-bottom: 7px;
+}
+
+.timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #706e6b;
+    margin-bottom: 3px;
+}
+
+.timeline-pct {
+    color: #0176d3;
+    font-weight: 700;
+}
+
+.progress-track {
+    position: relative;
+    height: 5px;
+    background: #e4e4e4;
+    border-radius: 3px;
+    overflow: visible;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #0176d3;
+    border-radius: 3px;
+}
+
+.today-marker {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 11px;
+    background: #1a1a1a;
+    border-radius: 1px;
+    transform: translateX(-50%);
+}
+
+.today-marker::after {
+    content: '▲';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 6px;
+    color: #1a1a1a;
+}
+
+/* ── Stats Row ────────────────────────────────────────────────────────────── */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    border-top: 1px solid #f3f2f2;
+    padding-top: 7px;
+}
+
+.stat {
+    text-align: center;
+    min-width: 0;
+}
+
+.stat-divider {
+    border-right: 1px solid #e4e4e4;
+}
+
+.stat-label {
+    font-size: 9px;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #080707;
+    line-height: 1.1;
+}
+
+.stat-value-sprint {
+    color: #0176d3;
+    font-size: 12px;
+}
+
+.stat-sub {
+    font-size: 9px;
+    color: #706e6b;
+    margin-top: 1px;
+}
+
+/* ── Hours mini-bar ───────────────────────────────────────────────────────── */
+.mini-bar-bg {
+    height: 3px;
+    background: #e4e4e4;
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+}
+
+.mini-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* ── States ───────────────────────────────────────────────────────────────── */
+.state-msg {
+    text-align: center;
+    padding: 24px;
+    color: #9ca3af;
+    font-size: 13px;
+}
+.card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.btn-open-record {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #00b4d8;
+    background: none;
+    border: 1px solid #00b4d8;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+.btn-open-record:hover { background: #e6f7fb; }

@@ -1,0 +1,118 @@
+<template>
+    <div class="action-parser">
+
+        <!-- PASTE VIEW -->
+        <template if:false={isParsed}>
+            <div class="paste-card">
+                <h2 class="card-title">📋 Meeting Action Items</h2>
+                <p class="subtitle">Paste your Fathom bullet points below</p>
+                <lightning-textarea
+                    label=""
+                    value={rawInput}
+                    placeholder="• Follow up on proposal by Friday&#10;• Client to provide logo assets&#10;• We need to set up sandbox environment&#10;• Customer to sign off on SOW..."
+                    rows="10"
+                    onchange={handleInputChange}>
+                </lightning-textarea>
+                <template if:true={errorMsg}>
+                    <p class="error-msg">{errorMsg}</p>
+                </template>
+                <lightning-button
+                    label={parseButtonLabel}
+                    variant="brand"
+                    onclick={handleParse}
+                    disabled={isLoading}
+                    class="parse-btn">
+                </lightning-button>
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text="Parsing..." size="medium"></lightning-spinner>
+                </template>
+            </div>
+        </template>
+
+        <!-- CHECKLIST VIEW -->
+        <template if:true={isParsed}>
+            <div class="checklist-header">
+                <h2 class="card-title">📋 Action Items</h2>
+                <lightning-button
+                    label="New Meeting"
+                    variant="neutral"
+                    onclick={handleReset}
+                    icon-name="utility:refresh">
+                </lightning-button>
+            </div>
+
+            <div class="two-col">
+
+                <!-- US COLUMN -->
+                <div class="col us-col">
+                    <div class="col-header us-header">
+                        <span class="col-title">☁️ CloudCrest</span>
+                        <span class="badge">{usDoneCount}/{usItems.length}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill us-fill" style={usProgressStyle}></div>
+                    </div>
+                    <ul class="item-list">
+                        <template for:each={usItems} for:item="item">
+                            <li key={item.id} class={item.rowClass}>
+                                <label class="item-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={item.done}
+                                        data-id={item.id}
+                                        onchange={handleUsCheck}
+                                        class="item-check"/>
+                                    <span class={item.textClass}>{item.label}</span>
+                                </label>
+                                <button
+                                    class="move-btn"
+                                    data-id={item.id}
+                                    onclick={handleMoveToClient}
+                                    title="Move to Client">→</button>
+                            </li>
+                        </template>
+                    </ul>
+                    <template if:false={usItems.length}>
+                        <p class="empty-msg">No items</p>
+                    </template>
+                </div>
+
+                <!-- CLIENT COLUMN -->
+                <div class="col client-col">
+                    <div class="col-header client-header">
+                        <span class="col-title">🤝 Client</span>
+                        <span class="badge">{clientDoneCount}/{clientItems.length}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill client-fill" style={clientProgressStyle}></div>
+                    </div>
+                    <ul class="item-list">
+                        <template for:each={clientItems} for:item="item">
+                            <li key={item.id} class="item-row">
+                                <label class="item-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={item.done}
+                                        data-id={item.id}
+                                        onchange={handleClientCheck}
+                                        class="item-check"/>
+                                    <span class={item.textClass}>{item.label}</span>
+                                </label>
+                                <button
+                                    class="move-btn"
+                                    data-id={item.id}
+                                    onclick={handleMoveToUs}
+                                    title="Move to CloudCrest">←</button>
+                            </li>
+                        </template>
+                    </ul>
+                    <template if:false={clientItems.length}>
+                        <p class="empty-msg">No items</p>
+                    </template>
+                </div>
+
+            </div>
+        </template>
+
+    </div>
+</template>

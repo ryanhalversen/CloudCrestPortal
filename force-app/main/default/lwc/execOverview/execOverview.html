@@ -1,0 +1,125 @@
+<!-- execOverview.html -->
+<template>
+    <div class="eo-page">
+        <div class="eo-header">
+            <h1 class="eo-title">Executive Overview</h1>
+            <p class="eo-sub">CloudCrest Portal Test Project</p>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="eo-grid-3">
+            <div class="eo-card">
+                <div class="eo-card-title">Total Stories</div>
+                <div class="eo-kpi">{kpi.total}</div>
+                <div class="eo-kpi-label">Across all sprints</div>
+            </div>
+            <div class="eo-card">
+                <div class="eo-card-title">Stories Completed</div>
+                <div class="eo-kpi eo-green">{kpi.completed}</div>
+                <div class="eo-kpi-label">{completionPct}% completion rate</div>
+            </div>
+            <div class="eo-card">
+                <div class="eo-card-title">Blocked Stories</div>
+                <div class="eo-kpi eo-red">{kpi.blocked}</div>
+                <div class="eo-kpi-label">Require immediate attention</div>
+            </div>
+        </div>
+
+        <!-- Department + Priority -->
+        <div class="eo-grid-2">
+            <div class="eo-card">
+                <div class="eo-card-title">Stories by Department</div>
+                <template for:each={deptRows} for:item="d">
+                    <div key={d.dept} class="eo-bar-row">
+                        <div class="eo-bar-header">
+                            <span>{d.dept}</span>
+                            <span class="eo-muted">{d.count} stories</span>
+                        </div>
+                        <div class="eo-bar-track">
+                            <div class="eo-bar-fill" style={d.barStyle}></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="eo-card">
+                <div class="eo-card-title">Stories by Priority</div>
+                <template for:each={priorityRows} for:item="p">
+                    <div key={p.priority} class="eo-pri-row">
+                        <span class={p.badgeClass}>{p.priority}</span>
+                        <div class="eo-bar-track">
+                            <div class="eo-bar-fill" style={p.barStyle}></div>
+                        </div>
+                        <span class="eo-pri-count">{p.count}</span>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Story Type Tiles -->
+        <div class="eo-card eo-mb">
+            <div class="eo-card-title">Stories by Type</div>
+            <div class="eo-type-grid">
+                <template for:each={typeRows} for:item="t">
+                    <div key={t.type} class="eo-type-tile" style={t.tileStyle}>
+                        <span style={t.colorStyle}>{t.count}</span>
+                        <div class="eo-type-label">{t.type}</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Type Trend Chart -->
+        <div class="eo-card eo-mb">
+            <div class="eo-card-title">Story Type Trend by Sprint Week</div>
+            <div class="eo-trend-sub">Bug vs Feature ratio — post-GoLive stabilization tracker</div>
+            <div class="eo-trend-wrap">
+                <template for:each={trendCols} for:item="col">
+                    <div key={col.week} class="eo-trend-col">
+                        <template for:each={col.segments} for:item="seg">
+                            <div key={seg.type} class="eo-seg" style={seg.style}></div>
+                        </template>
+                        <div class="eo-trend-label">{col.weekLabel}</div>
+                    </div>
+                </template>
+            </div>
+            <div class="eo-legend">
+                <template for:each={legendItems} for:item="l">
+                    <span key={l.label} class="eo-legend-item">
+                        <span class="eo-legend-dot" style={l.dotStyle}></span>{l.label}
+                    </span>
+                </template>
+            </div>
+            <div class="eo-callout">{trendInsight}</div>
+        </div>
+
+        <!-- Completion Ring -->
+        <div class="eo-card">
+            <div class="eo-card-title">Overall Story Completion</div>
+            <div class="eo-ring-wrap">
+                <div class="eo-ring">
+                    <svg width="140" height="140" viewBox="0 0 140 140">
+                        <circle cx="70" cy="70" r="54" fill="none" stroke="#e8edf2" stroke-width="14"/>
+                        <circle cx="70" cy="70" r="54" fill="none" stroke="#16a34a" stroke-width="14"
+                            stroke-dasharray="339.3"
+                            stroke-dashoffset={ringOffset}
+                            stroke-linecap="round"
+                            style="transform:rotate(-90deg);transform-origin:70px 70px"/>
+                    </svg>
+                    <div class="eo-ring-center">
+                        <div class="eo-ring-pct">{completionPct}%</div>
+                        <div class="eo-ring-lbl">Complete</div>
+                    </div>
+                </div>
+                <div class="eo-ring-stats">
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#16a34a"></span>Completed</span><span>{kpi.completed}</span></div>
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#4da6ff"></span>Work In Progress</span><span>{kpi.inProgress}</span></div>
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#fbbf24"></span>In Review</span><span>{kpi.inReview}</span></div>
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#818cf8"></span>In UAT</span><span>{kpi.inUAT}</span></div>
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#94a3b8"></span>Backlog</span><span>{kpi.backlog}</span></div>
+                    <div class="eo-stat-row"><span class="eo-muted"><span class="eo-dot" style="background:#dc2626"></span>Blocked</span><span>{kpi.blocked}</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
