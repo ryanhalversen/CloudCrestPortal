@@ -118,12 +118,21 @@ public without sharing class StoryBoardController {
     @AuraEnabled
     public static void createStory(Id projectId, String subject, String description, String priority, String department) {
         try {
+            List<Sprint_Items__c> epics = [
+                SELECT Id
+                FROM Sprint_Items__c
+                WHERE Name = 'Needs Assignment'
+                AND Projects_new__c = :projectId
+                LIMIT 1
+            ];
+
             Case c = new Case(
                 Subject       = subject,
                 Description   = description,
                 Priority      = priority,
                 Department__c = department,
-                Projects__c   = projectId
+                Projects__c   = projectId,
+                Epic__c       = epics.isEmpty() ? null : epics[0].Id
             );
             insert c;
         } catch (DmlException ex) {
