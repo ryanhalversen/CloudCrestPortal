@@ -93,11 +93,10 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Find the sprint whose week contains today
+        // Find the sprint whose week contains today, using actual stored end dates
         const currentSprint = this.sprints.find(w => {
-            const start = new Date(w.weekStartDate);
-            const end   = new Date(start);
-            end.setDate(end.getDate() + 6);
+            const start = this._parseDate(w.weekStartDate);
+            const end   = this._parseDate(w.weekEndDate);
             return today >= start && today <= end;
         }) || this.sprints[0];
 
@@ -240,11 +239,15 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         let cur = new Date(start), idx = 1;
 
         while (cur <= end && idx <= 52) {
+            // Find the end of this calendar week (Sunday).
+            // If cur is already Sunday (0), the week ends today; otherwise advance to the next Sunday.
+            const dow = cur.getDay();
+            const daysToSunday = dow === 0 ? 0 : 7 - dow;
             const weekEnd = new Date(cur);
-            weekEnd.setDate(weekEnd.getDate() + 6);
+            weekEnd.setDate(weekEnd.getDate() + daysToSunday);
 
-            // Cap the last week's end date at the project end date
-            const displayEnd = weekEnd > end ? new Date(end) : weekEnd;
+            // Cap at project end date so the last sprint absorbs leftover days
+            const displayEnd = weekEnd > end ? new Date(end) : new Date(weekEnd);
 
             const label = `Week ${idx}`;
 
@@ -261,6 +264,7 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
                 weekLabel:         label,
                 weekNumber:        idx,
                 weekStartDate:     new Date(cur).toISOString().split('T')[0],
+                weekEndDate:       displayEnd.toISOString().split('T')[0],
                 dateRange:         this.fmtDate(cur) + ' – ' + this.fmtDate(displayEnd),
                 capacityHours:     capacity,
                 usedHours:         used,
@@ -273,7 +277,10 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
                                        ? 'sprint-drop-zone drag-over'
                                        : 'sprint-drop-zone'
             });
-            cur.setDate(cur.getDate() + 7);
+
+            // Next week starts on Monday (the day after this Sunday)
+            cur = new Date(weekEnd);
+            cur.setDate(cur.getDate() + 1);
             idx++;
         }
         return weeks;
@@ -497,7 +504,10 @@ export default class SprintPlanner extends NavigationMixin(LightningElement) {
         let cur = new Date(start), idx = 1;
         while (cur <= end && idx <= 52) {
             labels.push(`Week ${idx}`);
-            cur.setDate(cur.getDate() + 7);
+            // Advance to the Monday after this calendar week's Sunday — must match get sprints()
+            const dow = cur.getDay();
+            const daysToSunday = dow === 0 ? 0 : 7 - dow;
+            cur.setDate(cur.getDate() + daysToSunday + 1);
             idx++;
         }
         return labels;
