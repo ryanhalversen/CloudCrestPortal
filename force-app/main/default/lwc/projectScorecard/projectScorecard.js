@@ -198,16 +198,16 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
 
     _calcDeltaLabel(delta) {
         const abs = Math.abs(Math.round(delta));
-        if (abs <= 5)      return '≈ On pace';
-        if (delta > 0)     return `↑ ${abs}% over`;
-        return `↓ ${abs}% under`;
+        if (abs <= 5)    return '≈ On pace';
+        if (delta < 0)   return `↓ ${abs}% behind`;
+        return `↑ ${abs}% ahead`;
     }
 
     _calcDeltaClass(delta) {
         if (Math.abs(delta) <= 5) return 'delta-chip delta-on';
-        if (delta > 20)           return 'delta-chip delta-way-over';
-        if (delta > 0)            return 'delta-chip delta-over';
-        return 'delta-chip delta-under';
+        if (delta < -20)          return 'delta-chip delta-way-over';  // way behind = red
+        if (delta < 0)            return 'delta-chip delta-over';       // a little behind = amber
+        return 'delta-chip delta-under';                                 // ahead = green
     }
 
     _getPaceBadgeClass(pace) {

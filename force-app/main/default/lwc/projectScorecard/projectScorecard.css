@@ -334,7 +334,7 @@
 .table-header-row,
 .table-row {
     display: grid;
-    grid-template-columns: minmax(140px, 1.8fr) 140px 78px 78px minmax(180px, 1fr) 100px 70px 28px;
+    grid-template-columns: minmax(140px, 1.8fr) 168px 78px 78px minmax(180px, 1fr) 100px 70px 28px;
     gap: 10px;
     align-items: center;
     padding: 6px 14px;
