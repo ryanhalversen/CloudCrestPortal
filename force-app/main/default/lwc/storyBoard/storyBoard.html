@@ -16,10 +16,21 @@
             <div class="header-right">
                 <lightning-combobox
                     name="projectFilter"
+                    variant="label-hidden"
                     placeholder="All Projects"
                     options={projectOptions}
                     value={selectedProjectId}
                     onchange={handleProjectChange}
+                    dropdown-alignment="right">
+                </lightning-combobox>
+
+                <lightning-combobox
+                    name="ownerFilter"
+                    variant="label-hidden"
+                    placeholder="All Owners"
+                    options={ownerOptions}
+                    value={selectedOwnerFilter}
+                    onchange={handleOwnerFilterChange}
                     dropdown-alignment="right">
                 </lightning-combobox>
 
@@ -83,7 +94,7 @@
         <template if:false={isLoading}>
             <div class="board-scroll">
                 <div class="board-columns">
-                    <template for:each={columns} for:item="col">
+                    <template for:each={displayColumns} for:item="col">
                         <div key={col.status}
                             class="board-col"
                             data-status={col.status}

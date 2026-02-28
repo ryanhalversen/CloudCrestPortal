@@ -27,7 +27,7 @@ public without sharing class StoryBoardController {
     @AuraEnabled(cacheable=true)
     public static List<Sprint__c> getProjects() {
         return [
-            SELECT Id, Name, OwnerId
+            SELECT Id, Name, OwnerId, Owner.Name
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             ORDER BY Name ASC

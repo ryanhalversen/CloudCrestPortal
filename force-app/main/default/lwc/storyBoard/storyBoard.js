@@ -91,9 +91,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isCreatingStory      = false;
     @track newStorySaveError    = false;
 
-    @track selectedProjectId = null;
-    viewMode                 = 'mine';
-    _currentUserId           = userId;
+    @track selectedProjectId   = null;
+    @track selectedOwnerFilter = '';
+    viewMode                   = 'mine';
+    _currentUserId             = userId;
+    _projectOwnerMap           = {};   // projectId → ownerId
+    _ownerNames                = {};   // ownerId  → name
 
     _wiredStoriesResult;
     _subscription = null;
@@ -106,6 +109,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 { label: 'All Projects', value: '' },
                 ...data.map(p => ({ label: p.Name, value: p.Id }))
             ];
+            const ownerMap = {};
+            const nameMap  = {};
+            data.forEach(p => {
+                ownerMap[p.Id] = p.OwnerId;
+                if (p.Owner) nameMap[p.OwnerId] = p.Owner.Name;
+            });
+            this._projectOwnerMap = ownerMap;
+            this._ownerNames      = nameMap;
+
             const myProject = data.find(p => p.OwnerId === this._currentUserId);
             if (myProject) {
                 this.selectedProjectId = myProject.Id;
@@ -147,9 +159,32 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     // ── Getters ───────────────────────────────────────────────────────────
     get mineOnly()        { return this.viewMode === 'mine'; }
-    get totalCount()      { return this.columns.reduce((sum, c) => sum + c.count, 0); }
     get myStoriesClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
     get allStoriesClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
+
+    get ownerOptions() {
+        const opts = [{ label: 'All Owners', value: '' }];
+        Object.entries(this._ownerNames).forEach(([id, name]) => {
+            opts.push({ label: name, value: id });
+        });
+        opts.sort((a, b) => a.value === '' ? -1 : a.label.localeCompare(b.label));
+        return opts;
+    }
+
+    get displayColumns() {
+        if (!this.selectedOwnerFilter) return this.columns;
+        const ownedProjects = new Set(
+            Object.entries(this._projectOwnerMap)
+                .filter(([, ownerId]) => ownerId === this.selectedOwnerFilter)
+                .map(([projectId]) => projectId)
+        );
+        return this.columns.map(col => {
+            const cards = col.cards.filter(c => ownedProjects.has(c.projectId));
+            return { ...col, cards, count: cards.length, hasCards: cards.length > 0 };
+        });
+    }
+
+    get totalCount() { return this.displayColumns.reduce((sum, c) => sum + c.count, 0); }
 
     get showNewStoryButton() {
         return !!this.selectedProjectId;
@@ -188,7 +223,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     get distBarSegments() {
         const total = this.totalCount;
         if (!total) return [];
-        return this.columns
+        return this.displayColumns
             .filter(c => c.count > 0)
             .map((c, i, arr) => {
                 const pct     = (c.count / total) * 100;
@@ -210,7 +245,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get distBarLegend() {
-        return this.columns.map(c => {
+        return this.displayColumns.map(c => {
             const color = STATUS_COLORS[c.status] || '#00b4d8';
             const dim   = c.count === 0;
             return {
@@ -236,6 +271,8 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.selectedProjectId = e.detail.value || null;
         this.isLoading = true;
     }
+
+    handleOwnerFilterChange(e) { this.selectedOwnerFilter = e.detail.value || ''; }
 
     handleCardClick(e) {
         if (_isDragging) return;
@@ -564,6 +601,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
+            projectId:  c.Projects__c || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
             cardClass:  'story-card'
