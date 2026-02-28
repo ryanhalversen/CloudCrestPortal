@@ -2,13 +2,16 @@ import { LightningElement, wire, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { publish, MessageContext } from 'lightning/messageService';
 import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected__c';
-// ↑ channel file on disk must be named: ProjectSelected.messageChannel-meta.xml
 import getProjects from '@salesforce/apex/ProjectScorecardController.getProjects';
 
 export default class ProjectScorecard extends NavigationMixin(LightningElement) {
-    @track _projects = [];
-    @track isLoading = true;
-    @track viewMode  = 'mine'; // 'mine' | 'all'
+    @track _projects     = [];
+    @track isLoading     = true;
+    @track viewMode      = 'mine'; // 'mine' | 'all'
+    @track sortField     = null;
+    @track sortDir       = 'asc';
+    @track hoverProject  = null;
+    @track hoverStyle    = '';
 
     @wire(MessageContext)
     _msgCtx;
@@ -17,8 +20,8 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get myBtnClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
     get allBtnClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
 
-    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; } }
-    showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; } }
+    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.hoverProject = null; } }
+    showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; this.hoverProject = null; } }
 
     // ── Wire ───────────────────────────────────────────────────────────────────
     @wire(getProjects, { viewMode: '$viewMode' })
@@ -33,14 +36,92 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     }
 
     get hasProjects() { return this._projects.length > 0; }
-    get projects()    { return this._projects; }
     get isAllMode()   { return this.viewMode === 'all'; }
 
-    // ── Card click — publish project selection to Story Board + Sprint Planner ──
+    get projects() {
+        if (!this.sortField) return this._projects;
+        const field = this.sortField;
+        const dir   = this.sortDir === 'asc' ? 1 : -1;
+        return [...this._projects].sort((a, b) => {
+            let va = a[field], vb = b[field];
+            if (va === '--') va = null;
+            if (vb === '--') vb = null;
+            if (va == null && vb == null) return 0;
+            if (va == null) return dir;
+            if (vb == null) return -dir;
+            if (typeof va === 'string') return va.localeCompare(vb) * dir;
+            return (va - vb) * dir;
+        });
+    }
+
+    // ── Sort header label getters ───────────────────────────────────────────────
+    _sortMark(field) {
+        if (this.sortField !== field) return '';
+        return this.sortDir === 'asc' ? ' ↑' : ' ↓';
+    }
+    get thLabelName()      { return 'Project'          + this._sortMark('Name'); }
+    get thLabelPace()      { return 'Pace'             + this._sortMark('paceBadgeLabel'); }
+    get thLabelPurchased() { return 'Purchased'        + this._sortMark('hoursPurchased'); }
+    get thLabelDelivered() { return 'Delivered'        + this._sortMark('hoursDelivered'); }
+    get thLabelTimeline()  { return 'Timeline / Hours' + this._sortMark('timelinePercent'); }
+    get thLabelDelta()     { return 'Delta'            + this._sortMark('deltaRaw'); }
+    get thLabelRemaining() { return 'Remaining'        + this._sortMark('hoursRemaining'); }
+
+    // Sort header CSS class
+    _thClass(field) {
+        return this.sortField === field ? 'th th-sortable th-sorted' : 'th th-sortable';
+    }
+    get thClsName()      { return this._thClass('Name'); }
+    get thClsPace()      { return this._thClass('paceBadgeLabel'); }
+    get thClsPurchased() { return this._thClass('hoursPurchased'); }
+    get thClsDelivered() { return this._thClass('hoursDelivered'); }
+    get thClsTimeline()  { return this._thClass('timelinePercent'); }
+    get thClsDelta()     { return this._thClass('deltaRaw'); }
+    get thClsRemaining() { return this._thClass('hoursRemaining'); }
+
+    // ── Sort handler ───────────────────────────────────────────────────────────
+    handleSort(evt) {
+        evt.stopPropagation();
+        const field = evt.currentTarget.dataset.field;
+        if (!field) return;
+        if (this.sortField === field) {
+            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortField = field;
+            this.sortDir   = 'asc';
+        }
+    }
+
+    // ── Hover card ─────────────────────────────────────────────────────────────
+    handleRowEnter(evt) {
+        const id = evt.currentTarget.dataset.id;
+        this.hoverProject = this._projects.find(p => p.Id === id) || null;
+        if (this.hoverProject) this.hoverStyle = this._calcHoverPos(evt);
+    }
+
+    handleRowLeave() {
+        this.hoverProject = null;
+    }
+
+    _calcHoverPos(evt) {
+        const rect    = evt.currentTarget.getBoundingClientRect();
+        const cardW   = 320;
+        const viewW   = window.innerWidth;
+        const cardH   = 230;
+        let left = rect.right + 12;
+        if (left + cardW > viewW - 12) left = rect.left - cardW - 12;
+        if (left < 8) left = 8;
+        let top = rect.top - 10;
+        if (top + cardH > window.innerHeight - 12) top = window.innerHeight - cardH - 12;
+        if (top < 8) top = 8;
+        return `top:${Math.round(top)}px;left:${Math.round(left)}px;`;
+    }
+
+    // ── Card click — publish project selection ─────────────────────────────────
     handleCardClick(e) {
-        // Don't fire if the "Open Record" button or its children were clicked
         if (e.target.classList.contains('btn-open-record') ||
-            e.target.closest && e.target.closest('button.btn-open-record')) return;
+            e.target.classList.contains('btn-row-open') ||
+            (e.target.closest && e.target.closest('button'))) return;
         const id   = e.currentTarget.dataset.id;
         const name = e.currentTarget.dataset.name;
         if (!id) return;
@@ -80,6 +161,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             hoursBarStyle:      this._calcHoursBarStyle(hPct),
             paceBadgeClass:     this._getPaceBadgeClass(p.Pace_Status__c),
             paceBadgeLabel:     p.Pace_Status__c ?? '--',
+            deltaRaw:           delta,
             deltaLabel:         this._calcDeltaLabel(delta),
             deltaClass:         this._calcDeltaClass(delta)
         };

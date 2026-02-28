@@ -328,11 +328,11 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* Columns: Name | Pace | Purch | Del | Bars | Delta | Rem | Open */
+/* Columns: Name | Pace | Purchased | Delivered | Bars | Delta | Rem | Open */
 .table-header-row,
 .table-row {
     display: grid;
-    grid-template-columns: minmax(140px, 1.8fr) 100px 60px 60px minmax(160px, 1fr) 90px 60px 28px;
+    grid-template-columns: minmax(140px, 1.8fr) 140px 78px 78px minmax(180px, 1fr) 100px 70px 28px;
     gap: 10px;
     align-items: center;
     padding: 6px 14px;
@@ -457,3 +457,92 @@
 }
 
 .btn-row-open:hover { color: #014786; }
+
+/* ── Sortable headers ─────────────────────────────────────────────────────── */
+.th-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.1s;
+}
+.th-sortable:hover { color: #0176d3; }
+.th-sorted         { color: #0176d3; }
+
+/* ── Hover card ───────────────────────────────────────────────────────────── */
+.hover-card {
+    position: fixed;
+    z-index: 8000;
+    width: 320px;
+    background: #ffffff;
+    border: 1px solid #dddbda;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+    padding: 16px 18px;
+    pointer-events: none;
+}
+
+.hc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.hc-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a0a0a;
+    line-height: 1.3;
+}
+
+.hc-account {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 6px;
+}
+
+.hc-dates {
+    font-size: 10px;
+    color: #706e6b;
+    margin-bottom: 10px;
+}
+
+.hc-bars {
+    margin-bottom: 12px;
+}
+
+.hc-delta-row {
+    margin-top: 5px;
+}
+
+.hc-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+}
+
+.hc-stat {
+    text-align: center;
+}
+
+.hc-stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0a0a0a;
+    line-height: 1.2;
+}
+
+.hc-stat-val-pace {
+    font-size: 12px;
+    color: #0176d3;
+}
+
+.hc-stat-lbl {
+    font-size: 9px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-top: 2px;
+}

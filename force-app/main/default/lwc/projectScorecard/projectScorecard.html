@@ -20,7 +20,11 @@
                 <template if:false={isAllMode}>
                     <div class="cards-grid">
                         <template for:each={projects} for:item="p">
-                            <div key={p.Id} class="project-card" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
+                            <div key={p.Id} class="project-card"
+                                 data-id={p.Id} data-name={p.Name}
+                                 onclick={handleCardClick}
+                                 onmouseenter={handleRowEnter}
+                                 onmouseleave={handleRowLeave}>
 
                                 <div class="card-top">
                                     <div class="project-name">{p.Name}</div>
@@ -86,31 +90,42 @@
                 <!-- ── All Projects: Compact Table ── -->
                 <template if:true={isAllMode}>
                     <div class="project-table">
+                        <!-- Sortable header -->
                         <div class="table-header-row">
-                            <span class="th">Project</span>
-                            <span class="th">Pace</span>
-                            <span class="th th-stat">Purch.</span>
-                            <span class="th th-stat">Del.</span>
-                            <span class="th">Timeline / Hours</span>
-                            <span class="th">Delta</span>
-                            <span class="th th-stat">Rem.</span>
+                            <span class={thClsName}      data-field="Name"            onclick={handleSort}>{thLabelName}</span>
+                            <span class={thClsPace}      data-field="paceBadgeLabel"  onclick={handleSort}>{thLabelPace}</span>
+                            <span class={thClsPurchased} data-field="hoursPurchased"  onclick={handleSort} style="text-align:center">{thLabelPurchased}</span>
+                            <span class={thClsDelivered} data-field="hoursDelivered"  onclick={handleSort} style="text-align:center">{thLabelDelivered}</span>
+                            <span class={thClsTimeline}  data-field="timelinePercent" onclick={handleSort}>{thLabelTimeline}</span>
+                            <span class={thClsDelta}     data-field="deltaRaw"        onclick={handleSort}>{thLabelDelta}</span>
+                            <span class={thClsRemaining} data-field="hoursRemaining"  onclick={handleSort} style="text-align:center">{thLabelRemaining}</span>
                             <span class="th"></span>
                         </div>
+
                         <template for:each={projects} for:item="p">
-                            <div key={p.Id} class="table-row" data-id={p.Id} data-name={p.Name} onclick={handleCardClick}>
+                            <div key={p.Id} class="table-row"
+                                 data-id={p.Id} data-name={p.Name}
+                                 onclick={handleCardClick}
+                                 onmouseenter={handleRowEnter}
+                                 onmouseleave={handleRowLeave}>
+
                                 <div class="td-name-group">
                                     <div class="td-name">{p.Name}</div>
                                     <div class="td-account">{p.accountName}</div>
                                 </div>
+
                                 <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
+
                                 <div>
                                     <div class="td-stat">{p.hoursPurchased}</div>
                                     <div class="td-stat-label">hrs</div>
                                 </div>
+
                                 <div>
                                     <div class="td-stat">{p.hoursDelivered}</div>
                                     <div class="td-stat-label">hrs</div>
                                 </div>
+
                                 <div class="td-bars">
                                     <div class="mini-dual">
                                         <span class="mini-bar-label">T</span>
@@ -127,8 +142,11 @@
                                         <span class="mini-pct">{p.hoursPercent}%</span>
                                     </div>
                                 </div>
+
                                 <span class={p.deltaClass}>{p.deltaLabel}</span>
+
                                 <div class="td-rem">{p.hoursRemaining}h</div>
+
                                 <button class="btn-row-open" data-id={p.Id} onclick={navigateToRecord}>↗</button>
                             </div>
                         </template>
@@ -140,6 +158,59 @@
             <template if:false={hasProjects}>
                 <div class="state-msg">No In Progress projects found.</div>
             </template>
+        </template>
+
+        <!-- ── Hover Card ── -->
+        <template if:true={hoverProject}>
+            <div class="hover-card" style={hoverStyle}>
+                <div class="hc-top">
+                    <div class="hc-name">{hoverProject.Name}</div>
+                    <span class={hoverProject.paceBadgeClass}>{hoverProject.paceBadgeLabel}</span>
+                </div>
+                <template if:true={hoverProject.accountName}>
+                    <div class="hc-account">{hoverProject.accountName}</div>
+                </template>
+                <div class="hc-dates">{hoverProject.startDate} → {hoverProject.endDate}</div>
+
+                <div class="hc-bars">
+                    <div class="bar-row">
+                        <span class="bar-label">Timeline</span>
+                        <div class="bar-track">
+                            <div class="bar-fill bar-timeline" style={hoverProject.progressStyle}></div>
+                        </div>
+                        <span class="bar-pct">{hoverProject.timelinePercent}%</span>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-label">Hours</span>
+                        <div class="bar-track">
+                            <div class="bar-fill" style={hoverProject.hoursBarStyle}></div>
+                        </div>
+                        <span class="bar-pct">{hoverProject.hoursPercent}%</span>
+                    </div>
+                    <div class="hc-delta-row">
+                        <span class={hoverProject.deltaClass}>{hoverProject.deltaLabel}</span>
+                    </div>
+                </div>
+
+                <div class="hc-stats">
+                    <div class="hc-stat">
+                        <div class="hc-stat-val">{hoverProject.hoursPurchased}</div>
+                        <div class="hc-stat-lbl">Purchased</div>
+                    </div>
+                    <div class="hc-stat">
+                        <div class="hc-stat-val">{hoverProject.hoursDelivered}</div>
+                        <div class="hc-stat-lbl">Delivered</div>
+                    </div>
+                    <div class="hc-stat">
+                        <div class="hc-stat-val">{hoverProject.hoursRemaining}</div>
+                        <div class="hc-stat-lbl">Remaining</div>
+                    </div>
+                    <div class="hc-stat">
+                        <div class="hc-stat-val hc-stat-val-pace">{hoverProject.weeklySprintHours}</div>
+                        <div class="hc-stat-lbl">Sprint pace</div>
+                    </div>
+                </div>
+            </div>
         </template>
 
     </div>
