@@ -330,11 +330,11 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* Columns: Name | Pace | Purchased | Delivered | Bars | Delta | Rem | Open */
+/* Columns: Name | Pace | Purchased | Delivered | Bars | Delta | Rem | End Date | Open */
 .table-header-row,
 .table-row {
     display: grid;
-    grid-template-columns: minmax(140px, 1.8fr) 168px 78px 78px minmax(180px, 1fr) 100px 70px 28px;
+    grid-template-columns: minmax(140px, 1.8fr) 168px 78px 78px minmax(180px, 1fr) 100px 70px 92px 28px;
     gap: 10px;
     align-items: center;
     padding: 6px 14px;
@@ -405,6 +405,12 @@
     font-weight: 700;
     color: #181818;
     text-align: center;
+}
+
+.td-end-date {
+    font-size: 11px;
+    color: #444;
+    white-space: nowrap;
 }
 
 /* ── Table mini-bars ──────────────────────────────────────────────────────── */

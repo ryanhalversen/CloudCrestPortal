@@ -66,6 +66,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get thLabelTimeline()  { return 'Timeline / Hours' + this._sortMark('timelinePercent'); }
     get thLabelDelta()     { return 'Delta'            + this._sortMark('deltaRaw'); }
     get thLabelRemaining() { return 'Remaining'        + this._sortMark('hoursRemaining'); }
+    get thLabelEndDate()   { return 'End Date'         + this._sortMark('endDate'); }
 
     // Sort header CSS class
     _thClass(field) {
@@ -78,6 +79,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     get thClsTimeline()  { return this._thClass('timelinePercent'); }
     get thClsDelta()     { return this._thClass('deltaRaw'); }
     get thClsRemaining() { return this._thClass('hoursRemaining'); }
+    get thClsEndDate()   { return this._thClass('endDate'); }
 
     // ── Sort handler ───────────────────────────────────────────────────────────
     handleSort(evt) {
