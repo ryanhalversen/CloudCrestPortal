@@ -130,7 +130,8 @@ export default class EpicManagementPanel extends LightningElement {
         }
         const min = new Date(Math.min(...dates.map(d => d.getTime())));
         min.setDate(min.getDate() - 14);
-        return min;
+        // Snap to month start so month labels always align with day positions on the track
+        return new Date(min.getFullYear(), min.getMonth(), 1);
     }
 
     get _tlEnd() {
@@ -145,7 +146,8 @@ export default class EpicManagementPanel extends LightningElement {
         }
         const max = new Date(Math.max(...dates.map(d => d.getTime())));
         max.setDate(max.getDate() + 14);
-        return max;
+        // Snap to start of the next month so the axis ends at a clean boundary
+        return new Date(max.getFullYear(), max.getMonth() + 1, 1);
     }
 
     get timelineEpics() {
