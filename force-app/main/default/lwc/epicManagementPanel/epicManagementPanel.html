@@ -69,6 +69,7 @@
                 <div class="tl-axis">
                     <template for:each={timelineDateHeaders} for:item="h">
                         <div key={h.label} class="tl-month-label" style={h.style}>{h.label}</div>
+                        <div key={h.dividerKey} class="tl-month-divider" style={h.dividerStyle}></div>
                     </template>
                 </div>
             </div>

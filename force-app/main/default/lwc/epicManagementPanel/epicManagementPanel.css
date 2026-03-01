@@ -447,6 +447,17 @@
     padding-left: 4px;
 }
 
+/* ── Month divider lines (full-height vertical rules) ───────────────────── */
+.tl-month-divider {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 2000px;
+    background: #e5e7eb;
+    pointer-events: none;
+    z-index: 0;
+}
+
 /* ── Epic rows ──────────────────────────────────────────────────────────── */
 .tl-row {
     display: flex;
