@@ -644,19 +644,18 @@ export default class EpicManagementPanel extends LightningElement {
 
     // ── Pan (drag empty space to scroll timeline) ─────────────────────────
     handleContainerPointerDown(e) {
-        // Only initiate pan from empty space inside a track row
-        if (!e.target.closest('.tl-track')) return;
-        if (e.target.closest('.tl-bar, .tl-milestone, .tl-add-ms, button, a')) return;
+        // Block pan if the click landed on any interactive element
+        if (e.target.closest('.tl-bar, .tl-milestone, .tl-add-ms, .tl-label-col, button, a, input')) return;
         _panActive          = true;
         _panPointerId       = e.pointerId;
         _panStartX          = e.clientX;
         _panStartScrollLeft = e.currentTarget.scrollLeft;
         e.currentTarget.setPointerCapture(e.pointerId);
-        e.currentTarget.style.cursor = 'grabbing';
     }
 
     handleContainerPointerMove(e) {
         if (!_panActive || e.pointerId !== _panPointerId) return;
+        e.currentTarget.style.cursor = 'grabbing';
         const dx = e.clientX - _panStartX;
         e.currentTarget.scrollLeft = _panStartScrollLeft - dx;
     }

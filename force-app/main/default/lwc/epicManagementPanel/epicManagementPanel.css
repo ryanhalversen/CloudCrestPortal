@@ -388,6 +388,11 @@
     background: #fff;
     border-bottom: 1px solid #e5e7eb;
     user-select: none;
+    cursor: grab;
+}
+
+.tl-container:active {
+    cursor: grabbing;
 }
 
 /* Today line */
@@ -486,11 +491,6 @@
     flex: 1;
     min-width: 600px;
     height: 100%;
-    cursor: grab;
-}
-
-.tl-track:active {
-    cursor: grabbing;
 }
 
 /* ── Epic bar ───────────────────────────────────────────────────────────── */
@@ -501,7 +501,7 @@
     height: 16px;
     background: #00b4d8;
     border-radius: 4px;
-    cursor: pointer;
+    cursor: pointer !important;
     display: flex;
     align-items: stretch;
     transition: box-shadow 0.15s;
@@ -515,7 +515,7 @@
 
 .tl-bar-handle {
     width: 6px;
-    cursor: ew-resize;
+    cursor: ew-resize !important;
     background: rgba(0, 0, 0, 0.15);
     border-radius: 4px 0 0 4px;
     flex-shrink: 0;
@@ -533,7 +533,7 @@
     transform: translate(-50%, -50%);
     font-size: 14px;
     color: #f97316;
-    cursor: grab;
+    cursor: grab !important;
     z-index: 3;
     user-select: none;
     line-height: 1;
