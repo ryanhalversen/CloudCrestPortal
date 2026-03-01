@@ -491,6 +491,7 @@
     flex: 1;
     min-width: 600px;
     height: 100%;
+    z-index: 2; /* paint above sticky header so milestone labels from top row show through */
 }
 
 /* ── Epic bar ───────────────────────────────────────────────────────────── */
@@ -547,7 +548,7 @@
     color: #ea580c;
 }
 
-/* Milestone name — above the diamond, wraps to multiple lines */
+/* Milestone name — above the diamond, single line stretched horizontally */
 .tl-milestone-name {
     position: absolute;
     bottom: calc(100% + 3px);
@@ -556,9 +557,7 @@
     font-size: 10px;
     font-weight: 600;
     color: #374151;
-    white-space: normal;
-    text-align: center;
-    max-width: 120px;
+    white-space: nowrap;
     pointer-events: none;
     background: rgba(255, 255, 255, 0.9);
     padding: 1px 4px;
