@@ -12,7 +12,12 @@ import logTime            from '@salesforce/apex/ProjectManagementPanelControlle
 
 const CATEGORIES = ['Meetings', 'Project Management', 'Helpdesk'];
 
-const _today = () => new Date().toISOString().split('T')[0];
+const _today = () => {
+    const d  = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+};
 
 const _offsetDay = (offset, fromDate) => {
     const d = new Date((fromDate || _today()) + 'T12:00:00');
