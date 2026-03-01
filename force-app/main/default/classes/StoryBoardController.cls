@@ -113,6 +113,23 @@ public without sharing class StoryBoardController {
         }
     }
 
+    @AuraEnabled
+    public static void updateStoryType(Id caseId, String type) {
+        try {
+            Set<String> validTypes = new Set<String>{
+                '', 'Bug', 'Feature', 'Enhancement', 'Task', 'Question', 'Other'
+            };
+            if (!validTypes.contains(type)) {
+                throw new AuraHandledException('Invalid type value: ' + type);
+            }
+            update new Case(Id = caseId, Type = String.isBlank(type) ? null : type);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Update Priority ───────────────────────────────────────────────────
     @AuraEnabled
     public static void updatePriority(Id caseId, String priority) {

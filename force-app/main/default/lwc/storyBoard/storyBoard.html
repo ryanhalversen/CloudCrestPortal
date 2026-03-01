@@ -416,6 +416,17 @@
                                     <label class="modal-field-label">Status</label>
                                     <span class="modal-status-value">{modalCard.status}</span>
                                 </div>
+                                <div class="modal-field-row modal-type-row">
+                                    <label class="modal-field-label">Type</label>
+                                    <lightning-combobox
+                                        variant="label-hidden"
+                                        value={modalCard.type}
+                                        options={typeOptions}
+                                        onchange={handleTypeChange}
+                                        disabled={isSavingType}
+                                        class="modal-type-combo">
+                                    </lightning-combobox>
+                                </div>
                             </div>
 
                             <div class="modal-field-row">

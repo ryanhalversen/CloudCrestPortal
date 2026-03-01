@@ -11,6 +11,7 @@ import getStories        from '@salesforce/apex/StoryBoardController.getStories'
 import getProjects       from '@salesforce/apex/StoryBoardController.getProjects';
 import updateStoryStatus    from '@salesforce/apex/StoryBoardController.updateStoryStatus';
 import updatePriority       from '@salesforce/apex/StoryBoardController.updatePriority';
+import updateStoryType      from '@salesforce/apex/StoryBoardController.updateStoryType';
 import updateEstimatedHours from '@salesforce/apex/StoryBoardController.updateEstimatedHours';
 import getTimeEntries       from '@salesforce/apex/StoryBoardController.getTimeEntries';
 import getNextSteps         from '@salesforce/apex/StoryBoardController.getNextSteps';
@@ -97,6 +98,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track modalCard           = null;
     @track modalPriority       = null;
     @track isSavingPriority    = false;
+    @track isSavingType        = false;
     @track modalSaveError      = false;
     @track estHoursInput       = '';
     @track isSavingEstHours    = false;
@@ -591,6 +593,26 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 this.isSavingPriority = false;
                 this.modalSaveError   = true;
                 console.error('Failed to update priority', err);
+            });
+    }
+
+    handleTypeChange(e) {
+        const newType = e.detail.value;
+        if (!this.modalCard) return;
+        const id = this.modalCard.id;
+        this.isSavingType = true;
+        updateStoryType({ caseId: id, type: newType })
+            .then(() => {
+                this.columns = this.columns.map(col => ({
+                    ...col,
+                    cards: col.cards.map(c => c.id !== id ? c : { ...c, type: newType })
+                }));
+                if (this.modalCard) this.modalCard = { ...this.modalCard, type: newType };
+                this.isSavingType = false;
+            })
+            .catch(err => {
+                this.isSavingType = false;
+                console.error('Failed to update type', err);
             });
     }
 

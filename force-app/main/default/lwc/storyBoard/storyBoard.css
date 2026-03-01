@@ -946,6 +946,8 @@
     font-weight: 600;
     color: #111827;
 }
+.modal-type-row .modal-type-combo { max-width: 160px; }
+.modal-type-row .modal-type-combo:disabled { opacity: 0.6; }
 .modal-priority-options {
     display: flex;
     gap: 8px;
