@@ -6,7 +6,7 @@ public without sharing class StoryBoardController {
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
             'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c, ' +
-            'Solution__c, Components_to_Deploy__c, Q_A__c ' +
+            'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c ' +
             'FROM Case';
 
         List<String> filters = new List<String>{
@@ -251,13 +251,14 @@ public without sharing class StoryBoardController {
 
     // ── Update Story Text Fields ──────────────────────────────────────────
     @AuraEnabled
-    public static void updateStoryTextFields(Id caseId, String solution, String componentsToDeploy, String qa) {
+    public static void updateStoryTextFields(Id caseId, String solution, String componentsToDeploy, String qa, String documentation) {
         try {
             update new Case(
                 Id                      = caseId,
                 Solution__c             = solution,
                 Components_to_Deploy__c = componentsToDeploy,
-                Q_A__c                  = qa
+                Q_A__c                  = qa,
+                Documentation__c        = documentation
             );
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));

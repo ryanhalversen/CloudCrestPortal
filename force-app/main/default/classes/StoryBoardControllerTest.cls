@@ -328,13 +328,14 @@ public class StoryBoardControllerTest {
         Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
 
         Test.startTest();
-        StoryBoardController.updateStoryTextFields(c.Id, 'Fixed the bug', 'Deploy Apex class', 'Tested in sandbox');
+        StoryBoardController.updateStoryTextFields(c.Id, 'Fixed the bug', 'Deploy Apex class', 'Tested in sandbox', 'See Lucid Cart for details');
         Test.stopTest();
 
-        Case updated = [SELECT Solution__c, Components_to_Deploy__c, Q_A__c FROM Case WHERE Id = :c.Id];
-        System.assertEquals('Fixed the bug',       updated.Solution__c,             'Solution should match');
-        System.assertEquals('Deploy Apex class',   updated.Components_to_Deploy__c, 'Components should match');
-        System.assertEquals('Tested in sandbox',   updated.Q_A__c,                  'Q&A should match');
+        Case updated = [SELECT Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals('Fixed the bug',              updated.Solution__c,             'Solution should match');
+        System.assertEquals('Deploy Apex class',          updated.Components_to_Deploy__c, 'Components should match');
+        System.assertEquals('Tested in sandbox',          updated.Q_A__c,                  'Q&A should match');
+        System.assertEquals('See Lucid Cart for details', updated.Documentation__c,         'Documentation should match');
     }
 
     @isTest

@@ -115,6 +115,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track solutionInput        = '';
     @track componentsInput      = '';
     @track qaInput              = '';
+    @track documentationInput   = '';
     @track isSavingTextFields   = false;
     @track textFieldsSaveError  = false;
     @track textFieldsSaveSuccess = false;
@@ -450,6 +451,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.solutionInput       = this._stripHtml(card.solution);
         this.componentsInput     = this._stripHtml(card.componentsToDeploy);
         this.qaInput             = this._stripHtml(card.qa);
+        this.documentationInput  = this._stripHtml(card.documentation);
         this.isSavingTextFields  = false;
         this.textFieldsSaveError = false;
         this.textFieldsSaveSuccess = false;
@@ -631,9 +633,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     // ── Story Text Fields ─────────────────────────────────────────────────
-    handleSolutionChange(e)   { this.solutionInput   = e.target.value; }
-    handleComponentsChange(e) { this.componentsInput = e.target.value; }
-    handleQaChange(e)         { this.qaInput         = e.target.value; }
+    handleSolutionChange(e)       { this.solutionInput       = e.target.value; }
+    handleComponentsChange(e)     { this.componentsInput     = e.target.value; }
+    handleQaChange(e)             { this.qaInput             = e.target.value; }
+    handleDocumentationChange(e)  { this.documentationInput  = e.target.value; }
 
     async handleTextFieldsSave() {
         this.isSavingTextFields   = true;
@@ -643,16 +646,18 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         try {
             await updateStoryTextFields({
                 caseId,
-                solution:           this.solutionInput.trim()   || null,
-                componentsToDeploy: this.componentsInput.trim() || null,
-                qa:                 this.qaInput.trim()         || null
+                solution:           this.solutionInput.trim()       || null,
+                componentsToDeploy: this.componentsInput.trim()     || null,
+                qa:                 this.qaInput.trim()             || null,
+                documentation:      this.documentationInput.trim()  || null
             });
             // Update in-memory card
             this.modalCard = {
                 ...this.modalCard,
                 solution:           this.solutionInput.trim(),
                 componentsToDeploy: this.componentsInput.trim(),
-                qa:                 this.qaInput.trim()
+                qa:                 this.qaInput.trim(),
+                documentation:      this.documentationInput.trim()
             };
             this.columns = this.columns.map(col => ({
                 ...col,
@@ -660,7 +665,8 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                     ...c,
                     solution:           this.solutionInput.trim(),
                     componentsToDeploy: this.componentsInput.trim(),
-                    qa:                 this.qaInput.trim()
+                    qa:                 this.qaInput.trim(),
+                    documentation:      this.documentationInput.trim()
                 })
             }));
             this.textFieldsSaveSuccess = true;
@@ -1134,6 +1140,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             solution:           c.Solution__c         || '',
             componentsToDeploy: c.Components_to_Deploy__c || '',
             qa:                 c.Q_A__c              || '',
+            documentation:      c.Documentation__c    || '',
             projectId:          c.Projects__c         || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
