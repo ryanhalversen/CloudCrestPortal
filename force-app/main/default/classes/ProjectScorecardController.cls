@@ -12,10 +12,11 @@ public without sharing class ProjectScorecardController {
                        Weekly_Pace_Estimate__c,
                        Project_Start_Date__c,
                        Project_End_Date__c,
-                       Accountlu__r.Name
+                       Accountlu__r.Name,
+                       Owner.Name
                 FROM Sprint__c
                 WHERE Status__c = 'In Progress'
-                ORDER BY Project_Start_Date__c DESC
+                ORDER BY Owner.Name ASC, Project_Start_Date__c DESC
                 LIMIT 50
             ];
         } else {
@@ -28,7 +29,8 @@ public without sharing class ProjectScorecardController {
                        Weekly_Pace_Estimate__c,
                        Project_Start_Date__c,
                        Project_End_Date__c,
-                       Accountlu__r.Name
+                       Accountlu__r.Name,
+                       Owner.Name
                 FROM Sprint__c
                 WHERE Status__c = 'In Progress'
                 AND OwnerId = :UserInfo.getUserId()

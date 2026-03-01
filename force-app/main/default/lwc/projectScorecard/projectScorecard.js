@@ -5,25 +5,46 @@ import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected
 import getProjects from '@salesforce/apex/ProjectScorecardController.getProjects';
 
 export default class ProjectScorecard extends NavigationMixin(LightningElement) {
-    @track _projects     = [];
-    @track isLoading     = true;
-    @track viewMode      = 'mine'; // 'mine' | 'all'
-    @track sortField     = null;
-    @track sortDir       = 'asc';
-    @track filterType    = 'all';  // 'all' | 'retainer' | 'results'
+    @track _projects      = [];
+    @track isLoading      = true;
+    @track viewMode       = 'mine'; // 'mine' | 'all' | 'owner'
+    @track _apexViewMode  = 'mine'; // actual wire param — 'owner' maps to 'all'
+    @track sortField      = null;
+    @track sortDir        = 'asc';
+    @track filterType     = 'all';  // 'all' | 'retainer' | 'results'
 
     @wire(MessageContext)
     _msgCtx;
 
     // ── Toggle handlers ────────────────────────────────────────────────────────
-    get myBtnClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
-    get allBtnClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
+    get myBtnClass()    { return this.viewMode === 'mine'  ? 'toggle-btn active' : 'toggle-btn'; }
+    get allBtnClass()   { return this.viewMode === 'all'   ? 'toggle-btn active' : 'toggle-btn'; }
+    get ownerBtnClass() { return this.viewMode === 'owner' ? 'toggle-btn active' : 'toggle-btn'; }
 
-    showMine() { if (this.viewMode !== 'mine') { this.viewMode = 'mine'; this.isLoading = true; this.filterType = 'all'; } }
-    showAll()  { if (this.viewMode !== 'all')  { this.viewMode = 'all';  this.isLoading = true; } }
+    showMine() {
+        if (this.viewMode !== 'mine') {
+            this.viewMode = 'mine'; this._apexViewMode = 'mine';
+            this.isLoading = true;  this.filterType = 'all';
+        }
+    }
+    showAll() {
+        if (this.viewMode !== 'all') {
+            this.viewMode = 'all'; this._apexViewMode = 'all';
+            this.isLoading = true;
+        }
+    }
+    showOwner() {
+        if (this.viewMode !== 'owner') {
+            this.viewMode = 'owner';
+            if (this._apexViewMode !== 'all') {
+                this._apexViewMode = 'all';
+                this.isLoading = true;
+            }
+        }
+    }
 
     // ── Wire ───────────────────────────────────────────────────────────────────
-    @wire(getProjects, { viewMode: '$viewMode' })
+    @wire(getProjects, { viewMode: '$_apexViewMode' })
     wiredProjects({ data, error }) {
         this.isLoading = false;
         if (data) {
@@ -34,8 +55,21 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
         }
     }
 
-    get hasProjects() { return this._projects.length > 0; }
-    get isAllMode()   { return this.viewMode === 'all'; }
+    get hasProjects()  { return this._projects.length > 0; }
+    get isAllMode()    { return this.viewMode === 'all'; }
+    get isOwnerMode()  { return this.viewMode === 'owner'; }
+
+    get ownerGroups() {
+        const map = {};
+        this._projects.forEach(p => {
+            const key = p.ownerName || 'Unassigned';
+            if (!map[key]) map[key] = { ownerName: key, projects: [] };
+            map[key].projects.push(p);
+        });
+        return Object.values(map)
+            .sort((a, b) => a.ownerName.localeCompare(b.ownerName))
+            .map(g => ({ ...g, projectCount: g.projects.length }));
+    }
 
     get projects() {
         let list = this._projects;
@@ -144,6 +178,7 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             Id:                p.Id,
             Name:              p.Name,
             accountName:       p.Accountlu__r?.Name ?? '',
+            ownerName:         p.Owner?.Name ?? '',
             hoursPurchased:    p.Contracted_Hours_Sprint__c  ?? '--',
             hoursDelivered:    p.Hours_Delivered__c          ?? '--',
             hoursRemaining:    p.Completed_Delta_Sprint__c   ?? '--',

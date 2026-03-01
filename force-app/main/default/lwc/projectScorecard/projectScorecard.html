@@ -4,8 +4,9 @@
         <div class="scorecard-header">
             <span class="scorecard-title">Project Scorecards</span>
             <div class="view-toggle">
-                <button class={myBtnClass} onclick={showMine}>My Projects</button>
-                <button class={allBtnClass} onclick={showAll}>All Projects</button>
+                <button class={myBtnClass}    onclick={showMine}>My Projects</button>
+                <button class={allBtnClass}   onclick={showAll}>All Projects</button>
+                <button class={ownerBtnClass} onclick={showOwner}>By Owner</button>
             </div>
         </div>
 
@@ -160,6 +161,68 @@
                                 <div class="td-end-date">{p.endDate}</div>
 
                                 <button class="btn-row-open" data-id={p.Id} onclick={navigateToRecord}>↗</button>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- ── By Owner ── -->
+                <template if:true={isOwnerMode}>
+                    <div class="owner-view">
+                        <template for:each={ownerGroups} for:item="group">
+                            <div key={group.ownerName} class="owner-group">
+                                <div class="owner-group-header">
+                                    <span class="owner-group-name">{group.ownerName}</span>
+                                    <span class="owner-group-count">{group.projectCount} project(s)</span>
+                                </div>
+                                <div class="project-table">
+                                    <template for:each={group.projects} for:item="p">
+                                        <div key={p.Id} class="table-row"
+                                             data-id={p.Id} data-name={p.Name}
+                                             onclick={handleCardClick}>
+                                            <div class="td-name-group">
+                                                <div class="td-name">{p.Name}</div>
+                                                <div class="td-account">{p.accountName}</div>
+                                            </div>
+                                            <span class={p.paceBadgeClass}>{p.paceBadgeLabel}</span>
+                                            <div>
+                                                <div class="td-stat">{p.hoursPurchased}</div>
+                                                <div class="td-stat-label">hrs purchased</div>
+                                            </div>
+                                            <div>
+                                                <div class="td-stat">{p.hoursDelivered}</div>
+                                                <div class="td-stat-label">hrs delivered</div>
+                                            </div>
+                                            <div class="td-bars">
+                                                <div class="mini-dual">
+                                                    <span class="mini-bar-label">T</span>
+                                                    <div class="mini-track">
+                                                        <div class="mini-fill mini-timeline" style={p.progressStyle}></div>
+                                                    </div>
+                                                    <span class="mini-pct">{p.timelinePercent}%</span>
+                                                </div>
+                                                <div class="mini-dual">
+                                                    <span class="mini-bar-label">H</span>
+                                                    <div class="mini-track">
+                                                        <div class="mini-fill" style={p.hoursBarStyle}></div>
+                                                    </div>
+                                                    <span class="mini-pct">{p.hoursPercent}%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <template if:true={p.showDelta}>
+                                                    <span class={p.deltaClass}>{p.deltaLabel}</span>
+                                                </template>
+                                                <template if:false={p.showDelta}>
+                                                    <span class="delta-na">—</span>
+                                                </template>
+                                            </div>
+                                            <div class="td-rem">{p.hoursRemaining}h</div>
+                                            <div class="td-end-date">{p.endDate}</div>
+                                            <button class="btn-row-open" data-id={p.Id} onclick={navigateToRecord}>↗</button>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </template>
                     </div>
