@@ -1815,7 +1815,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 subject:     card?.subject || '',
                 startTimeMs: res.startTimeMs
             });
-        } catch(err) { console.error('startTimer', err); }
+        } catch(err) {
+            this._toast('Could not start timer', err?.body?.message || err?.message || 'Unknown error', 'error');
+        }
     }
 
     async handleStopTimer(e) {

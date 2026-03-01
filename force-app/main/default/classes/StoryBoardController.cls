@@ -547,41 +547,47 @@ public without sharing class StoryBoardController {
 
     @AuraEnabled
     public static StartTimerResult startTimer(Id caseId) {
-        StartTimerResult res = new StartTimerResult();
-        // Auto-stop any currently running timer for this user
-        List<Time__c> active = [
-            SELECT Id, Start_Time__c, Case__r.Subject, Case__r.CaseNumber
-            FROM Time__c
-            WHERE Active__c = true AND CreatedById = :UserInfo.getUserId()
-            LIMIT 1
-        ];
-        if (!active.isEmpty()) {
-            Time__c ex    = active[0];
-            Decimal mins  = ((DateTime.now().getTime() - ex.Start_Time__c.getTime()) / 60000.0)
-                                .setScale(0, RoundingMode.HALF_UP);
-            ex.Active__c         = false;
-            ex.Stop_Time__c      = DateTime.now();
-            ex.Minutes_Logged__c = mins;
-            update ex;
-            res.stoppedTimeId     = ex.Id;
-            res.stoppedSubject    = ex.Case__r.Subject;
-            res.stoppedCaseNumber = ex.Case__r.CaseNumber;
-            res.stoppedMinutes    = mins;
+        try {
+            StartTimerResult res = new StartTimerResult();
+            // Auto-stop any currently running timer for this user
+            List<Time__c> active = [
+                SELECT Id, Start_Time__c, Case__r.Subject, Case__r.CaseNumber
+                FROM Time__c
+                WHERE Active__c = true AND CreatedById = :UserInfo.getUserId()
+                LIMIT 1
+            ];
+            if (!active.isEmpty()) {
+                Time__c ex    = active[0];
+                Decimal mins  = ((DateTime.now().getTime() - ex.Start_Time__c.getTime()) / 60000.0)
+                                    .setScale(0, RoundingMode.HALF_UP);
+                ex.Active__c         = false;
+                ex.Stop_Time__c      = DateTime.now();
+                ex.Minutes_Logged__c = mins;
+                update ex;
+                res.stoppedTimeId     = ex.Id;
+                res.stoppedSubject    = ex.Case__r.Subject;
+                res.stoppedCaseNumber = ex.Case__r.CaseNumber;
+                res.stoppedMinutes    = mins;
+            }
+            // Create new timer entry
+            Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
+            Time__c t = new Time__c(
+                Case__c           = caseId,
+                Epic__c           = c.Epic__c,
+                Active__c         = true,
+                Start_Time__c     = DateTime.now(),
+                Logged_Date__c    = Date.today(),
+                Minutes_Logged__c = 0
+            );
+            insert t;
+            res.newTimeId   = t.Id;
+            res.startTimeMs = t.Start_Time__c.getTime();
+            return res;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
         }
-        // Create new timer entry
-        Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
-        Time__c t = new Time__c(
-            Case__c           = caseId,
-            Epic__c           = c.Epic__c,
-            Active__c         = true,
-            Start_Time__c     = DateTime.now(),
-            Logged_Date__c    = Date.today(),
-            Minutes_Logged__c = 0
-        );
-        insert t;
-        res.newTimeId   = t.Id;
-        res.startTimeMs = t.Start_Time__c.getTime();
-        return res;
     }
 
     @AuraEnabled
