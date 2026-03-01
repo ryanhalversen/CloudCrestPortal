@@ -794,21 +794,50 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     async handleSupportResultSelect(e) {
-        const userId      = e.currentTarget.dataset.id;
-        const userName    = e.currentTarget.dataset.name;
-        const caseId      = this.modalCard.id;
-        this.isAssigningSupport  = true;
-        this.supportAssignError  = '';
+        const userId   = e.currentTarget.dataset.id;
+        const userName = e.currentTarget.dataset.name;
+        const caseId   = this.modalCard.id;
+        this.isAssigningSupport = true;
+        this.supportAssignError = '';
         try {
             await assignStorySupport({ caseId, userId });
             this.modalCard = { ...this.modalCard, storySupportId: userId, storySupportName: userName };
             this.columns = this.columns.map(col => ({
                 ...col,
-                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, storySupportId: userId, storySupportName: userName })
+                cards: col.cards.map(c => c.id !== caseId ? c : {
+                    ...c,
+                    storySupportId:   userId,
+                    storySupportName: userName,
+                    cardClass:        'story-card story-card-support'
+                })
             }));
             this.showSupportSearch = false;
         } catch (err) {
             this.supportAssignError = 'Failed to assign — please try again';
+            console.error(err);
+        } finally {
+            this.isAssigningSupport = false;
+        }
+    }
+
+    async handleSupportRemove() {
+        const caseId = this.modalCard.id;
+        this.isAssigningSupport = true;
+        this.supportAssignError = '';
+        try {
+            await assignStorySupport({ caseId, userId: null });
+            this.modalCard = { ...this.modalCard, storySupportId: null, storySupportName: '' };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== caseId ? c : {
+                    ...c,
+                    storySupportId:   null,
+                    storySupportName: '',
+                    cardClass:        'story-card'
+                })
+            }));
+        } catch (err) {
+            this.supportAssignError = 'Failed to remove — please try again';
             console.error(err);
         } finally {
             this.isAssigningSupport = false;

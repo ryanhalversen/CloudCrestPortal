@@ -202,6 +202,9 @@
                             <span class="modal-meta-label">Support</span>
                             <span class="modal-epic-name">{modalSupportDisplay}</span>
                             <button class="btn-change-epic" onclick={handleSupportAssignClick} disabled={isAssigningSupport}>Assign</button>
+                            <template if:true={modalCard.storySupportId}>
+                                <button class="btn-remove-support" onclick={handleSupportRemove} disabled={isAssigningSupport} title="Remove support user">✕</button>
+                            </template>
 
                             <template if:true={modalCard.contactName}>
                                 <span class="modal-meta-sep">·</span>

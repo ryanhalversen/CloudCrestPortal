@@ -481,6 +481,20 @@
 }
 .btn-change-epic:hover:not(:disabled) { background: #4b5563; }
 .btn-change-epic:disabled { background: #d1d5db; cursor: not-allowed; }
+.btn-remove-support {
+    padding: 2px 6px;
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+.btn-remove-support:hover:not(:disabled) { border-color: #ef4444; color: #ef4444; }
+.btn-remove-support:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-case-number {
     font-size: 0.75rem;
     color: #00b4d8;
