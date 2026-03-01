@@ -64,20 +64,6 @@
             </div>
         </div>
 
-        <!-- DATE PICKER ROW -->
-        <div class="slds-p-horizontal_medium slds-m-bottom_medium">
-            <div class="lookback-row">
-                <span class="lookback-label">📅 View date:</span>
-                <template for:each={lookbackDays} for:item="d">
-                    <button key={d.value}
-                            class={d.btnClass}
-                            data-date={d.value}
-                            onclick={handleLookback}>
-                        {d.label}
-                    </button>
-                </template>
-            </div>
-        </div>
 
         <!-- VIEW TOGGLE -->
         <div class="slds-p-horizontal_medium slds-m-bottom_small">
