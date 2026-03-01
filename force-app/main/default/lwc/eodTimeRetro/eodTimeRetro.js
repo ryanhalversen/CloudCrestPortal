@@ -90,6 +90,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             .then(w => { if (w) this._restoreEodTimer(w); })
             .catch(() => {});
         this._scrollAfterRender = true;
+        this._handleExternalTimerStop  = () => { if (this._timerTimeId) this._clearEodTimer(); };
+        this._handleExternalTimerStart = (e) => { this._restoreEodTimer(e.detail); };
+        window.addEventListener('timerstopped', this._handleExternalTimerStop);
+        window.addEventListener('timerstarted',  this._handleExternalTimerStart);
     }
 
     renderedCallback() {
@@ -101,6 +105,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     }
     disconnectedCallback() {
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
+        window.removeEventListener('timerstopped', this._handleExternalTimerStop);
+        window.removeEventListener('timerstarted',  this._handleExternalTimerStart);
     }
 
     // ── Wire: team users ──────────────────────────────────────────────────
@@ -798,6 +804,13 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
         }, 1000);
     }
+    _clearEodTimer() {
+        if (_eodTimerInterval) clearInterval(_eodTimerInterval);
+        _eodTimerInterval  = null;
+        this._timerTimeId  = null;
+        this._timerElapsed = '';
+        this._timerNotes   = '';
+    }
 
     // ── Timer handlers ────────────────────────────────────────────────────
     handleEodTimerNotesChange(e) { this._timerNotes = e.target.value; }
@@ -805,11 +818,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     async handleEodStopTimer() {
         const timeId = this._timerTimeId;
         const notes  = this._timerNotes;
-        if (_eodTimerInterval) clearInterval(_eodTimerInterval);
-        _eodTimerInterval = null;
-        this._timerTimeId  = null;
-        this._timerElapsed = '';
-        this._timerNotes   = '';
+        this._clearEodTimer();
+        window.dispatchEvent(new CustomEvent('timerstopped'));
         try {
             await stopTimer({ timeId, notes });
             refreshApex(this._storiesWire);

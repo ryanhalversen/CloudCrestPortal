@@ -289,9 +289,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         getActiveTimer()
             .then(w => { if (w) this._restoreTimer(w); })
             .catch(() => {});
+        this._handleExternalTimerStop  = () => { if (this._activeTimerId) this._clearTimerState(); };
+        this._handleExternalTimerStart = (e) => { this._restoreTimer(e.detail); };
+        window.addEventListener('timerstopped', this._handleExternalTimerStop);
+        window.addEventListener('timerstarted',  this._handleExternalTimerStart);
     }
     disconnectedCallback() {
         if (_timerInterval) clearInterval(_timerInterval);
+        window.removeEventListener('timerstopped', this._handleExternalTimerStop);
+        window.removeEventListener('timerstarted',  this._handleExternalTimerStart);
     }
 
     // ── Getters ───────────────────────────────────────────────────────────
@@ -1815,6 +1821,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 subject:     card?.subject || '',
                 startTimeMs: res.startTimeMs
             });
+            window.dispatchEvent(new CustomEvent('timerstarted', { detail: {
+                timeId:      res.newTimeId,
+                caseId,
+                subject:     card?.subject || '',
+                startTimeMs: res.startTimeMs
+            }}));
         } catch(err) {
             this._toast('Could not start timer', err?.body?.message || err?.message || 'Unknown error', 'error');
         }
@@ -1826,6 +1838,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         const subject = this._activeTimerSubject;
         const minutes = Math.round((Date.now() - this._activeTimerStartMs) / 60000);
         this._clearTimerState();
+        window.dispatchEvent(new CustomEvent('timerstopped'));
         try {
             await stopTimer({ timeId, notes: '' });
             this._stoppedNotif = { timeId, subject, minutes, notes: '' };
