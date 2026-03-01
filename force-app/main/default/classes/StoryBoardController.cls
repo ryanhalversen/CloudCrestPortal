@@ -207,11 +207,9 @@ public without sharing class StoryBoardController {
     @AuraEnabled
     public static void updateTimeEntry(Id timeId, Decimal hours, String description) {
         try {
-            update new Time__c(
-                Id                     = timeId,
-                Minutes_Logged__c      = hours * 60,
-                Additional_Comments__c = description
-            );
+            Time__c t = new Time__c(Id = timeId, Additional_Comments__c = description);
+            if (hours != null) t.Minutes_Logged__c = hours * 60;
+            update t;
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {
@@ -523,5 +521,101 @@ public without sharing class StoryBoardController {
         } catch (Exception ex) {
             throw new AuraHandledException(ex.getMessage());
         }
+    }
+
+    // ── Active Timer ──────────────────────────────────────────────────────
+
+    @AuraEnabled
+    public static TimerWrapper getActiveTimer() {
+        List<Time__c> timers = [
+            SELECT Id, Case__c, Case__r.Subject, Case__r.CaseNumber, Start_Time__c
+            FROM Time__c
+            WHERE Active__c = true AND CreatedById = :UserInfo.getUserId()
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        if (timers.isEmpty()) return null;
+        Time__c t = timers[0];
+        TimerWrapper w  = new TimerWrapper();
+        w.timeId      = t.Id;
+        w.caseId      = t.Case__c;
+        w.subject     = t.Case__r.Subject;
+        w.caseNumber  = t.Case__r.CaseNumber;
+        w.startTimeMs = t.Start_Time__c.getTime();
+        return w;
+    }
+
+    @AuraEnabled
+    public static StartTimerResult startTimer(Id caseId) {
+        StartTimerResult res = new StartTimerResult();
+        // Auto-stop any currently running timer for this user
+        List<Time__c> active = [
+            SELECT Id, Start_Time__c, Case__r.Subject, Case__r.CaseNumber
+            FROM Time__c
+            WHERE Active__c = true AND CreatedById = :UserInfo.getUserId()
+            LIMIT 1
+        ];
+        if (!active.isEmpty()) {
+            Time__c ex    = active[0];
+            Decimal mins  = ((DateTime.now().getTime() - ex.Start_Time__c.getTime()) / 60000.0)
+                                .setScale(0, RoundingMode.HALF_UP);
+            ex.Active__c         = false;
+            ex.Stop_Time__c      = DateTime.now();
+            ex.Minutes_Logged__c = mins;
+            update ex;
+            res.stoppedTimeId     = ex.Id;
+            res.stoppedSubject    = ex.Case__r.Subject;
+            res.stoppedCaseNumber = ex.Case__r.CaseNumber;
+            res.stoppedMinutes    = mins;
+        }
+        // Create new timer entry
+        Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
+        Time__c t = new Time__c(
+            Case__c           = caseId,
+            Epic__c           = c.Epic__c,
+            Active__c         = true,
+            Start_Time__c     = DateTime.now(),
+            Logged_Date__c    = Date.today(),
+            Minutes_Logged__c = 0
+        );
+        insert t;
+        res.newTimeId   = t.Id;
+        res.startTimeMs = t.Start_Time__c.getTime();
+        return res;
+    }
+
+    @AuraEnabled
+    public static void stopTimer(Id timeId, String notes) {
+        try {
+            Time__c t    = [SELECT Id, Start_Time__c FROM Time__c WHERE Id = :timeId LIMIT 1];
+            Decimal mins = ((DateTime.now().getTime() - t.Start_Time__c.getTime()) / 60000.0)
+                               .setScale(0, RoundingMode.HALF_UP);
+            t.Active__c         = false;
+            t.Stop_Time__c      = DateTime.now();
+            t.Minutes_Logged__c = mins;
+            if (String.isNotBlank(notes)) t.Additional_Comments__c = notes;
+            update t;
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Timer Wrappers ────────────────────────────────────────────────────
+
+    public class TimerWrapper {
+        @AuraEnabled public Id      timeId;
+        @AuraEnabled public Id      caseId;
+        @AuraEnabled public String  subject;
+        @AuraEnabled public String  caseNumber;
+        @AuraEnabled public Long    startTimeMs;
+    }
+
+    public class StartTimerResult {
+        @AuraEnabled public Id      newTimeId;
+        @AuraEnabled public Long    startTimeMs;
+        @AuraEnabled public Id      stoppedTimeId;
+        @AuraEnabled public String  stoppedSubject;
+        @AuraEnabled public String  stoppedCaseNumber;
+        @AuraEnabled public Decimal stoppedMinutes;
     }
 }

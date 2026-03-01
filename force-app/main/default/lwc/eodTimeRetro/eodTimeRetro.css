@@ -235,3 +235,32 @@
 .wip-hint { font-size:11px; font-weight:600; color:#0176d3; background:#f0f7ff;
             border:1px solid #cce4ff; border-radius:4px; padding:4px 10px;
             margin-bottom:6px; display:inline-block; }
+
+/* ── Active Timer Banner ─────────────────────────────────────────────────── */
+.eod-timer-banner {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #0e7490, #0891b2);
+    color: #fff; border-radius: 10px; padding: 12px 18px;
+    box-shadow: 0 4px 14px rgba(14,116,144,0.3);
+}
+.eod-timer-icon   { font-size: 1.4rem; flex-shrink: 0; }
+.eod-timer-info   { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.eod-timer-story  {
+    font-size: 0.88rem; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.eod-timer-elapsed {
+    font-size: 1.1rem; font-weight: 800;
+    font-variant-numeric: tabular-nums; letter-spacing: 0.04em; color: #e0f7fa;
+}
+.eod-timer-notes-input {
+    flex: 0 0 220px; padding: 6px 10px; border: none; border-radius: 6px;
+    font-size: 0.82rem; background: rgba(255,255,255,0.18); color: #fff;
+}
+.eod-timer-notes-input::placeholder { color: rgba(255,255,255,0.6); }
+.eod-timer-stop-btn {
+    flex-shrink: 0; padding: 7px 16px; border: none; border-radius: 7px;
+    background: #fff; color: #0e7490; font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.eod-timer-stop-btn:hover { background: #e0f7fa; }

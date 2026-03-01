@@ -412,4 +412,106 @@ public class StoryBoardControllerTest {
         System.assertNotEquals(null, result, 'Result should not be null');
         System.assert(result.size() >= 1, 'Should return at least one message');
     }
+
+    @isTest
+    static void testGetActiveTimer_none() {
+        Test.startTest();
+        StoryBoardController.TimerWrapper result = StoryBoardController.getActiveTimer();
+        Test.stopTest();
+        System.assertEquals(null, result, 'Should return null when no timer is running');
+    }
+
+    @isTest
+    static void testStartTimer_noExisting() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+
+        Test.startTest();
+        StoryBoardController.StartTimerResult res = StoryBoardController.startTimer(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, res.newTimeId,   'New timer Id should be returned');
+        System.assertNotEquals(null, res.startTimeMs, 'Start time ms should be returned');
+        System.assertEquals(null,   res.stoppedTimeId, 'No previous timer to stop');
+        Time__c t = [SELECT Active__c, Case__c FROM Time__c WHERE Id = :res.newTimeId];
+        System.assertEquals(true, t.Active__c, 'Timer should be active');
+        System.assertEquals(c.Id, t.Case__c,   'Case should match');
+    }
+
+    @isTest
+    static void testStartTimer_autostopsPrevious() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c1 = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        Case c2 = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+        update new List<Case>{
+            new Case(Id = c1.Id, Epic__c = epic.Id),
+            new Case(Id = c2.Id, Epic__c = epic.Id)
+        };
+
+        Test.startTest();
+        StoryBoardController.startTimer(c1.Id);
+        StoryBoardController.StartTimerResult res = StoryBoardController.startTimer(c2.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, res.stoppedTimeId, 'Previous timer should have been stopped');
+        System.assertEquals('Story 1', res.stoppedSubject, 'Stopped subject should be Story 1');
+        Time__c stopped = [SELECT Active__c FROM Time__c WHERE Id = :res.stoppedTimeId];
+        System.assertEquals(false, stopped.Active__c, 'Previous timer should be inactive');
+    }
+
+    @isTest
+    static void testStopTimer() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+        StoryBoardController.StartTimerResult started = StoryBoardController.startTimer(c.Id);
+
+        Test.startTest();
+        StoryBoardController.stopTimer(started.newTimeId, 'Finished the work');
+        Test.stopTest();
+
+        Time__c t = [SELECT Active__c, Stop_Time__c, Additional_Comments__c
+                     FROM Time__c WHERE Id = :started.newTimeId];
+        System.assertEquals(false,             t.Active__c,              'Timer should be stopped');
+        System.assertNotEquals(null,           t.Stop_Time__c,           'Stop time should be set');
+        System.assertEquals('Finished the work', t.Additional_Comments__c, 'Notes should match');
+    }
+
+    @isTest
+    static void testGetActiveTimer_withRunning() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+        StoryBoardController.startTimer(c.Id);
+
+        Test.startTest();
+        StoryBoardController.TimerWrapper result = StoryBoardController.getActiveTimer();
+        Test.stopTest();
+
+        System.assertNotEquals(null,      result,          'Should return the running timer');
+        System.assertEquals(c.Id,         result.caseId,   'CaseId should match');
+        System.assertEquals('Story 1',    result.subject,  'Subject should match');
+    }
+
+    @isTest
+    static void testUpdateTimeEntry_notesOnly() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+        Id timeId = StoryBoardController.logTime(c.Id, 1.0, 'Original notes', Date.today());
+
+        Test.startTest();
+        StoryBoardController.updateTimeEntry(timeId, null, 'Updated notes only');
+        Test.stopTest();
+
+        Time__c t = [SELECT Minutes_Logged__c, Additional_Comments__c FROM Time__c WHERE Id = :timeId];
+        System.assertEquals(60,               t.Minutes_Logged__c,       'Minutes should be unchanged');
+        System.assertEquals('Updated notes only', t.Additional_Comments__c, 'Notes should be updated');
+    }
 }

@@ -71,6 +71,30 @@
             </div>
         </template>
 
+        <!-- ── Active Timer Banner ── -->
+        <template if:true={hasActiveTimer}>
+            <div class="timer-banner">
+                <span class="timer-banner-label">{timerBannerLabel}</span>
+                <button class="timer-banner-stop" onclick={handleStopTimer}>⏹ Stop</button>
+            </div>
+        </template>
+
+        <!-- ── Stopped Timer Notification ── -->
+        <template if:true={hasStoppedNotif}>
+            <div class="timer-notif">
+                <span class="timer-notif-msg">
+                    Stopped: <strong>{_stoppedNotif.subject}</strong>
+                    ({_stoppedNotif.minutes} min) — add notes?
+                </span>
+                <input class="timer-notif-input" type="text"
+                       placeholder="Optional notes…"
+                       value={_stoppedNotif.notes}
+                       oninput={handleStopNotifNotesChange} />
+                <button class="timer-notif-save"    onclick={handleStopNotifSave}>Save</button>
+                <button class="timer-notif-dismiss" onclick={handleStopNotifDismiss}>Dismiss</button>
+            </div>
+        </template>
+
         <!-- ── Board ── -->
         <template if:false={isLoading}>
             <div class="board-scroll">
@@ -130,6 +154,16 @@
                                                 </template>
                                                 <span class="card-date">{card.cardAge}</span>
                                             </div>
+                                            <template if:true={card.isTimerActive}>
+                                                <button class="card-timer-btn card-timer-stop"
+                                                        data-id={card.id} onclick={handleStopTimer}
+                                                        title="Stop timer">⏹</button>
+                                            </template>
+                                            <template if:false={card.isTimerActive}>
+                                                <button class="card-timer-btn card-timer-start"
+                                                        data-id={card.id} onclick={handleStartTimer}
+                                                        title="Start timer">▶</button>
+                                            </template>
                                         </div>
                                     </template>
                                 </template>

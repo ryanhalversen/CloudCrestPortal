@@ -10,6 +10,8 @@ import getTeamUsers     from '@salesforce/apex/EodTimeRetroController.getTeamUse
 import logTime          from '@salesforce/apex/EodTimeRetroController.logTime';
 import updateTime       from '@salesforce/apex/EodTimeRetroController.updateTime';
 import USER_ID          from '@salesforce/user/Id';
+import getActiveTimer   from '@salesforce/apex/StoryBoardController.getActiveTimer';
+import stopTimer        from '@salesforce/apex/StoryBoardController.stopTimer';
 
 const PRIORITY_CLASSES = {
     'Critical' : 'tag tag-critical',
@@ -18,6 +20,8 @@ const PRIORITY_CLASSES = {
     'Low'      : 'tag tag-low'
 };
 
+let _eodTimerInterval = null;
+
 export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track stories          = [];
     @track stats            = { todayHours: 0, weekHours: 0, monthHours: 0 };
@@ -25,6 +29,14 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track showEditModal    = false;
     @track userOptions      = [];
     @track selectedUserId   = USER_ID;
+
+    // ── Active Timer state ────────────────────────────────────────────────
+    @track _timerTimeId   = null;
+    @track _timerCaseId   = null;
+    @track _timerSubject  = '';
+    @track _timerStartMs  = 0;
+    @track _timerElapsed  = '';
+    @track _timerNotes    = '';
 
     // Breakdown state
     @track showBreakdown       = false;
@@ -51,6 +63,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             const stored = localStorage.getItem(this._skipKey());
             if (stored) this._skippedIds = new Set(JSON.parse(stored));
         } catch(e) { /* localStorage unavailable */ }
+        getActiveTimer()
+            .then(w => { if (w) this._restoreEodTimer(w); })
+            .catch(() => {});
+    }
+    disconnectedCallback() {
+        if (_eodTimerInterval) clearInterval(_eodTimerInterval);
     }
 
     // ── Wire: team users ──────────────────────────────────────────────────
@@ -97,6 +115,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             };
         }
     }
+
+    // ── Timer getters ─────────────────────────────────────────────────────
+    get hasActiveTimer() { return !!this._timerTimeId; }
+    get eodTimerLabel()  { return `⏱  ${this._timerSubject}  —  ${this._timerElapsed}`; }
 
     // ── Computed ──────────────────────────────────────────────────────────
     get isCurrentUser()  { return this.selectedUserId === USER_ID; }
@@ -351,4 +373,39 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     }
     _toast(t, m, v) { this.dispatchEvent(new ShowToastEvent({ title: t, message: m, variant: v })); }
+
+    // ── Timer helpers ─────────────────────────────────────────────────────
+    _restoreEodTimer(w) {
+        this._timerTimeId  = w.timeId;
+        this._timerCaseId  = w.caseId;
+        this._timerSubject = w.subject;
+        this._timerStartMs = w.startTimeMs;
+        if (_eodTimerInterval) clearInterval(_eodTimerInterval);
+        _eodTimerInterval = setInterval(() => {
+            const ms = Date.now() - this._timerStartMs;
+            const h  = Math.floor(ms / 3600000);
+            const m  = Math.floor((ms % 3600000) / 60000);
+            const s  = Math.floor((ms % 60000) / 1000);
+            this._timerElapsed =
+                `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    }
+
+    // ── Timer handlers ────────────────────────────────────────────────────
+    handleEodTimerNotesChange(e) { this._timerNotes = e.target.value; }
+
+    async handleEodStopTimer() {
+        const timeId = this._timerTimeId;
+        const notes  = this._timerNotes;
+        if (_eodTimerInterval) clearInterval(_eodTimerInterval);
+        _eodTimerInterval = null;
+        this._timerTimeId  = null;
+        this._timerElapsed = '';
+        this._timerNotes   = '';
+        try {
+            await stopTimer({ timeId, notes });
+            refreshApex(this._storiesWire);
+            refreshApex(this._statsWire);
+        } catch(err) { console.error('eod stopTimer', err); }
+    }
 }

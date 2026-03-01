@@ -79,6 +79,26 @@
             </div>
         </div>
 
+        <!-- ACTIVE TIMER BANNER -->
+        <template if:true={hasActiveTimer}>
+            <div class="slds-p-horizontal_medium slds-m-bottom_small">
+                <div class="eod-timer-banner">
+                    <span class="eod-timer-icon">⏱</span>
+                    <div class="eod-timer-info">
+                        <span class="eod-timer-story">{_timerSubject}</span>
+                        <span class="eod-timer-elapsed">{_timerElapsed}</span>
+                    </div>
+                    <input class="eod-timer-notes-input" type="text"
+                           placeholder="Notes for this session…"
+                           value={_timerNotes}
+                           oninput={handleEodTimerNotesChange} />
+                    <button class="eod-timer-stop-btn" onclick={handleEodStopTimer}>
+                        ⏹ Stop &amp; Log
+                    </button>
+                </div>
+            </div>
+        </template>
+
         <!-- MAIN CONTENT AREA -->
         <div class="slds-p-horizontal_medium">
 

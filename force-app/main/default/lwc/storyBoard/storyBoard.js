@@ -35,6 +35,9 @@ import postChatMessage        from '@salesforce/apex/StoryBoardController.postCh
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
+import startTimer             from '@salesforce/apex/StoryBoardController.startTimer';
+import stopTimer              from '@salesforce/apex/StoryBoardController.stopTimer';
+import getActiveTimer         from '@salesforce/apex/StoryBoardController.getActiveTimer';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -91,6 +94,7 @@ let _isDragging       = false;
 let _didDrag          = false;
 let _ownerSearchTimer    = null;
 let _supportSearchTimer  = null;
+let _timerInterval       = null;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -179,6 +183,14 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isSavingTextFields   = false;
     @track textFieldsSaveError  = false;
     @track textFieldsSaveSuccess = false;
+
+    // ── Active Timer state ────────────────────────────────────────────────
+    @track _activeTimerId      = null;
+    @track _activeTimerCaseId  = null;
+    @track _activeTimerSubject = '';
+    @track _activeTimerStartMs = 0;
+    @track _activeTimerElapsed = '';
+    @track _stoppedNotif       = null;  // { timeId, subject, minutes, notes }
 
     // ── Close Story Modal state ───────────────────────────────────────────
     @track showCloseModal          = false;
@@ -272,6 +284,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }
     }
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────
+    connectedCallback() {
+        getActiveTimer()
+            .then(w => { if (w) this._restoreTimer(w); })
+            .catch(() => {});
+    }
+    disconnectedCallback() {
+        if (_timerInterval) clearInterval(_timerInterval);
+    }
+
     // ── Getters ───────────────────────────────────────────────────────────
     get mineOnly()        { return this.viewMode === 'mine'; }
     get myStoriesClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
@@ -295,8 +317,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 default:         return [...cards].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
             }
         };
+        const activeId = this._activeTimerCaseId;
         const addHours = col => {
-            const sorted = sortCards(col.cards);
+            const sorted = sortCards(col.cards).map(c => ({
+                ...c,
+                isTimerActive: c.id === activeId,
+                cardClass: c.id === activeId
+                    ? (c.cardClass.includes('story-card-timer-active') ? c.cardClass : c.cardClass + ' story-card-timer-active')
+                    : c.cardClass.replace(' story-card-timer-active', '')
+            }));
             const estHrs = sorted.reduce((s, c) => s + (c.estimatedHours || 0), 0);
             return { ...col, cards: sorted, estHoursLabel: this._fmtHours(estHrs) || '0h' };
         };
@@ -397,6 +426,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     get newStorySubjectClass() {
         return `new-story-input${this.newStorySubjectError ? ' input-error' : ''}`;
     }
+
+    // ── Timer getters ─────────────────────────────────────────────────────
+    get hasActiveTimer()   { return !!this._activeTimerId; }
+    get timerBannerLabel() { return `⏱  ${this._activeTimerSubject}  —  ${this._activeTimerElapsed}`; }
+    get hasStoppedNotif()  { return !!this._stoppedNotif; }
 
     get typeOptions() {
         return [
@@ -1723,6 +1757,94 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     _toast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
+
+    // ── Timer helpers ─────────────────────────────────────────────────────
+    _restoreTimer(w) {
+        this._activeTimerId      = w.timeId;
+        this._activeTimerCaseId  = w.caseId;
+        this._activeTimerSubject = w.subject;
+        this._activeTimerStartMs = w.startTimeMs;
+        this._startTimerTick();
+    }
+    _startTimerTick() {
+        if (_timerInterval) clearInterval(_timerInterval);
+        _timerInterval = setInterval(() => {
+            const ms = Date.now() - this._activeTimerStartMs;
+            const h  = Math.floor(ms / 3600000);
+            const m  = Math.floor((ms % 3600000) / 60000);
+            const s  = Math.floor((ms % 60000) / 1000);
+            this._activeTimerElapsed =
+                `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    }
+    _clearTimerState() {
+        if (_timerInterval) clearInterval(_timerInterval);
+        _timerInterval = null;
+        this._activeTimerId      = null;
+        this._activeTimerCaseId  = null;
+        this._activeTimerSubject = '';
+        this._activeTimerElapsed = '';
+    }
+    _findCardById(id) {
+        for (const col of this.columns) {
+            const c = col.cards.find(c => c.id === id);
+            if (c) return c;
+        }
+        return null;
+    }
+
+    // ── Timer handlers ────────────────────────────────────────────────────
+    async handleStartTimer(e) {
+        e.stopPropagation();
+        const caseId = e.currentTarget.dataset.id;
+        try {
+            const res = await startTimer({ caseId });
+            if (res.stoppedTimeId) {
+                this._stoppedNotif = {
+                    timeId:  res.stoppedTimeId,
+                    subject: res.stoppedSubject,
+                    minutes: res.stoppedMinutes,
+                    notes:   ''
+                };
+            }
+            const card = this._findCardById(caseId);
+            this._restoreTimer({
+                timeId:      res.newTimeId,
+                caseId,
+                subject:     card?.subject || '',
+                startTimeMs: res.startTimeMs
+            });
+        } catch(err) { console.error('startTimer', err); }
+    }
+
+    async handleStopTimer(e) {
+        e.stopPropagation();
+        const timeId  = this._activeTimerId;
+        const subject = this._activeTimerSubject;
+        const minutes = Math.round((Date.now() - this._activeTimerStartMs) / 60000);
+        this._clearTimerState();
+        try {
+            await stopTimer({ timeId, notes: '' });
+            this._stoppedNotif = { timeId, subject, minutes, notes: '' };
+            refreshApex(this._wiredStoriesResult);
+        } catch(err) { console.error('stopTimer', err); }
+    }
+
+    handleStopNotifNotesChange(e) {
+        this._stoppedNotif = { ...this._stoppedNotif, notes: e.target.value };
+    }
+
+    async handleStopNotifSave() {
+        const { timeId, notes } = this._stoppedNotif;
+        this._stoppedNotif = null;
+        if (notes?.trim()) {
+            try {
+                await updateTimeEntry({ timeId, hours: null, description: notes });
+            } catch(err) { console.error('addNotes', err); }
+        }
+    }
+
+    handleStopNotifDismiss() { this._stoppedNotif = null; }
 
     _mapCard(c) {
         return {
