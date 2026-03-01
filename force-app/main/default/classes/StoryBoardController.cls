@@ -200,6 +200,27 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Log Time ──────────────────────────────────────────────────────────
+    @AuraEnabled
+    public static Id logTime(Id caseId, Decimal hours, String description, Date loggedDate) {
+        try {
+            Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
+            Time__c t = new Time__c(
+                Case__c                = caseId,
+                Epic__c                = c.Epic__c,
+                Minutes_Logged__c      = hours * 60,
+                Additional_Comments__c = description,
+                Logged_Date__c         = loggedDate != null ? loggedDate : Date.today()
+            );
+            insert t;
+            return t.Id;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Create Story ──────────────────────────────────────────────────────
     @AuraEnabled
     public static void createStory(Id projectId, String subject, String description, String priority, String department, Id epicId) {

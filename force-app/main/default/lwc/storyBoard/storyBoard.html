@@ -252,6 +252,28 @@
                                 <span class="time-panel-total">{totalTimeLogged}</span>
                             </div>
 
+                            <!-- ── Log Time form ── -->
+                            <div class="log-time-form">
+                                <input
+                                    type="number"
+                                    class="log-time-hours"
+                                    placeholder="Hours"
+                                    min="0.25"
+                                    step="0.25"
+                                    oninput={handleNewTimeHoursChange}
+                                />
+                                <input
+                                    type="text"
+                                    class="log-time-desc"
+                                    placeholder="Description (optional)"
+                                    oninput={handleNewTimeDescChange}
+                                />
+                                <button class="btn-log-time" onclick={handleLogTime} disabled={isSavingTime}>
+                                    <template if:true={isSavingTime}>Saving…</template>
+                                    <template if:false={isSavingTime}>+ Log</template>
+                                </button>
+                            </div>
+
                             <template if:true={isLoadingTime}>
                                 <div class="time-loading">
                                     <lightning-spinner size="x-small" alternative-text="Loading"></lightning-spinner>

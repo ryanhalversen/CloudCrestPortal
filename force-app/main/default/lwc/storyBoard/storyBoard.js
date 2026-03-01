@@ -18,6 +18,7 @@ import addNextStep          from '@salesforce/apex/StoryBoardController.addNextS
 import updateNextStep       from '@salesforce/apex/StoryBoardController.updateNextStep';
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
+import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -94,6 +95,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track editingStepId       = null;
     @track editingStepText     = '';
     @track isSavingStepEdit    = false;
+    @track newTimeHours        = '';
+    @track newTimeDesc         = '';
+    @track isSavingTime        = false;
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -361,6 +365,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.timeEntries        = [];
         this.nextSteps          = [];
         this.nextStepInput      = '';
+        this.newTimeHours       = '';
+        this.newTimeDesc        = '';
+        this.isSavingTime       = false;
         this.isLoadingTime      = true;
         Promise.all([
             getTimeEntries({ caseId: id }),
@@ -459,6 +466,48 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             console.error('Failed to save next step', err);
         } finally {
             this.isSavingStep = false;
+        }
+    }
+
+    // ── Log Time ──────────────────────────────────────────────────────────
+    handleNewTimeHoursChange(e) { this.newTimeHours = e.target.value; }
+    handleNewTimeDescChange(e)   { this.newTimeDesc  = e.target.value; }
+
+    async handleLogTime() {
+        const raw   = (this.newTimeHours || '').toString().trim();
+        const hours = parseFloat(raw);
+        if (!raw || isNaN(hours) || hours <= 0) return;
+        this.isSavingTime = true;
+        const caseId = this.modalCard.id;
+        try {
+            const today      = new Date();
+            const yyyy       = today.getFullYear();
+            const mm         = String(today.getMonth() + 1).padStart(2, '0');
+            const dd         = String(today.getDate()).padStart(2, '0');
+            const loggedDate = `${yyyy}-${mm}-${dd}`;
+            const newId      = await logTime({ caseId, hours, description: this.newTimeDesc.trim(), loggedDate });
+            const dateLabel  = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            this.timeEntries = [
+                {
+                    id:          newId,
+                    hours,
+                    hoursLabel:  this._fmtHours(hours) || '0h',
+                    description: this.newTimeDesc.trim(),
+                    date:        dateLabel,
+                    user:        ''
+                },
+                ...this.timeEntries
+            ];
+            this.newTimeHours = '';
+            this.newTimeDesc  = '';
+            const hoursEl = this.template.querySelector('.log-time-hours');
+            if (hoursEl) hoursEl.value = '';
+            const descEl  = this.template.querySelector('.log-time-desc');
+            if (descEl)  descEl.value  = '';
+        } catch (err) {
+            console.error('Failed to log time', err);
+        } finally {
+            this.isSavingTime = false;
         }
     }
 

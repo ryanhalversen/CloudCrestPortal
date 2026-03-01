@@ -243,6 +243,25 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testLogTime() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+        Date logDate = Date.today();
+
+        Test.startTest();
+        Id timeId = StoryBoardController.logTime(c.Id, 2.5, 'Worked on implementation', logDate);
+        Test.stopTest();
+
+        System.assertNotEquals(null, timeId, 'Time Id should be returned');
+        Time__c t = [SELECT Minutes_Logged__c, Additional_Comments__c, Logged_Date__c FROM Time__c WHERE Id = :timeId];
+        System.assertEquals(150, t.Minutes_Logged__c, 'Minutes should be 2.5 * 60 = 150');
+        System.assertEquals('Worked on implementation', t.Additional_Comments__c, 'Description should match');
+        System.assertEquals(logDate, t.Logged_Date__c, 'Date should match');
+    }
+
+    @isTest
     static void testAssignEpic() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
