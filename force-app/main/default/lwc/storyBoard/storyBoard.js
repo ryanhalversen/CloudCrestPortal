@@ -316,6 +316,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return 'modal-container' + (this.showChatPanel ? ' modal-container-wide' : '');
     }
 
+    get isClosedStatus() {
+        const s = this.modalCard?.status || '';
+        return s === 'Completed' || s === 'Cancelled';
+    }
+
     get totalTimeLogged() {
         const total = this.timeEntries.reduce((s, t) => s + t.hours, 0);
         return this._fmtHours(Number(total.toFixed(2))) || '0h';
@@ -1409,9 +1414,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             epicId:             c.Epic__c             || null,
             epicName:           c.Epic__r?.Name       || '',
             contactName:        c.Contact?.Name       || '',
+            status:             c.Status              || '',
             storySupportId:     c.Story_Support__c    || null,
             storySupportName:   c.Story_Support__r?.Name || '',
             hasSupportMessage:  c.Support_Message_Pending__c || false,
+            closingComments:    c.Closing_Comments__c || '',
             solution:           c.Solution__c         || '',
             componentsToDeploy: c.Components_to_Deploy__c || '',
             qa:                 c.Q_A__c              || '',

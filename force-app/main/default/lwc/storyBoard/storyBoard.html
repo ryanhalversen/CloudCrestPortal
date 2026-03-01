@@ -333,18 +333,24 @@
                                 <p class="modal-no-desc">No description provided.</p>
                             </template>
 
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Priority</label>
-                                <div class="modal-priority-options">
-                                    <template for:each={priorityOptions} for:item="opt">
-                                        <button key={opt.value}
-                                            class={opt.btnClass}
-                                            data-value={opt.value}
-                                            onclick={handlePrioritySelect}
-                                            disabled={isSavingPriority}>
-                                            {opt.label}
-                                        </button>
-                                    </template>
+                            <div class="priority-status-row">
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Priority</label>
+                                    <div class="modal-priority-options">
+                                        <template for:each={priorityOptions} for:item="opt">
+                                            <button key={opt.value}
+                                                class={opt.btnClass}
+                                                data-value={opt.value}
+                                                onclick={handlePrioritySelect}
+                                                disabled={isSavingPriority}>
+                                                {opt.label}
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Status</label>
+                                    <span class="modal-status-value">{modalCard.status}</span>
                                 </div>
                             </div>
 
@@ -582,6 +588,12 @@
                                 rows="3">
                             </textarea>
                         </div>
+                        <template if:true={isClosedStatus}>
+                            <div class="modal-field-row modal-closing-comments-row">
+                                <label class="modal-field-label">Closing Comments</label>
+                                <p class="modal-closing-comments-text">{modalCard.closingComments}</p>
+                            </div>
+                        </template>
                         <div class="text-fields-save-row">
                             <template if:true={textFieldsSaveSuccess}>
                                 <span class="text-fields-saved">✓ Saved</span>

@@ -876,6 +876,17 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+.priority-status-row {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.modal-status-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #111827;
+}
 .modal-priority-options {
     display: flex;
     gap: 8px;
@@ -1136,6 +1147,17 @@
     min-height: 80px;
 }
 
+.modal-closing-comments-row {
+    border-top: 1px solid #f0f2f5;
+    padding-top: 12px;
+}
+.modal-closing-comments-text {
+    font-size: 0.875rem;
+    color: #374151;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
+}
 .text-fields-save-row {
     display: flex;
     align-items: center;
