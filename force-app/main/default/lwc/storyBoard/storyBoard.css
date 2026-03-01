@@ -366,7 +366,7 @@
     justify-content: space-between;
     align-items: center;
 }
-.card-number {
+.card-hours-logged {
     font-size: 0.7rem;
     color: #00b4d8;
     font-weight: 600;

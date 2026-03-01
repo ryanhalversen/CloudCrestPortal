@@ -115,14 +115,14 @@
                                                 </template>
                                             </div>
                                             <div class="card-footer">
-                                                <span class="card-number">#{card.caseNumber}</span>
+                                                <span class="card-hours-logged">⏱ {card.hoursLogged}h</span>
                                                 <template if:true={card.estimatedHours}>
-                                                    <span class="card-est-hours">⏱ {card.estimatedHours}h</span>
+                                                    <span class="card-est-hours">est {card.estimatedHours}h</span>
                                                 </template>
                                                 <template if:false={card.estimatedHours}>
-                                                    <span class="card-est-hours card-est-missing">⏱ 0</span>
+                                                    <span class="card-est-hours card-est-missing">est 0h</span>
                                                 </template>
-                                                <span class="card-date">{card.openedDate}</span>
+                                                <span class="card-date">{card.cardAge}</span>
                                             </div>
                                         </div>
                                     </template>

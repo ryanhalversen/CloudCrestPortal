@@ -1585,10 +1585,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             type:          c.Type        || '',
             department:    c.Department__c || '',
             priorityClass: PRIORITY_CLASSES[c.Priority] || 'priority-badge priority-low',
-            openedDate:    c.CreatedDate
-                               ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                               : '',
+            cardAge:        this._calcAge(c.CreatedDate),
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
+            hoursLogged:    c.Actual_Hours_to_Complete__c   ?? 0,
             ownerId:            c.OwnerId             || null,
             ownerName:          c.Owner?.Name         || '',
             epicId:             c.Epic__c             || null,
@@ -1610,6 +1609,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             isSaving:   false,
             cardClass:  'story-card' + (c.Story_Support__c ? ' story-card-support' : '')
         };
+    }
+
+    _calcAge(createdDate) {
+        if (!createdDate) return '';
+        const days = Math.floor((Date.now() - new Date(createdDate).getTime()) / 86400000);
+        if (days === 0)  return 'Today';
+        if (days < 7)   return `${days}d`;
+        if (days < 56)  return `${Math.floor(days / 7)}w`;
+        return `${Math.floor(days / 30)}mo`;
     }
 
     _buildColumns(cases) {
