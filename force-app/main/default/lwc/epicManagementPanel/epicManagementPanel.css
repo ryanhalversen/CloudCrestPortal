@@ -548,7 +548,7 @@
     color: #ea580c;
 }
 
-/* Milestone name — above the diamond, single line stretched horizontally */
+/* Milestone name — above the diamond, wraps within a wider box */
 .tl-milestone-name {
     position: absolute;
     bottom: calc(100% + 3px);
@@ -557,7 +557,9 @@
     font-size: 10px;
     font-weight: 600;
     color: #374151;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
+    max-width: 150px;
     pointer-events: none;
     background: rgba(255, 255, 255, 0.9);
     padding: 1px 4px;
