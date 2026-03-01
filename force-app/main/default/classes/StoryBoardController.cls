@@ -222,8 +222,13 @@ public without sharing class StoryBoardController {
                 Priority      = priority,
                 Department__c = department,
                 Projects__c   = projectId,
-                Epic__c       = assignEpicId
+                Epic__c       = assignEpicId,
+                OwnerId       = UserInfo.getUserId()
             );
+            // Disable assignment rules so the case stays owned by the creating user
+            Database.DMLOptions dlo = new Database.DMLOptions();
+            dlo.assignmentRuleHeader.useDefaultRule = false;
+            c.setOptions(dlo);
             insert c;
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));

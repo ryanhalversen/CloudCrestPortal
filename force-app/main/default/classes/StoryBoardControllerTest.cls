@@ -235,10 +235,11 @@ public class StoryBoardControllerTest {
         StoryBoardController.createStory(sprint.Id, 'New Test Story', 'A description', 'High', null, null);
         Test.stopTest();
 
-        List<Case> created = [SELECT Subject, Priority, Projects__c FROM Case WHERE Subject = 'New Test Story'];
-        System.assertEquals(1,         created.size(),          'Should have created one story');
-        System.assertEquals('High',    created[0].Priority,     'Priority should match');
-        System.assertEquals(sprint.Id, created[0].Projects__c,  'Project should match');
+        List<Case> created = [SELECT Subject, Priority, Projects__c, OwnerId FROM Case WHERE Subject = 'New Test Story'];
+        System.assertEquals(1,                    created.size(),          'Should have created one story');
+        System.assertEquals('High',               created[0].Priority,     'Priority should match');
+        System.assertEquals(sprint.Id,            created[0].Projects__c,  'Project should match');
+        System.assertEquals(UserInfo.getUserId(), created[0].OwnerId,      'Owner should be the creating user');
     }
 
     @isTest
