@@ -107,6 +107,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track _isLoadingAttachments = false;
     @track _isUploadingAttachment = false;
     @track _openedAttachment   = null;
+    @track _isDragOver         = false;
     @track modalSaveError      = false;
     @track estHoursInput       = '';
     @track isSavingEstHours    = false;
@@ -367,6 +368,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get hasAttachments() { return this._attachments.length > 0; }
+    get attachSectionClass() { return this._isDragOver ? 'attach-section attach-drag-over' : 'attach-section'; }
 
     get isClosedStatus() {
         const s = this.modalCard?.status || '';
@@ -661,6 +663,31 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     handleFileInputChange(e) {
         const file = e.target.files[0];
+        e.target.value = '';
+        this._uploadFile(file);
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        this._isDragOver = true;
+    }
+
+    handleDragLeave(e) {
+        // only clear if leaving the section entirely (not a child element)
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            this._isDragOver = false;
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        this._isDragOver = false;
+        const file = e.dataTransfer.files[0];
+        this._uploadFile(file);
+    }
+
+    _uploadFile(file) {
         if (!file || !this.modalCard) return;
         if (file.size > 4500000) {
             // eslint-disable-next-line no-alert
@@ -677,7 +704,6 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 .finally(() => { this._isUploadingAttachment = false; });
         };
         reader.readAsDataURL(file);
-        e.target.value = ''; // reset so same file can be re-uploaded
     }
 
     handleOpenAttachment(e) {

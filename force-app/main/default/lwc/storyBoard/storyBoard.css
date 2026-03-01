@@ -777,6 +777,22 @@
 .attach-btn-del:hover { background: #fca5a5; }
 .attach-empty { font-size: 0.78rem; color: #9ca3af; font-style: italic; padding: 4px 0; }
 
+.attach-drag-over {
+    background: #e0f7fc;
+    border: 2px dashed #00b4d8;
+    border-radius: 8px;
+}
+.attach-drop-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #00b4d8;
+    pointer-events: none;
+}
+
 /* ── Support Chat ────────────────────────────────────────────────────────── */
 .modal-col-chat {
     width: 300px;

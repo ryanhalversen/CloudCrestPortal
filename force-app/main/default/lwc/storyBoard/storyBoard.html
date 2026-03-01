@@ -711,7 +711,10 @@
                     </div>
 
                     <!-- ── Attachments ── -->
-                    <div class="attach-section">
+                    <div class={attachSectionClass}
+                         ondragover={handleDragOver}
+                         ondragleave={handleDragLeave}
+                         ondrop={handleDrop}>
                         <div class="attach-section-header">
                             <span class="attach-section-title">Attachments</span>
                             <label class="btn-add-attach" title="Upload file">
@@ -720,25 +723,30 @@
                                 <input type="file" class="attach-file-input" onchange={handleFileInputChange} disabled={_isUploadingAttachment} />
                             </label>
                         </div>
-                        <template if:true={_isLoadingAttachments}>
-                            <div class="attach-empty">Loading…</div>
+                        <template if:true={_isDragOver}>
+                            <div class="attach-drop-zone">Drop file here to upload</div>
                         </template>
-                        <template if:false={_isLoadingAttachments}>
-                            <template if:true={hasAttachments}>
-                                <div class="attach-list">
-                                    <template for:each={_attachments} for:item="a">
-                                        <div key={a.contentDocumentId} class="attach-chip">
-                                            <span class="attach-ext">{a.fileExtension}</span>
-                                            <span class="attach-name" title={a.title}>{a.title}</span>
-                                            <button class="attach-btn-open" data-id={a.contentDocumentId} onclick={handleOpenAttachment}>View</button>
-                                            <a class="attach-btn-dl" href={a.downloadUrl} target="_blank" onclick={handleAttachLinkClick}>↓</a>
-                                            <button class="attach-btn-del" data-id={a.contentDocumentId} onclick={handleDeleteAttachment}>✕</button>
-                                        </div>
-                                    </template>
-                                </div>
+                        <template if:false={_isDragOver}>
+                            <template if:true={_isLoadingAttachments}>
+                                <div class="attach-empty">Loading…</div>
                             </template>
-                            <template if:false={hasAttachments}>
-                                <div class="attach-empty">No attachments yet.</div>
+                            <template if:false={_isLoadingAttachments}>
+                                <template if:true={hasAttachments}>
+                                    <div class="attach-list">
+                                        <template for:each={_attachments} for:item="a">
+                                            <div key={a.contentDocumentId} class="attach-chip">
+                                                <span class="attach-ext">{a.fileExtension}</span>
+                                                <span class="attach-name" title={a.title}>{a.title}</span>
+                                                <button class="attach-btn-open" data-id={a.contentDocumentId} onclick={handleOpenAttachment}>View</button>
+                                                <a class="attach-btn-dl" href={a.downloadUrl} target="_blank" onclick={handleAttachLinkClick}>↓</a>
+                                                <button class="attach-btn-del" data-id={a.contentDocumentId} onclick={handleDeleteAttachment}>✕</button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template if:false={hasAttachments}>
+                                    <div class="attach-empty">Drop a file or click + Add to attach</div>
+                                </template>
                             </template>
                         </template>
                     </div>
