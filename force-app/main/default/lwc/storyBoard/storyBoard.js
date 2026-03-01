@@ -794,17 +794,17 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     async handleSupportResultSelect(e) {
-        const contactId   = e.currentTarget.dataset.id;
-        const contactName = e.currentTarget.dataset.name;
+        const userId      = e.currentTarget.dataset.id;
+        const userName    = e.currentTarget.dataset.name;
         const caseId      = this.modalCard.id;
         this.isAssigningSupport  = true;
         this.supportAssignError  = '';
         try {
-            await assignStorySupport({ caseId, contactId });
-            this.modalCard = { ...this.modalCard, storySupportId: contactId, storySupportName: contactName };
+            await assignStorySupport({ caseId, userId });
+            this.modalCard = { ...this.modalCard, storySupportId: userId, storySupportName: userName };
             this.columns = this.columns.map(col => ({
                 ...col,
-                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, storySupportId: contactId, storySupportName: contactName })
+                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, storySupportId: userId, storySupportName: userName })
             }));
             this.showSupportSearch = false;
         } catch (err) {
