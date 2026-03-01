@@ -362,6 +362,94 @@
             </div>
         </template>
 
+        <!-- ── Close Story Modal ── -->
+        <template if:true={showCloseModal}>
+            <div class="modal-backdrop" onclick={handleCloseModalBackdropClick}>
+                <div class="sm-modal" onclick={handleCloseModalContainerClick}>
+
+                    <div class="modal-header">
+                        <div class="modal-header-meta">
+                            <lightning-icon icon-name="utility:check" size="x-small" style="--lwc-colorTextIcon:#374151;"></lightning-icon>
+                            <span class="modal-case-number">{closeModalTitle}</span>
+                        </div>
+                        <button class="modal-close" onclick={handleCloseModalCancel} disabled={isClosingStory}>✕</button>
+                    </div>
+
+                    <div class="close-modal-subtitle">{closeFormSubject}</div>
+
+                    <div class="modal-body">
+
+                        <!-- Closing Comments -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">
+                                Closing Comments <span class="new-story-required">*</span>
+                            </label>
+                            <textarea
+                                class={closeCommentsClass}
+                                placeholder="Summarize what was completed or why this was cancelled…"
+                                oninput={handleCloseFormCommentsChange}
+                                rows="3">
+                            </textarea>
+                            <template if:true={closeFormCommentsError}>
+                                <span class="field-error">Closing comments are required.</span>
+                            </template>
+                        </div>
+
+                        <!-- Department -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">
+                                Department <span class="new-story-required">*</span>
+                            </label>
+                            <lightning-combobox
+                                name="closeDept"
+                                variant="label-hidden"
+                                placeholder="--Select--"
+                                options={departmentOptions}
+                                value={closeFormDepartment}
+                                onchange={handleCloseFormDeptChange}>
+                            </lightning-combobox>
+                            <template if:true={closeFormDeptError}>
+                                <span class="field-error">Department is required.</span>
+                            </template>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">
+                                Priority <span class="new-story-required">*</span>
+                            </label>
+                            <div class="modal-priority-options">
+                                <template for:each={closePriorityOptions} for:item="opt">
+                                    <button key={opt.value}
+                                        class={opt.btnClass}
+                                        data-value={opt.value}
+                                        onclick={handleCloseFormPrioritySelect}>
+                                        {opt.label}
+                                    </button>
+                                </template>
+                            </div>
+                            <template if:true={closeFormPriorityError}>
+                                <span class="field-error">Priority is required.</span>
+                            </template>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <template if:true={closeStoryError}>
+                            <span class="modal-save-error">⚠ {closeStoryError}</span>
+                        </template>
+                        <template if:true={isClosingStory}>
+                            <span class="modal-saving">Saving…</span>
+                        </template>
+                        <button class="btn-cancel" onclick={handleCloseModalCancel} disabled={isClosingStory}>Cancel</button>
+                        <button class="btn-close-story" onclick={handleCloseStorySubmit} disabled={isClosingStory}>{closeModalActionLabel}</button>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
         <!-- ── New Story Modal ── -->
         <template if:true={showNewStoryModal}>
             <div class="modal-backdrop" onclick={handleNewStoryBackdropClick}>

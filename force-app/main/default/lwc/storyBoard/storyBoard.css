@@ -898,3 +898,41 @@
 }
 .btn-log-time:hover    { background: #0096b4; }
 .btn-log-time:disabled { background: #a5f3fc; cursor: not-allowed; }
+
+/* ── Close Story Modal ────────────────────────────────────────────────────── */
+.sm-modal {
+    background: #ffffff;
+    border-radius: 14px;
+    width: 500px;
+    max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+.close-modal-subtitle {
+    padding: 0 20px 12px;
+    font-size: 0.82rem;
+    color: #6b7280;
+    line-height: 1.4;
+    border-bottom: 1px solid #f0f2f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-close-story {
+    padding: 7px 20px;
+    border-radius: 7px;
+    border: none;
+    background: #0d1b2a;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-close-story:hover    { background: #374151; }
+.btn-close-story:disabled { opacity: 0.5; cursor: not-allowed; }

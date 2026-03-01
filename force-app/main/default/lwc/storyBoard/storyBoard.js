@@ -19,6 +19,7 @@ import updateNextStep       from '@salesforce/apex/StoryBoardController.updateNe
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
+import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -98,6 +99,21 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track newTimeHours        = '';
     @track newTimeDesc         = '';
     @track isSavingTime        = false;
+
+    // ── Close Story Modal state ───────────────────────────────────────────
+    @track showCloseModal          = false;
+    @track _pendingCloseCardId     = null;
+    @track _pendingCloseFrom       = null;
+    @track _pendingCloseTo         = null;
+    @track closeFormSubject        = '';
+    @track closeFormComments       = '';
+    @track closeFormDepartment     = '';
+    @track closeFormPriority       = '';
+    @track closeFormCommentsError  = false;
+    @track closeFormDeptError      = false;
+    @track closeFormPriorityError  = false;
+    @track isClosingStory          = false;
+    @track closeStoryError         = '';
 
     // ── New Story state ───────────────────────────────────────────────────
     @track showNewStoryModal    = false;
@@ -251,6 +267,28 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get newStorySubjectClass() {
         return `new-story-input${this.newStorySubjectError ? ' input-error' : ''}`;
+    }
+
+    get closeModalTitle() {
+        return this._pendingCloseTo === 'Completed' ? 'Complete Story' : 'Cancel Story';
+    }
+
+    get closeModalActionLabel() {
+        return this._pendingCloseTo === 'Completed' ? 'Mark Completed' : 'Mark Cancelled';
+    }
+
+    get closeCommentsClass() {
+        return `new-story-textarea${this.closeFormCommentsError ? ' input-error' : ''}`;
+    }
+
+    get closePriorityOptions() {
+        return PRIORITIES.map(p => ({
+            value:    p,
+            label:    p,
+            btnClass: this.closeFormPriority === p
+                          ? `${PRIORITY_BTN_CLASSES[p]} selected`
+                          : PRIORITY_BTN_CLASSES[p]
+        }));
     }
 
     // ── Distribution Bar Getters ──────────────────────────────────────────
@@ -597,6 +635,110 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }
     }
 
+    // ── Close Story Modal ─────────────────────────────────────────────────
+    _showCloseModal(cardId, fromStatus, toStatus) {
+        const card = this._findCard(fromStatus, cardId);
+        if (!card) return;
+        this._pendingCloseCardId    = cardId;
+        this._pendingCloseFrom      = fromStatus;
+        this._pendingCloseTo        = toStatus;
+        this.closeFormSubject       = card.subject;
+        this.closeFormComments      = '';
+        this.closeFormDepartment    = card.department || '';
+        this.closeFormPriority      = card.priority   || '';
+        this.closeFormCommentsError = false;
+        this.closeFormDeptError     = false;
+        this.closeFormPriorityError = false;
+        this.isClosingStory         = false;
+        this.closeStoryError        = '';
+        this.showCloseModal         = true;
+    }
+
+    handleCloseModalCancel() {
+        if (this.isClosingStory) return;
+        this.showCloseModal = false;
+    }
+
+    handleCloseModalBackdropClick() { this.handleCloseModalCancel(); }
+    handleCloseModalContainerClick(e) { e.stopPropagation(); }
+
+    handleCloseFormCommentsChange(e) {
+        this.closeFormComments      = e.target.value;
+        this.closeFormCommentsError = false;
+    }
+
+    handleCloseFormDeptChange(e) {
+        this.closeFormDepartment = e.detail.value;
+        this.closeFormDeptError  = false;
+    }
+
+    handleCloseFormPrioritySelect(e) {
+        this.closeFormPriority      = e.currentTarget.dataset.value;
+        this.closeFormPriorityError = false;
+    }
+
+    async handleCloseStorySubmit() {
+        let valid = true;
+        if (!(this.closeFormComments || '').trim()) {
+            this.closeFormCommentsError = true;
+            valid = false;
+        }
+        if (!this.closeFormDepartment) {
+            this.closeFormDeptError = true;
+            valid = false;
+        }
+        if (!this.closeFormPriority) {
+            this.closeFormPriorityError = true;
+            valid = false;
+        }
+        if (!valid) return;
+
+        this.isClosingStory  = true;
+        this.closeStoryError = '';
+        const id       = this._pendingCloseCardId;
+        const from     = this._pendingCloseFrom;
+        const toStatus = this._pendingCloseTo;
+        const priority = this.closeFormPriority;
+        const dept     = this.closeFormDepartment;
+        try {
+            await closeStory({
+                caseId:          id,
+                newStatus:       toStatus,
+                closingComments: this.closeFormComments.trim(),
+                department:      dept,
+                priority
+            });
+            this.showCloseModal = false;
+            // Optimistic move with updated fields
+            this.columns = this.columns.map(col => {
+                if (col.status === from) {
+                    const cards = col.cards.filter(c => c.id !== id);
+                    return { ...col, cards, count: cards.length, hasCards: cards.length > 0 };
+                }
+                if (col.status === toStatus) {
+                    const moved = this._findCard(from, id);
+                    if (!moved) return col;
+                    const updated = {
+                        ...moved,
+                        priority,
+                        department:    dept,
+                        priorityClass: PRIORITY_CLASSES[priority] || 'priority-badge priority-low'
+                    };
+                    const cards = [...col.cards, updated]
+                        .slice()
+                        .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
+                    return { ...col, cards, count: cards.length, hasCards: true };
+                }
+                return col;
+            });
+            this._toast('Story closed', `Story moved to "${toStatus}"`, 'success');
+        } catch (err) {
+            this.closeStoryError = err?.body?.message || 'Failed to close story — please try again.';
+        } finally {
+            this.isClosingStory = false;
+        }
+    }
+
     // ── Drag ──────────────────────────────────────────────────────────────
     handlePointerDown(e) {
         if (e.button !== undefined && e.button !== 0) return;
@@ -655,7 +797,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             } else {
                 const toStatus = this._getColumnAtPoint(e.clientX, e.clientY);
                 if (toStatus && toStatus !== _dragFromStatus) {
-                    this._moveCard(_dragCardId, _dragFromStatus, toStatus);
+                    if (toStatus === 'Completed' || toStatus === 'Cancelled') {
+                        this._showCloseModal(_dragCardId, _dragFromStatus, toStatus);
+                    } else {
+                        this._moveCard(_dragCardId, _dragFromStatus, toStatus);
+                    }
                 }
             }
         }
@@ -818,14 +964,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             subject:       c.Subject,
             description:   c.Description || '',
             caseNumber:    c.CaseNumber,
-            priority:      c.Priority || '',
-            type:          c.Type     || '',
+            priority:      c.Priority    || '',
+            type:          c.Type        || '',
+            department:    c.Department__c || '',
             priorityClass: PRIORITY_CLASSES[c.Priority] || 'priority-badge priority-low',
             openedDate:    c.CreatedDate
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
-            ownerId:    c.OwnerId    || null,
+            ownerId:    c.OwnerId     || null,
             projectId:  c.Projects__c || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,

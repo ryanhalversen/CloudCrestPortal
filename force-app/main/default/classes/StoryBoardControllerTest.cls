@@ -262,6 +262,35 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testCloseStory() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.closeStory(c.Id, 'Completed', 'All tasks done', 'IT', 'High');
+        Test.stopTest();
+
+        Case updated = [SELECT Status, Closing_Comments__c, Department__c, Priority FROM Case WHERE Id = :c.Id];
+        System.assertEquals('Completed',      updated.Status,              'Status should be Completed');
+        System.assertEquals('All tasks done', updated.Closing_Comments__c, 'Closing comments should match');
+        System.assertEquals('IT',             updated.Department__c,       'Department should match');
+        System.assertEquals('High',           updated.Priority,            'Priority should match');
+    }
+
+    @isTest
+    static void testCloseStory_invalidStatus() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+
+        Test.startTest();
+        try {
+            StoryBoardController.closeStory(c.Id, 'New', 'Comments', 'IT', 'High');
+            System.assert(false, 'Should have thrown');
+        } catch (AuraHandledException e) {
+            System.assert(e.getMessage() != null);
+        }
+        Test.stopTest();
+    }
+
+    @isTest
     static void testAssignEpic() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];

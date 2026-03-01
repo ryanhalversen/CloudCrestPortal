@@ -3,7 +3,7 @@ public without sharing class StoryBoardController {
     @AuraEnabled(cacheable=true)
     public static List<Case> getStories(Boolean mineOnly, Id projectId, Id epicId) {
         String q =
-            'SELECT Id, CaseNumber, Subject, Status, Priority, Type, ' +
+            'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
             'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c ' +
             'FROM Case';
@@ -214,6 +214,32 @@ public without sharing class StoryBoardController {
             );
             insert t;
             return t.Id;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Close Story (Completed / Cancelled) ──────────────────────────────
+    @AuraEnabled
+    public static void closeStory(Id caseId, String newStatus, String closingComments, String department, String priority) {
+        try {
+            Set<String> validStatuses = new Set<String>{ 'Completed', 'Cancelled' };
+            if (!validStatuses.contains(newStatus)) {
+                throw new AuraHandledException('Invalid status: ' + newStatus);
+            }
+            Set<String> validPriorities = new Set<String>{ 'Critical', 'High', 'Medium', 'Low' };
+            if (!validPriorities.contains(priority)) {
+                throw new AuraHandledException('Invalid priority: ' + priority);
+            }
+            update new Case(
+                Id                  = caseId,
+                Status              = newStatus,
+                Closing_Comments__c = closingComments,
+                Department__c       = department,
+                Priority            = priority
+            );
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {
