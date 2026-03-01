@@ -184,7 +184,9 @@ export default class EpicManagementPanel extends LightningElement {
                 dateLabel: this._formatShortDate(m.milestoneDate)
             }));
 
-            return { ...ep, hasBar, barStyle, milestones };
+            const isSelected = ep.epicId === this.selectedEpicId;
+            const barClass   = isSelected ? 'tl-bar tl-bar-active' : 'tl-bar';
+            return { ...ep, hasBar, barStyle, barClass, milestones, isSelected };
         });
     }
 
@@ -361,22 +363,12 @@ export default class EpicManagementPanel extends LightningElement {
         }
     }
 
-    // ── Timeline bar click (opens edit modal) ─────────────────────────────
+    // ── Timeline bar click (select epic → filter story board) ────────────
     handleBarClick(e) {
         if (e.target.dataset.type) return; // click on a resize handle — ignore
         const epicId = e.currentTarget.dataset.id;
-        const ep = this._epics.find(x => x.epicId === epicId);
-        if (!ep) return;
-        this._editEpicId        = epicId;
-        this.modalName          = ep.name          || '';
-        this.modalStart         = ep.startDate     ? ep.startDate.split('T')[0]  : '';
-        this.modalEnd           = ep.endDate       ? ep.endDate.split('T')[0]    : '';
-        this.modalEstHours      = ep.estimatedHours != null ? String(ep.estimatedHours) : '';
-        this._modalDesc         = ep.description   || '';
-        this._pendingDescUpdate = true;
-        this.modalError         = '';
-        this.isSaving           = false;
-        this.showModal          = true;
+        const newId  = epicId === this.selectedEpicId ? null : epicId; // toggle off if already selected
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
     }
 
     // ── Timeline drag handlers (handles only — body is click-to-edit) ─────

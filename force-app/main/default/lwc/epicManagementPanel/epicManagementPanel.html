@@ -79,7 +79,7 @@
 
             <!-- Epic rows -->
             <template for:each={timelineEpics} for:item="ep">
-                <div key={ep.epicId} class="tl-row">
+                <div key={ep.epicId} class="tl-row" data-selected={ep.isSelected}>
 
                     <div class="tl-label-col">
                         <span class="tl-epic-name" title={ep.name}>{ep.name}</span>
@@ -89,7 +89,7 @@
 
                         <!-- Epic bar (only when start + end dates are set) -->
                         <template if:true={ep.hasBar}>
-                            <div class="tl-bar"
+                            <div class={ep.barClass}
                                  style={ep.barStyle}
                                  data-id={ep.epicId}
                                  onclick={handleBarClick}
