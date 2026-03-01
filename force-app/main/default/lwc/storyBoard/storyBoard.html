@@ -293,18 +293,15 @@
                         </div>
                     </template>
 
-                    <!-- Contact search -->
+                    <!-- Contact dropdown -->
                     <template if:true={showContactSearch}>
                         <div class="modal-owner-search">
                             <div class="owner-search-wrap">
-                                <input class="new-story-input owner-search-input"
-                                       type="text"
-                                       placeholder="Search contacts by name…"
-                                       oninput={handleContactSearchChange} />
+                                <span class="modal-meta-label" style="padding:6px 0;">Select a contact</span>
                                 <button class="btn-cancel ns-cancel-btn" onclick={handleContactSearchCancel}>Cancel</button>
                             </div>
                             <template if:true={isSearchingContact}>
-                                <span class="owner-searching">Searching…</span>
+                                <span class="owner-searching">Loading…</span>
                             </template>
                             <template if:true={contactSearchResults.length}>
                                 <div class="owner-results">

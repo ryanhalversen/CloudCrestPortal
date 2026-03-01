@@ -87,7 +87,6 @@ let _isDragging       = false;
 let _didDrag          = false;
 let _ownerSearchTimer    = null;
 let _supportSearchTimer  = null;
-let _contactSearchTimer  = null;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -957,44 +956,36 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     // ── Contact Assignment ────────────────────────────────────────────────
-    handleContactAssignClick() {
+    async handleContactAssignClick() {
         this.showSupportSearch    = false;
         this.showEpicChange       = false;
         this.showOwnerSearch      = false;
-        this.showContactSearch    = !this.showContactSearch;
+        const opening = !this.showContactSearch;
+        this.showContactSearch    = opening;
         this.contactSearchResults = [];
         this.contactAssignError   = '';
-    }
-
-    handleContactSearchCancel() {
-        this.showContactSearch    = false;
-        this.contactSearchResults = [];
-        this.contactAssignError   = '';
-    }
-
-    handleContactSearchChange(e) {
-        const term = (e.target.value || '').trim();
-        clearTimeout(_contactSearchTimer);
-        this.contactSearchResults = [];
-        if (term.length < 2) return;
-        _contactSearchTimer = setTimeout(async () => {
+        if (opening && this.modalCard.projectId) {
             this.isSearchingContact = true;
             try {
-                const results = await getContactsForProject({
-                    projectId:  this.modalCard.projectId,
-                    searchTerm: term
-                });
+                const results = await getContactsForProject({ projectId: this.modalCard.projectId });
                 this.contactSearchResults = results.map(c => ({
                     id:    c.Id,
                     name:  c.Name,
                     title: c.Title || ''
                 }));
             } catch (err) {
+                this.contactAssignError = 'Could not load contacts';
                 console.error(err);
             } finally {
                 this.isSearchingContact = false;
             }
-        }, 300);
+        }
+    }
+
+    handleContactSearchCancel() {
+        this.showContactSearch    = false;
+        this.contactSearchResults = [];
+        this.contactAssignError   = '';
     }
 
     async handleContactResultSelect(e) {

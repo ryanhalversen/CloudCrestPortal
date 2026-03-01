@@ -300,19 +300,18 @@ public without sharing class StoryBoardController {
         }
     }
 
-    // ── Search Contacts for Project Account ───────────────────────────────
+    // ── Get Contacts for Project Account ─────────────────────────────────
     @AuraEnabled
-    public static List<Contact> getContactsForProject(Id projectId, String searchTerm) {
+    public static List<Contact> getContactsForProject(Id projectId) {
         List<Sprint__c> projects = [SELECT Accountlu__c FROM Sprint__c WHERE Id = :projectId LIMIT 1];
         if (projects.isEmpty() || projects[0].Accountlu__c == null) return new List<Contact>();
         Id accountId = projects[0].Accountlu__c;
-        String term  = '%' + String.escapeSingleQuotes(searchTerm) + '%';
         return [
             SELECT Id, Name, Title
             FROM Contact
-            WHERE AccountId = :accountId AND Name LIKE :term
+            WHERE AccountId = :accountId
             ORDER BY Name ASC
-            LIMIT 10
+            LIMIT 50
         ];
     }
 

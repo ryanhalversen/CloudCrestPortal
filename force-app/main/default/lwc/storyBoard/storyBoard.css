@@ -843,6 +843,9 @@
     align-self: flex-start;
 }
 .next-step-entry:hover .ns-edit-btn { opacity: 1; }
+.time-entry:hover .ns-edit-btn      { opacity: 1; }
+.subject-display-row .subject-edit-btn { opacity: 0.4; }
+.subject-display-row:hover .subject-edit-btn { opacity: 1; }
 .ns-edit-btn:hover { color: #00b4d8; background: #e6f7fb; }
 .ns-edit-form {
     flex: 1;
