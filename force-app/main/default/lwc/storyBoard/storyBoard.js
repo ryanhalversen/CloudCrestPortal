@@ -723,7 +723,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     handleZoomOut()   { this._imgZoom = Math.max(+(this._imgZoom - 0.25).toFixed(2), 0.25); }
     handleZoomReset() { this._imgZoom = 1; }
 
-    get imgZoomStyle()  { return `width: ${this._imgZoom * 100}%; height: auto;`; }
+    get imgZoomStyle()  { return `width: ${this._imgZoom * 100}%; max-width: none; height: auto;`; }
     get imgZoomLabel()  { return `${Math.round(this._imgZoom * 100)}%`; }
 
     handleAttachLinkClick(e) {
