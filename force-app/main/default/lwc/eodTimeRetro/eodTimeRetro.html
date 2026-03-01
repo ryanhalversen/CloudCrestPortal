@@ -68,10 +68,24 @@
         <!-- VIEW TOGGLE -->
         <div class="slds-p-horizontal_medium slds-m-bottom_small">
             <div class="view-toggle-group">
-                <button class={storyListBtnClass} data-view="list"     onclick={handleViewToggle}>Story List</button>
-                <button class={timelineBtnClass}  data-view="timeline" onclick={handleViewToggle}>Timeline</button>
+                <button class={listBtnClass}  data-view="list"  onclick={handleViewToggle}>Story List</button>
+                <button class={dayBtnClass}   data-view="day"   onclick={handleViewToggle}>Day</button>
+                <button class={weekBtnClass}  data-view="week"  onclick={handleViewToggle}>Week</button>
+                <button class={monthBtnClass} data-view="month" onclick={handleViewToggle}>Month</button>
             </div>
         </div>
+
+        <!-- CALENDAR NAV -->
+        <template if:true={showCalNav}>
+        <div class="slds-p-horizontal_medium slds-m-bottom_small">
+            <div class="cal-nav">
+                <button class="cal-nav-btn" onclick={handlePrev}>&#8249;</button>
+                <button class="cal-nav-btn cal-nav-today" onclick={handleToday}>Today</button>
+                <button class="cal-nav-btn" onclick={handleNext}>&#8250;</button>
+                <span class="cal-nav-title">{calendarTitle}</span>
+            </div>
+        </div>
+        </template>
 
         <!-- ACTIVE TIMER BANNER -->
         <template if:true={hasActiveTimer}>
@@ -94,7 +108,7 @@
         </template>
 
         <!-- MAIN CONTENT AREA -->
-        <template if:false={showTimeline}>
+        <template if:true={showList}>
         <div class="slds-p-horizontal_medium">
 
             <!-- ── TIME BREAKDOWN VIEW (when a stat card is active) ── -->
@@ -279,10 +293,11 @@
         </div>
         </template>
 
-        <!-- TIMELINE VIEW -->
-        <template if:true={showTimeline}>
+        <!-- DAY VIEW -->
+        <template if:true={showDay}>
         <div class="slds-p-horizontal_medium">
 
+          <div class="cal-scroll">
           <div class="timeline-wrap">
             <!-- LEFT: hour labels -->
             <div class="timeline-hours">
@@ -317,6 +332,7 @@
                 </template>
             </div>
           </div>
+          </div><!-- /cal-scroll -->
 
           <!-- Gap panel -->
           <template if:true={selectedGap}>
@@ -353,6 +369,83 @@
             </div>
           </template>
 
+        </div>
+        </template>
+
+        <!-- WEEK VIEW -->
+        <template if:true={showWeek}>
+        <div class="slds-p-horizontal_medium">
+            <template if:true={weekIsLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+            <template if:false={weekIsLoading}>
+            <div class="cal-scroll">
+              <div class="week-wrap">
+                <!-- Hour label column -->
+                <div class="week-hour-col">
+                    <div class="week-col-header-spacer"></div>
+                    <div class="week-hours-body" style={weekGridStyle}>
+                        <template for:each={weekHourLabels} for:item="h">
+                            <div key={h.key} class="tl-hour-label" style={h.style}>{h.label}</div>
+                        </template>
+                    </div>
+                </div>
+                <!-- 7 day columns -->
+                <template for:each={weekColumns} for:item="col">
+                    <div key={col.key} class="week-col">
+                        <div class={col.headerClass}>
+                            <div class="week-col-day">{col.dayLabel}</div>
+                            <div class="week-col-date">{col.dateLabel}</div>
+                        </div>
+                        <div class="week-col-grid" style={weekGridStyle}>
+                            <template for:each={weekHourLines} for:item="line">
+                                <div key={line.key} class="tl-hour-line" style={line.style}></div>
+                            </template>
+                            <template for:each={col.blocks} for:item="block">
+                                <div key={block.timeId} class="tl-block" style={block.style}>
+                                    <span class="tl-block-subject">{block.subject}</span>
+                                    <span class="tl-block-dur">{block.durationLabel}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+              </div>
+            </div>
+            </template>
+        </div>
+        </template>
+
+        <!-- MONTH VIEW -->
+        <template if:true={showMonth}>
+        <div class="slds-p-horizontal_medium">
+            <div class="month-grid-wrap">
+                <div class="month-header-row">
+                    <div class="month-header-cell">Mon</div>
+                    <div class="month-header-cell">Tue</div>
+                    <div class="month-header-cell">Wed</div>
+                    <div class="month-header-cell">Thu</div>
+                    <div class="month-header-cell">Fri</div>
+                    <div class="month-header-cell">Sat</div>
+                    <div class="month-header-cell">Sun</div>
+                </div>
+                <template for:each={monthGrid.weeks} for:item="week">
+                    <div key={week.key} class="month-week-row">
+                        <template for:each={week.days} for:item="day">
+                            <template if:true={day.isEmpty}>
+                                <div key={day.key} class="month-cell month-cell-empty"></div>
+                            </template>
+                            <template if:false={day.isEmpty}>
+                                <div key={day.key} class={day.cellClass}
+                                     data-date={day.dateStr} onclick={handleMonthDayClick}>
+                                    <span class="month-day-num">{day.dayNum}</span>
+                                    <span class="month-day-hours">{day.hoursLabel}</span>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </template>
+            </div>
         </div>
         </template>
 

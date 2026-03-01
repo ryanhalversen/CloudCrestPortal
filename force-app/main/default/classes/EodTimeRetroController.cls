@@ -195,12 +195,10 @@ public with sharing class EodTimeRetroController {
         for (Time__c t : allMonth) {
             Decimal m = (t.Minutes_Logged__c != null) ? t.Minutes_Logged__c : 0;
             monthMins += m;
-            if (t.Logged_Date__c >= weekStart) {
-                weekMins += m;
-                String dk = String.valueOf(t.Logged_Date__c);
-                dayMap.put(dk, (dayMap.containsKey(dk) ? dayMap.get(dk) : 0) + m);
-            }
+            if (t.Logged_Date__c >= weekStart) weekMins += m;
             if (t.Logged_Date__c == today) todayMins += m;
+            String dk = String.valueOf(t.Logged_Date__c);
+            dayMap.put(dk, (dayMap.containsKey(dk) ? dayMap.get(dk) : 0) + m);
         }
         List<DayEntry> entries = new List<DayEntry>();
         for (String d : dayMap.keySet()) entries.add(new DayEntry(d, dayMap.get(d)));
@@ -256,6 +254,58 @@ public with sharing class EodTimeRetroController {
             groupMap.get(k).totalHours = groupMap.get(k).totalHours.setScale(1, RoundingMode.HALF_UP);
             result.add(groupMap.get(k));
         }
+        return result;
+    }
+
+    // ── Week time entries (for Week calendar view) ────────────────────
+    @AuraEnabled
+    public static List<WeekEntryWrapper> getWeekEntries(Id userId, String startDate) {
+        if (userId == null) userId = UserInfo.getUserId();
+        Date weekStart = Date.valueOf(startDate);
+        Date weekEnd   = weekStart.addDays(6);
+        List<Time__c> times = [
+            SELECT Id, Case__c, Case__r.Subject, Case__r.Projects__c,
+                   Minutes_Logged__c, Start_Time__c, Stop_Time__c, Logged_Date__c
+            FROM Time__c
+            WHERE CreatedById = :userId
+            AND Logged_Date__c >= :weekStart AND Logged_Date__c <= :weekEnd
+            ORDER BY Logged_Date__c, Start_Time__c NULLS LAST
+        ];
+        List<WeekEntryWrapper> result = new List<WeekEntryWrapper>();
+        for (Time__c t : times) {
+            WeekEntryWrapper w = new WeekEntryWrapper();
+            w.timeId       = t.Id;
+            w.storyId      = t.Case__c;
+            w.subject      = t.Case__r?.Subject;
+            w.projectId    = t.Case__r?.Projects__c;
+            w.loggedDate   = String.valueOf(t.Logged_Date__c);
+            w.minutesLogged = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
+            w.startTimeMs  = t.Start_Time__c != null ? t.Start_Time__c.getTime() : null;
+            w.stopTimeMs   = t.Stop_Time__c  != null ? t.Stop_Time__c.getTime()  : null;
+            result.add(w);
+        }
+        return result;
+    }
+
+    // ── Month day totals (for Month calendar view) ────────────────────
+    @AuraEnabled
+    public static List<DayEntry> getMonthStats(Id userId, Integer year, Integer month) {
+        if (userId == null) userId = UserInfo.getUserId();
+        Date monthStart = Date.newInstance(year, month, 1);
+        Date monthEnd   = monthStart.addMonths(1);
+        List<Time__c> times = [
+            SELECT Minutes_Logged__c, Logged_Date__c FROM Time__c
+            WHERE CreatedById = :userId
+            AND Logged_Date__c >= :monthStart AND Logged_Date__c < :monthEnd
+        ];
+        Map<String, Decimal> dayMap = new Map<String, Decimal>();
+        for (Time__c t : times) {
+            String dk = String.valueOf(t.Logged_Date__c);
+            Decimal m = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
+            dayMap.put(dk, (dayMap.containsKey(dk) ? dayMap.get(dk) : 0) + m);
+        }
+        List<DayEntry> result = new List<DayEntry>();
+        for (String d : dayMap.keySet()) result.add(new DayEntry(d, dayMap.get(d)));
         return result;
     }
 
@@ -321,6 +371,17 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Boolean fromEvent;
         @AuraEnabled public String  displayLabel; // event subject if fromEvent, else note
         @AuraEnabled public Long    startTimeMs;  // epoch millis, null if no timestamp
+        @AuraEnabled public Long    stopTimeMs;
+    }
+
+    public class WeekEntryWrapper {
+        @AuraEnabled public String  timeId;
+        @AuraEnabled public Id      storyId;
+        @AuraEnabled public String  subject;
+        @AuraEnabled public Id      projectId;
+        @AuraEnabled public String  loggedDate;   // "YYYY-MM-DD"
+        @AuraEnabled public Decimal minutesLogged;
+        @AuraEnabled public Long    startTimeMs;
         @AuraEnabled public Long    stopTimeMs;
     }
 

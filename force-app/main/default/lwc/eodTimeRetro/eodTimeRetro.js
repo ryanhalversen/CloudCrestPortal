@@ -12,6 +12,8 @@ import updateTime       from '@salesforce/apex/EodTimeRetroController.updateTime
 import USER_ID          from '@salesforce/user/Id';
 import getActiveTimer   from '@salesforce/apex/StoryBoardController.getActiveTimer';
 import stopTimer        from '@salesforce/apex/StoryBoardController.stopTimer';
+import getWeekEntries   from '@salesforce/apex/EodTimeRetroController.getWeekEntries';
+import getMonthStats    from '@salesforce/apex/EodTimeRetroController.getMonthStats';
 
 const PRIORITY_CLASSES = {
     'Critical' : 'tag tag-critical',
@@ -20,11 +22,14 @@ const PRIORITY_CLASSES = {
     'Low'      : 'tag tag-low'
 };
 
-const PX_PER_MIN   = 1.5;   // 90px per hour
-const MIN_SPAN_MIN = 240;   // show at least 4 hours
-const EDGE_PAD_MIN = 30;    // 30-min padding before first / after last entry
-const GAP_THRESH   = 15;    // gaps > 15 min are highlighted
-const BLOCK_COLORS = ['#0ea5e9','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899'];
+const PX_PER_MIN      = 1.5;   // 90px per hour
+const MIN_SPAN_MIN    = 240;   // show at least 4 hours
+const EDGE_PAD_MIN    = 30;    // 30-min padding before first / after last entry
+const GAP_THRESH      = 15;    // gaps > 15 min are highlighted
+const BLOCK_COLORS    = ['#0ea5e9','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899'];
+const FIXED_START_HR  = 6;    // 6 AM — fixed grid start for week view
+const FIXED_END_HR    = 22;   // 10 PM — fixed grid end
+const GRID_HEIGHT_PX  = (FIXED_END_HR - FIXED_START_HR) * 60 * PX_PER_MIN; // 1440px
 
 let _eodTimerInterval = null;
 
@@ -44,11 +49,17 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track _timerElapsed  = '';
     @track _timerNotes    = '';
 
-    // ── Timeline state ────────────────────────────────────────────────────
-    @track showTimeline    = true;
-    @track _selectedGapIdx = null;
-    @track _gapLogStoryId  = null;
-    @track _gapLogHours    = '';
+    // ── Calendar view state ───────────────────────────────────────────────
+    @track calendarView     = 'day';  // 'list' | 'day' | 'week' | 'month'
+    @track _calendarAnchor  = null;   // null = today, JS Date = specific date
+    @track _weekEntries     = [];
+    @track _weekLoading     = false;
+    @track _monthDayMap     = {};
+    @track _monthLoading    = false;
+    @track _selectedGapIdx  = null;
+    @track _gapLogStoryId   = null;
+    @track _gapLogHours     = '';
+    _scrollAfterRender      = false;
 
     // Breakdown state
     @track showBreakdown       = false;
@@ -78,6 +89,15 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         getActiveTimer()
             .then(w => { if (w) this._restoreEodTimer(w); })
             .catch(() => {});
+        this._scrollAfterRender = true;
+    }
+
+    renderedCallback() {
+        if (this._scrollAfterRender) {
+            this._scrollAfterRender = false;
+            const el = this.template.querySelector('.cal-scroll');
+            if (el) el.scrollTop = 90; // 7 AM = 60min from 6am × 1.5px/min
+        }
     }
     disconnectedCallback() {
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
@@ -125,6 +145,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 weekHours  : this._round(result.data.weekHours),
                 monthHours : this._round(result.data.monthHours)
             };
+            // Populate current-month day map for month view
+            const map = {};
+            (result.data.byDay || []).forEach(d => {
+                map[d.day] = Math.round((d.minutes / 60) * 10) / 10;
+            });
+            this._monthDayMap = map;
         }
     }
 
@@ -133,12 +159,216 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     get eodTimerLabel()  { return `⏱  ${this._timerSubject}  —  ${this._timerElapsed}`; }
 
     // ── View toggle getters ───────────────────────────────────────────────
-    get storyListBtnClass() { return !this.showTimeline ? 'view-tab view-tab-active' : 'view-tab'; }
-    get timelineBtnClass()  { return  this.showTimeline ? 'view-tab view-tab-active' : 'view-tab'; }
+    get listBtnClass()  { return this.calendarView === 'list'  ? 'view-tab view-tab-active' : 'view-tab'; }
+    get dayBtnClass()   { return this.calendarView === 'day'   ? 'view-tab view-tab-active' : 'view-tab'; }
+    get weekBtnClass()  { return this.calendarView === 'week'  ? 'view-tab view-tab-active' : 'view-tab'; }
+    get monthBtnClass() { return this.calendarView === 'month' ? 'view-tab view-tab-active' : 'view-tab'; }
+    get showList()      { return this.calendarView === 'list'; }
+    get showDay()       { return this.calendarView === 'day'; }
+    get showWeek()      { return this.calendarView === 'week'; }
+    get showMonth()     { return this.calendarView === 'month'; }
+    get showCalNav()    { return this.calendarView !== 'list'; }
+    get weekIsLoading() { return this._weekLoading; }
 
     handleViewToggle(e) {
-        this.showTimeline    = e.currentTarget.dataset.view === 'timeline';
+        const view = e.currentTarget.dataset.view;
+        if (view === this.calendarView) return;
+        this.calendarView    = view;
         this._selectedGapIdx = null;
+        if (view === 'day')   { this._scrollAfterRender = true; }
+        if (view === 'week')  { this._loadWeekEntries(); this._scrollAfterRender = true; }
+        if (view === 'month') { this._loadMonthStats(); }
+    }
+
+    // ── Calendar navigation ───────────────────────────────────────────────
+    get calendarTitle() {
+        const d = this._anchorDate();
+        if (this.calendarView === 'day') {
+            const isToday = this._toIsoDate(d) === this._toIsoDate(new Date());
+            return isToday
+                ? `Today — ${d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}`
+                : d.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric', year:'numeric' });
+        }
+        if (this.calendarView === 'week') {
+            const mon = this._weekMonday(d);
+            const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+            const fmt = { month:'short', day:'numeric' };
+            return `${mon.toLocaleDateString('en-US', fmt)} – ${sun.toLocaleDateString('en-US', fmt)}, ${sun.getFullYear()}`;
+        }
+        if (this.calendarView === 'month') {
+            return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+        }
+        return '';
+    }
+
+    handlePrev() {
+        const d = this._anchorDate();
+        if (this.calendarView === 'day')   d.setDate(d.getDate() - 1);
+        if (this.calendarView === 'week')  d.setDate(d.getDate() - 7);
+        if (this.calendarView === 'month') d.setMonth(d.getMonth() - 1);
+        this._calendarAnchor = d;
+        this._onCalendarNav();
+    }
+    handleNext() {
+        const d = this._anchorDate();
+        if (this.calendarView === 'day')   d.setDate(d.getDate() + 1);
+        if (this.calendarView === 'week')  d.setDate(d.getDate() + 7);
+        if (this.calendarView === 'month') d.setMonth(d.getMonth() + 1);
+        this._calendarAnchor = d;
+        this._onCalendarNav();
+    }
+    handleToday() {
+        this._calendarAnchor = null;
+        this.selectedDate    = null;
+        this._onCalendarNav();
+    }
+    _onCalendarNav() {
+        if (this.calendarView === 'day')   { this._loadDayData(); this._scrollAfterRender = true; }
+        if (this.calendarView === 'week')  { this._loadWeekEntries(); this._scrollAfterRender = true; }
+        if (this.calendarView === 'month') { this._loadMonthStats(); }
+    }
+    _anchorDate()   { return this._calendarAnchor ? new Date(this._calendarAnchor) : new Date(); }
+    _weekMonday(d) {
+        const date = d ? new Date(d) : this._anchorDate();
+        const dow  = date.getDay();
+        date.setDate(date.getDate() + (dow === 0 ? -6 : 1 - dow));
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+    _loadDayData() {
+        const dateStr = this._calendarAnchor ? this._toIsoDate(this._anchorDate()) : null;
+        this.selectedDate = dateStr;
+        if (!dateStr) { refreshApex(this._storiesWire); return; }
+        this.isLoading = true; this.stories = [];
+        getStoriesForDate({ userId: this.selectedUserId, dateStr })
+            .then(data => {
+                this.stories   = data.filter(s => !this._skippedIds.has(s.storyId)).map(s => this._decorate(s));
+                this.isLoading = false;
+            })
+            .catch(e => { this._toast('Error', e.body?.message, 'error'); this.isLoading = false; });
+    }
+    _loadWeekEntries() {
+        const startDate = this._toIsoDate(this._weekMonday());
+        this._weekLoading = true; this._weekEntries = [];
+        getWeekEntries({ userId: this.selectedUserId, startDate })
+            .then(data => { this._weekEntries = data; this._weekLoading = false; })
+            .catch(e => { this._toast('Error', e.body?.message, 'error'); this._weekLoading = false; });
+    }
+    _loadMonthStats() {
+        const d = this._anchorDate();
+        this._monthLoading = true;
+        getMonthStats({ userId: this.selectedUserId, year: d.getFullYear(), month: d.getMonth() + 1 })
+            .then(data => {
+                const map = {};
+                (data || []).forEach(e => { map[e.day] = Math.round((e.minutes / 60) * 10) / 10; });
+                this._monthDayMap  = map;
+                this._monthLoading = false;
+            })
+            .catch(e => { this._toast('Error', e.body?.message, 'error'); this._monthLoading = false; });
+    }
+
+    handleMonthDayClick(e) {
+        const dateStr = e.currentTarget.dataset.date;
+        if (!dateStr) return;
+        this._calendarAnchor    = new Date(dateStr + 'T12:00:00');
+        this.calendarView       = 'day';
+        this._scrollAfterRender = true;
+        this._loadDayData();
+    }
+
+    // ── Week / Month computed getters ─────────────────────────────────────
+    get weekHourLabels() {
+        const labels = [];
+        for (let h = FIXED_START_HR; h <= FIXED_END_HR; h++) {
+            const label = h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`;
+            labels.push({ key: `wh${h}`, label, style: `top:${(h - FIXED_START_HR) * 60 * PX_PER_MIN}px` });
+        }
+        return labels;
+    }
+    get weekHourLines() {
+        const lines = [];
+        for (let h = FIXED_START_HR; h <= FIXED_END_HR; h++) {
+            lines.push({ key: `wl${h}`, style: `top:${(h - FIXED_START_HR) * 60 * PX_PER_MIN}px` });
+        }
+        return lines;
+    }
+    get weekGridStyle() { return `height:${GRID_HEIGHT_PX}px`; }
+
+    get weekColumns() {
+        const monday   = this._weekMonday();
+        const todayStr = this._toIsoDate(new Date());
+        const colorMap = new Map(); let ci = 0;
+        (this._weekEntries || []).forEach(e => {
+            if (!colorMap.has(String(e.projectId))) colorMap.set(String(e.projectId), BLOCK_COLORS[ci++ % BLOCK_COLORS.length]);
+        });
+        const byDate = {};
+        (this._weekEntries || []).forEach(e => {
+            if (!byDate[e.loggedDate]) byDate[e.loggedDate] = [];
+            byDate[e.loggedDate].push(e);
+        });
+        const DAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        return DAY_LABELS.map((lbl, i) => {
+            const d       = new Date(monday); d.setDate(d.getDate() + i);
+            const dateStr = this._toIsoDate(d);
+            const isToday = dateStr === todayStr;
+            const fixedMs = new Date(dateStr + 'T06:00:00').getTime();
+            const blocks  = (byDate[dateStr] || []).filter(e => e.startTimeMs).map(e => {
+                const stopMs = e.stopTimeMs || (e.startTimeMs + (e.minutesLogged || 0) * 60000);
+                const durMin = (stopMs - e.startTimeMs) / 60000;
+                const topPx  = Math.max(0, (e.startTimeMs - fixedMs) / 60000 * PX_PER_MIN);
+                const hPx    = Math.max(20, durMin * PX_PER_MIN);
+                const h = Math.floor(durMin / 60), m = Math.round(durMin % 60);
+                return {
+                    timeId: e.timeId, subject: e.subject || '—', topPx,
+                    durationLabel: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`,
+                    style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
+                };
+            });
+            if (isToday && this.hasActiveTimer && this._timerStartMs) {
+                const durMin = (Date.now() - this._timerStartMs) / 60000;
+                const topPx  = Math.max(0, (this._timerStartMs - fixedMs) / 60000 * PX_PER_MIN);
+                const hPx    = Math.max(20, durMin * PX_PER_MIN);
+                blocks.push({
+                    timeId: 'active-timer', subject: this._timerSubject,
+                    topPx, durationLabel: this._timerElapsed,
+                    style: `top:${topPx}px; height:${hPx}px; --tl-color:#00b4d8;`
+                });
+            }
+            return {
+                key: dateStr, dateStr, dayLabel: lbl,
+                dateLabel: `${d.getMonth()+1}/${d.getDate()}`,
+                isToday, headerClass: isToday ? 'week-col-header week-col-today' : 'week-col-header',
+                blocks
+            };
+        });
+    }
+
+    get monthGrid() {
+        const anchor  = this._anchorDate();
+        const year    = anchor.getFullYear(), month = anchor.getMonth();
+        const today   = this._toIsoDate(new Date());
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        let startDow  = new Date(year, month, 1).getDay();
+        startDow      = startDow === 0 ? 6 : startDow - 1; // Mon-based
+        const weeks = []; let week = [];
+        for (let i = 0; i < startDow; i++) week.push({ key: `e${i}`, isEmpty: true });
+        for (let day = 1; day <= lastDay; day++) {
+            const d       = new Date(year, month, day);
+            const dateStr = this._toIsoDate(d);
+            const hours   = this._monthDayMap[dateStr] || 0;
+            const isToday = dateStr === today;
+            week.push({
+                key: dateStr, dateStr, dayNum: day, isEmpty: false,
+                hours, hasHours: hours > 0, hoursLabel: hours > 0 ? `${hours}h` : '', isToday,
+                cellClass: 'month-cell' + (isToday ? ' month-cell-today' : '') + (hours > 0 ? ' month-cell-has-time' : '')
+            });
+            if (week.length === 7) { weeks.push({ key: week[0].key, days: week }); week = []; }
+        }
+        if (week.length > 0) {
+            while (week.length < 7) week.push({ key: `t${week.length}`, isEmpty: true });
+            weeks.push({ key: week[0].key, days: week });
+        }
+        return { weeks };
     }
 
     // ── Timeline data getter ──────────────────────────────────────────────
@@ -417,12 +647,17 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
 
     // ── User switcher ─────────────────────────────────────────────────────
     handleUserChange(evt) {
-        this.isLoading      = true;
-        this.stories        = [];
-        this.selectedUserId = evt.detail.value;
-        this.selectedDate   = null;
-        this.showBreakdown  = false;
-        this.activePeriod   = null;
+        this.isLoading       = true;
+        this.stories         = [];
+        this.selectedUserId  = evt.detail.value;
+        this.selectedDate    = null;
+        this._calendarAnchor = null;
+        this._weekEntries    = [];
+        this._monthDayMap    = {};
+        this.showBreakdown   = false;
+        this.activePeriod    = null;
+        if (this.calendarView === 'week')  this._loadWeekEntries();
+        if (this.calendarView === 'month') this._loadMonthStats();
     }
 
     // ── Open record in new tab ────────────────────────────────────────────
