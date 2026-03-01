@@ -170,7 +170,9 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
         const pct            = this._calcTimeline(p.Project_Start_Date__c, p.Project_End_Date__c);
         const hPct           = this._calcHoursPercent(p.Contracted_Hours_Sprint__c, p.Hours_Delivered__c);
         const delta          = hPct - pct;
-        const isResultsBased = (p.Pace_Status__c || '').toLowerCase().includes('results');
+        const isBlock        = p.Contract_Type__c === 'Block';
+        const paceLabel      = isBlock ? 'Results Based' : (p.Pace_Status__c ?? '--');
+        const isResultsBased = isBlock || (p.Pace_Status__c || '').toLowerCase().includes('results');
         return {
             Id:                p.Id,
             Name:              p.Name,
@@ -188,8 +190,8 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
             progressStyle:      `width:${pct}%`,
             hoursPercent:       hPct,
             hoursBarStyle:      this._calcHoursBarStyle(hPct),
-            paceBadgeClass:     this._getPaceBadgeClass(p.Pace_Status__c),
-            paceBadgeLabel:     p.Pace_Status__c ?? '--',
+            paceBadgeClass:     this._getPaceBadgeClass(paceLabel),
+            paceBadgeLabel:     paceLabel,
             showDelta:          !isResultsBased,
             deltaRaw:           delta,
             deltaLabel:         this._calcDeltaLabel(delta),
