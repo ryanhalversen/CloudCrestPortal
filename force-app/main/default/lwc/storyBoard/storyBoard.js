@@ -96,7 +96,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     @track columns           = [];
     @track isLoading         = true;
-    @track colSortMode       = 'priority'; // 'priority' | 'age'
+    @track colSortMode       = 'priority-asc'; // 'priority-asc' | 'priority-desc' | 'age-asc' | 'age-desc'
     @track errorMessage      = '';
     @track projectOptions    = [];
     @track modalCard           = null;
@@ -288,10 +288,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get displayColumns() {
         const sortCards = cards => {
-            if (this.colSortMode === 'age') {
-                return [...cards].sort((a, b) => a.createdAt - b.createdAt); // oldest first
+            switch (this.colSortMode) {
+                case 'age-asc':  return [...cards].sort((a, b) => a.createdAt - b.createdAt);
+                case 'age-desc': return [...cards].sort((a, b) => b.createdAt - a.createdAt);
+                case 'priority-desc': return [...cards].sort((a, b) => (PRIORITY_ORDER[b.priority] ?? 4) - (PRIORITY_ORDER[a.priority] ?? 4));
+                default:         return [...cards].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
             }
-            return [...cards].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
         };
         const addHours = col => {
             const sorted = sortCards(col.cards);
@@ -306,11 +308,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get colSortLabel() {
-        return this.colSortMode === 'age' ? '↑ Age' : '↑ Priority';
+        const labels = { 'priority-asc': '↑ Priority', 'priority-desc': '↓ Priority', 'age-asc': '↑ Age', 'age-desc': '↓ Age' };
+        return labels[this.colSortMode] || '↑ Priority';
     }
 
     handleColSortClick() {
-        this.colSortMode = this.colSortMode === 'priority' ? 'age' : 'priority';
+        const cycle = { 'priority-asc': 'priority-desc', 'priority-desc': 'age-asc', 'age-asc': 'age-desc', 'age-desc': 'priority-asc' };
+        this.colSortMode = cycle[this.colSortMode] || 'priority-asc';
     }
 
     get totalCount() { return this.displayColumns.reduce((sum, c) => sum + c.count, 0); }
