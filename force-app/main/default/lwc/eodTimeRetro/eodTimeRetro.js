@@ -45,7 +45,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track _timerNotes    = '';
 
     // ── Timeline state ────────────────────────────────────────────────────
-    @track showTimeline    = false;
+    @track showTimeline    = true;
     @track _selectedGapIdx = null;
     @track _gapLogStoryId  = null;
     @track _gapLogHours    = '';
