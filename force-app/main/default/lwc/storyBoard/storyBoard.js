@@ -19,6 +19,7 @@ import updateNextStep       from '@salesforce/apex/StoryBoardController.updateNe
 import createStory          from '@salesforce/apex/StoryBoardController.createStory';
 import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
+import updateTimeEntry      from '@salesforce/apex/StoryBoardController.updateTimeEntry';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
 import assignStorySupport     from '@salesforce/apex/StoryBoardController.assignStorySupport';
@@ -108,6 +109,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track newTimeHours        = '';
     @track newTimeDesc         = '';
     @track isSavingTime        = false;
+    @track editingTimeId       = null;
+    @track editingTimeHours    = '';
+    @track editingTimeDesc     = '';
+    @track isSavingTimeEdit    = false;
 
     // ── Owner reassignment state ──────────────────────────────────────────
     @track showOwnerSearch    = false;
@@ -324,6 +329,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     get totalTimeLogged() {
         const total = this.timeEntries.reduce((s, t) => s + t.hours, 0);
         return this._fmtHours(Number(total.toFixed(2))) || '0h';
+    }
+
+    get editableTimeEntries() {
+        return this.timeEntries.map(t => ({ ...t, isEditing: t.id === this.editingTimeId }));
     }
 
     get editableNextSteps() {
@@ -687,6 +696,46 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             console.error('Failed to update next step', err);
         } finally {
             this.isSavingStepEdit = false;
+        }
+    }
+
+    // ── Edit Time Entry ───────────────────────────────────────────────────
+    handleEditTime(e) {
+        const id = e.currentTarget.dataset.id;
+        const entry = this.timeEntries.find(t => t.id === id);
+        if (!entry) return;
+        this.editingTimeId    = id;
+        this.editingTimeHours = String(entry.hours);
+        this.editingTimeDesc  = entry.description;
+    }
+
+    handleEditTimeHoursChange(e) { this.editingTimeHours = e.target.value; }
+    handleEditTimeDescChange(e)  { this.editingTimeDesc  = e.target.value; }
+
+    handleEditTimeCancel() {
+        this.editingTimeId    = null;
+        this.editingTimeHours = '';
+        this.editingTimeDesc  = '';
+    }
+
+    async handleEditTimeSave() {
+        const hours = parseFloat(this.editingTimeHours);
+        if (!hours || hours <= 0) return;
+        this.isSavingTimeEdit = true;
+        try {
+            await updateTimeEntry({ timeId: this.editingTimeId, hours, description: this.editingTimeDesc.trim() });
+            this.timeEntries = this.timeEntries.map(t =>
+                t.id === this.editingTimeId
+                    ? { ...t, hours, hoursLabel: this._fmtHours(hours), description: this.editingTimeDesc.trim() }
+                    : t
+            );
+            this.editingTimeId    = null;
+            this.editingTimeHours = '';
+            this.editingTimeDesc  = '';
+        } catch (err) {
+            console.error('Failed to update time entry', err);
+        } finally {
+            this.isSavingTimeEdit = false;
         }
     }
 

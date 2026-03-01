@@ -772,6 +772,38 @@
     color: #9ca3af;
     white-space: nowrap;
 }
+.te-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+.te-edit-inputs {
+    display: flex;
+    gap: 6px;
+}
+.te-edit-hours {
+    width: 70px;
+    flex-shrink: 0;
+    padding: 5px 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-family: inherit;
+}
+.te-edit-desc {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-family: inherit;
+}
+.te-edit-hours:focus,
+.te-edit-desc:focus {
+    border-color: #00b4d8;
+    outline: none;
+}
 
 /* ── Next Steps ───────────────────────────────────────────────────────────── */
 .panel-divider {

@@ -414,13 +414,33 @@
                             <template if:false={isLoadingTime}>
                                 <template if:true={timeEntries.length}>
                                     <div class="time-entry-list">
-                                        <template for:each={timeEntries} for:item="t">
+                                        <template for:each={editableTimeEntries} for:item="t">
                                             <div key={t.id} class="time-entry">
-                                                <span class="te-hours">{t.hoursLabel}</span>
-                                                <div class="te-right">
-                                                    <span class="te-desc">{t.description}</span>
-                                                    <span class="te-meta">{t.date} · {t.user}</span>
-                                                </div>
+                                                <template if:false={t.isEditing}>
+                                                    <span class="te-hours">{t.hoursLabel}</span>
+                                                    <div class="te-right">
+                                                        <span class="te-desc">{t.description}</span>
+                                                        <span class="te-meta">{t.date} · {t.user}</span>
+                                                    </div>
+                                                    <button class="ns-edit-btn" data-id={t.id} onclick={handleEditTime} title="Edit">✎</button>
+                                                </template>
+                                                <template if:true={t.isEditing}>
+                                                    <div class="te-edit-form">
+                                                        <div class="te-edit-inputs">
+                                                            <input type="number" class="te-edit-hours" value={editingTimeHours}
+                                                                oninput={handleEditTimeHoursChange} min="0" step="0.25" placeholder="Hours"/>
+                                                            <input type="text" class="te-edit-desc" value={editingTimeDesc}
+                                                                oninput={handleEditTimeDescChange} placeholder="Description (optional)"/>
+                                                        </div>
+                                                        <div class="ns-edit-actions">
+                                                            <button class="btn-save-hrs" onclick={handleEditTimeSave} disabled={isSavingTimeEdit}>
+                                                                <template if:true={isSavingTimeEdit}>Saving…</template>
+                                                                <template if:false={isSavingTimeEdit}>Save</template>
+                                                            </button>
+                                                            <button class="btn-cancel ns-cancel-btn" onclick={handleEditTimeCancel}>Cancel</button>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </div>

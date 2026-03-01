@@ -186,6 +186,22 @@ public without sharing class StoryBoardController {
         ];
     }
 
+    // ── Update Time Entry ─────────────────────────────────────────────────
+    @AuraEnabled
+    public static void updateTimeEntry(Id timeId, Decimal hours, String description) {
+        try {
+            update new Time__c(
+                Id                     = timeId,
+                Minutes_Logged__c      = hours * 60,
+                Additional_Comments__c = description
+            );
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Update Estimated Hours ────────────────────────────────────────────
     @AuraEnabled
     public static void updateEstimatedHours(Id caseId, Decimal hours) {
