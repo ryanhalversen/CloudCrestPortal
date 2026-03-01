@@ -715,7 +715,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }
     }
 
-    async handleEpicSelect(e) {
+    async handleModalEpicPick(e) {
         const epicId   = e.currentTarget.dataset.id;
         const epicName = e.currentTarget.dataset.name;
         const caseId   = this.modalCard.id;
