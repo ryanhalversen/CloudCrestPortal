@@ -927,6 +927,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             this.chatInput = '';
             const ta = this.template.querySelector('.chat-input-textarea');
             if (ta) ta.value = '';
+            // Update pending-message flag: true only when the support user sent last
+            const amSupport = this.modalCard.storySupportId === userId;
+            this.modalCard = { ...this.modalCard, hasSupportMessage: amSupport };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(card =>
+                    card.id !== caseId ? card : { ...card, hasSupportMessage: amSupport }
+                )
+            }));
         } catch (err) {
             this.chatSendError = 'Failed to send — please try again';
             console.error(err);
@@ -1399,6 +1408,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             contactName:        c.Contact?.Name       || '',
             storySupportId:     c.Story_Support__c    || null,
             storySupportName:   c.Story_Support__r?.Name || '',
+            hasSupportMessage:  c.Support_Message_Pending__c || false,
             solution:           c.Solution__c         || '',
             componentsToDeploy: c.Components_to_Deploy__c || '',
             qa:                 c.Q_A__c              || '',

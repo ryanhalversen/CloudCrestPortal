@@ -6,7 +6,7 @@ public without sharing class StoryBoardController {
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
             'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Projects__r.Name, Epic__c, Epic__r.Name, ' +
-            'ContactId, Contact.Name, Story_Support__c, Story_Support__r.Name, ' +
+            'ContactId, Contact.Name, Story_Support__c, Story_Support__r.Name, Support_Message_Pending__c, ' +
             'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c ' +
             'FROM Case';
 
@@ -303,6 +303,11 @@ public without sharing class StoryBoardController {
                 Type     = 'TextPost'
             );
             insert fi;
+            // Flag pending if the poster is the support user, clear it otherwise
+            Case c = [SELECT Story_Support__c FROM Case WHERE Id = :caseId LIMIT 1];
+            Boolean isSupport = c.Story_Support__c != null &&
+                                c.Story_Support__c == UserInfo.getUserId();
+            update new Case(Id = caseId, Support_Message_Pending__c = isSupport);
             return fi.Id;
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));

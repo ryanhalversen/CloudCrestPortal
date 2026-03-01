@@ -309,6 +309,17 @@
 .story-card-support:hover {
     border-color: #d97706;
 }
+.card-support-badge {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px #fff;
+    pointer-events: none;
+}
 .story-card:active { cursor: grabbing; }
 
 .card-subject {

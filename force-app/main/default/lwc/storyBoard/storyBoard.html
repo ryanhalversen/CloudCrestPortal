@@ -104,6 +104,9 @@
                                                     <lightning-spinner size="x-small" alternative-text="Saving"></lightning-spinner>
                                                 </div>
                                             </template>
+                                            <template if:true={card.hasSupportMessage}>
+                                                <div class="card-support-badge" title="Support user has replied"></div>
+                                            </template>
                                             <div class="card-subject">{card.subject}</div>
                                             <div class="card-meta">
                                                 <span class={card.priorityClass}>{card.priority}</span>
