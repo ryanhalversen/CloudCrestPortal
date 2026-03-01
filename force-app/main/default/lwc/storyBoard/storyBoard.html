@@ -268,66 +268,6 @@
                                 </template>
                             </div>
 
-                            <!-- Solution / Components / Q&A -->
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Solution</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="Describe the solution…"
-                                    value={solutionInput}
-                                    oninput={handleSolutionChange}
-                                    rows="3">
-                                </textarea>
-                            </div>
-
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Components to Deploy</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="List components, classes, or metadata to deploy…"
-                                    value={componentsInput}
-                                    oninput={handleComponentsChange}
-                                    rows="3">
-                                </textarea>
-                            </div>
-
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Q&amp;A</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="Notes from quality assurance testing…"
-                                    value={qaInput}
-                                    oninput={handleQaChange}
-                                    rows="3">
-                                </textarea>
-                            </div>
-
-                            <div class="text-fields-save-row">
-                                <template if:true={textFieldsSaveSuccess}>
-                                    <span class="text-fields-saved">✓ Saved</span>
-                                </template>
-                                <template if:true={textFieldsSaveError}>
-                                    <span class="field-error">Failed to save — please try again</span>
-                                </template>
-                                <button class="btn-save-hrs" onclick={handleTextFieldsSave} disabled={isSavingTextFields}>
-                                    <template if:true={isSavingTextFields}>Saving…</template>
-                                    <template if:false={isSavingTextFields}>Save Fields</template>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">Next Step</label>
-                            <textarea
-                                class="new-story-textarea next-step-textarea"
-                                placeholder="Describe what was done or what comes next…"
-                                oninput={handleNextStepChange}
-                                rows="3">
-                            </textarea>
-                            <button class="btn-save-hrs" onclick={handleNextStepSave} disabled={isSavingStep}>
-                                <template if:true={isSavingStep}>Saving…</template>
-                                <template if:false={isSavingStep}>Save Step</template>
-                            </button>
                         </div>
 
                         <!-- ── Right: time records ── -->
@@ -391,6 +331,20 @@
                                 <span class="time-panel-total">{nextSteps.length}</span>
                             </div>
 
+                            <!-- Next Step input -->
+                            <div class="next-step-input-wrap">
+                                <textarea
+                                    class="new-story-textarea next-step-textarea"
+                                    placeholder="Describe what was done or what comes next…"
+                                    oninput={handleNextStepChange}
+                                    rows="2">
+                                </textarea>
+                                <button class="btn-save-hrs" onclick={handleNextStepSave} disabled={isSavingStep}>
+                                    <template if:true={isSavingStep}>Saving…</template>
+                                    <template if:false={isSavingStep}>+ Add</template>
+                                </button>
+                            </div>
+
                             <template if:true={isLoadingTime}>
                                 <div class="time-empty">Loading…</div>
                             </template>
@@ -432,6 +386,54 @@
                             </template>
                         </div>
 
+                    </div>
+
+                    <!-- ── Solution / Components to Deploy / Q&A ── -->
+                    <div class="modal-body-fields">
+                        <div class="modal-fields-grid">
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Solution</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Describe the solution…"
+                                    value={solutionInput}
+                                    oninput={handleSolutionChange}
+                                    rows="4">
+                                </textarea>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Components to Deploy</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="List components, classes, or metadata…"
+                                    value={componentsInput}
+                                    oninput={handleComponentsChange}
+                                    rows="4">
+                                </textarea>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Q&amp;A</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Notes from quality assurance testing…"
+                                    value={qaInput}
+                                    oninput={handleQaChange}
+                                    rows="4">
+                                </textarea>
+                            </div>
+                        </div>
+                        <div class="text-fields-save-row">
+                            <template if:true={textFieldsSaveSuccess}>
+                                <span class="text-fields-saved">✓ Saved</span>
+                            </template>
+                            <template if:true={textFieldsSaveError}>
+                                <span class="field-error">Failed to save — please try again</span>
+                            </template>
+                            <button class="btn-save-hrs" onclick={handleTextFieldsSave} disabled={isSavingTextFields}>
+                                <template if:true={isSavingTextFields}>Saving…</template>
+                                <template if:false={isSavingTextFields}>Save Fields</template>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="modal-footer">

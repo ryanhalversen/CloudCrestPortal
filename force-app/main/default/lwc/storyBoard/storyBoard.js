@@ -459,7 +459,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             getNextSteps({ caseId: id })
         ]).then(([times, steps]) => {
             this.timeEntries = times.map(t => this._mapTimeEntry(t));
-            this.nextSteps   = steps.map(s => this._mapNextStep(s));
+            this.nextSteps   = steps.map(s => this._mapNextStep(s)).reverse();
         }).catch(() => {}).finally(() => { this.isLoadingTime = false; });
     }
 
@@ -543,7 +543,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             const newId = await addNextStep({ caseId: this.modalCard.id, note });
             const today = new Date();
             const dateLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            this.nextSteps = [...this.nextSteps, { id: newId, note, date: dateLabel, user: '' }];
+            this.nextSteps = [{ id: newId, note, date: dateLabel, user: '' }, ...this.nextSteps];
             this.nextStepInput = '';
             const ta = this.template.querySelector('.next-step-textarea');
             if (ta) ta.value = '';
