@@ -624,6 +624,7 @@
     background: #fafafa;
 }
 .modal-container-wide { width: 1440px; }
+.modal-container-new-story { overflow: visible; max-height: none; }
 
 /* ── Side-by-side viewer layout ─────────────────────────────────────────── */
 .modal-container-with-viewer {
