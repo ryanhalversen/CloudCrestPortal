@@ -81,7 +81,7 @@
             <template for:each={timelineEpics} for:item="ep">
                 <div key={ep.epicId} class="tl-row" data-selected={ep.isSelected}>
 
-                    <div class="tl-label-col">
+                    <div class="tl-label-col" data-id={ep.epicId} onclick={handleRowLabelClick}>
                         <span class="tl-epic-name" title={ep.name}>{ep.name}</span>
                     </div>
 

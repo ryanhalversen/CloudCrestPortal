@@ -474,6 +474,11 @@
 
 .tl-row .tl-label-col {
     padding: 0 8px;
+    cursor: pointer;
+}
+
+.tl-row .tl-label-col:hover .tl-epic-name {
+    color: #00b4d8;
 }
 
 .tl-epic-name {

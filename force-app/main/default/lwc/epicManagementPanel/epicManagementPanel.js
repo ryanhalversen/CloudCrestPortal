@@ -363,6 +363,13 @@ export default class EpicManagementPanel extends LightningElement {
         }
     }
 
+    // ── Timeline row label click (select epic → filter story board) ──────
+    handleRowLabelClick(e) {
+        const epicId = e.currentTarget.dataset.id;
+        const newId  = epicId === this.selectedEpicId ? null : epicId;
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
+    }
+
     // ── Timeline bar click (select epic → filter story board) ────────────
     handleBarClick(e) {
         if (e.target.dataset.type) return; // click on a resize handle — ignore
