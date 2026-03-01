@@ -638,14 +638,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     // ── Close Story Modal ─────────────────────────────────────────────────
     _showCloseModal(cardId, fromStatus, toStatus) {
         const card = this._findCard(fromStatus, cardId);
-        if (!card) return;
         this._pendingCloseCardId    = cardId;
         this._pendingCloseFrom      = fromStatus;
         this._pendingCloseTo        = toStatus;
-        this.closeFormSubject       = card.subject;
+        this.closeFormSubject       = card ? card.subject    : '';
         this.closeFormComments      = '';
-        this.closeFormDepartment    = card.department || '';
-        this.closeFormPriority      = card.priority   || '';
+        this.closeFormDepartment    = card ? (card.department || '') : '';
+        this.closeFormPriority      = card ? (card.priority   || '') : '';
         this.closeFormCommentsError = false;
         this.closeFormDeptError     = false;
         this.closeFormPriorityError = false;
@@ -659,8 +658,6 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showCloseModal = false;
     }
 
-    handleCloseModalBackdropClick() { this.handleCloseModalCancel(); }
-    handleCloseModalContainerClick(e) { e.stopPropagation(); }
 
     handleCloseFormCommentsChange(e) {
         this.closeFormComments      = e.target.value;
