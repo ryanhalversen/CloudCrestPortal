@@ -729,11 +729,12 @@ export default class EpicManagementPanel extends LightningElement {
     }
 
     _toVm(e) {
-        const start = e.startDate;
-        const end   = e.endDate;
-        const total = e.totalStories     || 0;
-        const done  = e.completedStories || 0;
-        const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+        const start  = e.startDate;
+        const end    = e.endDate;
+        const total  = e.totalStories     || 0;
+        const done   = e.completedStories || 0;
+        const pct    = total > 0 ? Math.round((done / total) * 100) : 0;
+        const logged = e.loggedHours ? Number(Number(e.loggedHours).toFixed(2)) : 0;
 
         return {
             ...e,
@@ -741,6 +742,7 @@ export default class EpicManagementPanel extends LightningElement {
             progressLabel: total > 0 ? `${done}/${total} done` : 'no stories',
             progressStyle: `width:${pct}%`,
             estLabel     : e.estimatedHours ? `${e.estimatedHours}h est.` : '',
+            loggedLabel  : logged ? `${logged}h logged` : '',
             recordUrl    : `/lightning/r/Sprint_Items__c/${e.epicId}/view`
         };
     }

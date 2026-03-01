@@ -490,6 +490,14 @@
     text-overflow: ellipsis;
     display: block;
 }
+.tl-epic-hours {
+    display: block;
+    font-size: 10px;
+    color: #00b4d8;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-top: 2px;
+}
 
 .tl-track {
     position: relative;

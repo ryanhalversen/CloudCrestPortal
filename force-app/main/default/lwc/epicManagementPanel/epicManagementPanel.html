@@ -43,7 +43,7 @@
                     <div class="chip-progress-track">
                         <div class="chip-progress-fill" style={e.progressStyle}></div>
                     </div>
-                    <div class="chip-meta">{e.progressLabel}<template if:true={e.estLabel}> · {e.estLabel}</template></div>
+                    <div class="chip-meta">{e.progressLabel}<template if:true={e.estLabel}> · {e.estLabel}</template><template if:true={e.loggedLabel}> · {e.loggedLabel}</template></div>
                 </div>
             </template>
 
@@ -83,6 +83,9 @@
 
                     <div class="tl-label-col" data-id={ep.epicId} onclick={handleRowLabelClick}>
                         <span class="tl-epic-name" title={ep.name}>{ep.name}</span>
+                        <template if:true={ep.loggedLabel}>
+                            <span class="tl-epic-hours">{ep.loggedLabel}</span>
+                        </template>
                     </div>
 
                     <div class="tl-track">
