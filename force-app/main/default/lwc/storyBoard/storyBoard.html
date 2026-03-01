@@ -355,6 +355,21 @@
                         </div>
                     </div>
 
+                    <!-- Context: project + epic this story will be filed under -->
+                    <div class="new-story-context">
+                        <span class="new-story-context-item">
+                            <span class="new-story-context-label">Project</span>
+                            <span class="new-story-context-value">{newStoryProjectName}</span>
+                        </span>
+                        <template if:true={newStoryEpicName}>
+                            <span class="new-story-context-sep">›</span>
+                            <span class="new-story-context-item">
+                                <span class="new-story-context-label">Epic</span>
+                                <span class="new-story-context-value">{newStoryEpicName}</span>
+                            </span>
+                        </template>
+                    </div>
+
                     <div class="modal-body">
 
                         <div class="modal-field-row">

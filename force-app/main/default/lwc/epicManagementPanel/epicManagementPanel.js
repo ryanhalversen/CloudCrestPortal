@@ -278,13 +278,14 @@ export default class EpicManagementPanel extends LightningElement {
 
     // ── Chip handlers ─────────────────────────────────────────────────────
     handleAllEpics() {
-        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: null } }));
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: null, epicName: null } }));
     }
 
     handleEpicClick(evt) {
-        const id    = evt.currentTarget.dataset.id;
+        const id   = evt.currentTarget.dataset.id;
         const newId = id === this.selectedEpicId ? null : id;
-        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
+        const name  = newId ? (this._epics.find(e => e.epicId === newId)?.name || null) : null;
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId, epicName: name } }));
     }
 
     handleRecordClick(evt) {
@@ -367,15 +368,17 @@ export default class EpicManagementPanel extends LightningElement {
     handleRowLabelClick(e) {
         const epicId = e.currentTarget.dataset.id;
         const newId  = epicId === this.selectedEpicId ? null : epicId;
-        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
+        const name   = newId ? (this._epics.find(ep => ep.epicId === newId)?.name || null) : null;
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId, epicName: name } }));
     }
 
     // ── Timeline bar click (select epic → filter story board) ────────────
     handleBarClick(e) {
         if (e.target.dataset.type) return; // click on a resize handle — ignore
         const epicId = e.currentTarget.dataset.id;
-        const newId  = epicId === this.selectedEpicId ? null : epicId; // toggle off if already selected
-        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId } }));
+        const newId  = epicId === this.selectedEpicId ? null : epicId;
+        const name   = newId ? (this._epics.find(ep => ep.epicId === newId)?.name || null) : null;
+        this.dispatchEvent(new CustomEvent('epicselect', { detail: { epicId: newId, epicName: name } }));
     }
 
     // ── Timeline drag handlers (handles only — body is click-to-edit) ─────

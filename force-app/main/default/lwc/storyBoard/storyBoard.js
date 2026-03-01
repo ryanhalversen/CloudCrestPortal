@@ -107,6 +107,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     @track selectedProjectId   = null;
     @track selectedEpicId      = null;
+    _selectedEpicName          = null;
     @track isCardDragging      = false;
     @track selectedOwnerFilter = '';
     viewMode                   = 'mine';
@@ -199,6 +200,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get showNewStoryButton() {
         return !!this.selectedProjectId;
+    }
+
+    get newStoryProjectName() {
+        const opt = this.projectOptions.find(o => o.value === this.selectedProjectId);
+        return opt ? opt.label : null;
+    }
+
+    get newStoryEpicName() {
+        return this._selectedEpicName || null;
     }
 
     get departmentOptions() {
@@ -323,11 +333,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     handleProjectChange(e) {
         this.selectedProjectId = e.detail.value || null;
         this.selectedEpicId    = null;
+        this._selectedEpicName = null;
         this.isLoading = true;
     }
 
     handleEpicSelect(evt) {
-        this.selectedEpicId = evt.detail.epicId || null;
+        this.selectedEpicId    = evt.detail.epicId  || null;
+        this._selectedEpicName = evt.detail.epicName || null;
         this.isLoading = true;
     }
 
