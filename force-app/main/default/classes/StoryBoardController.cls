@@ -284,6 +284,50 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Update Subject / Description ──────────────────────────────────────
+    @AuraEnabled
+    public static void updateSubjectDescription(Id caseId, String subject, String description) {
+        try {
+            update new Case(
+                Id          = caseId,
+                Subject     = subject,
+                Description = description
+            );
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── Search Contacts for Project Account ───────────────────────────────
+    @AuraEnabled
+    public static List<Contact> getContactsForProject(Id projectId, String searchTerm) {
+        List<Sprint__c> projects = [SELECT Accountlu__c FROM Sprint__c WHERE Id = :projectId LIMIT 1];
+        if (projects.isEmpty() || projects[0].Accountlu__c == null) return new List<Contact>();
+        Id accountId = projects[0].Accountlu__c;
+        String term  = '%' + String.escapeSingleQuotes(searchTerm) + '%';
+        return [
+            SELECT Id, Name, Title
+            FROM Contact
+            WHERE AccountId = :accountId AND Name LIKE :term
+            ORDER BY Name ASC
+            LIMIT 10
+        ];
+    }
+
+    // ── Assign Contact to Story ───────────────────────────────────────────
+    @AuraEnabled
+    public static void assignContact(Id caseId, Id contactId) {
+        try {
+            update new Case(Id = caseId, ContactId = contactId);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Search Users ──────────────────────────────────────────────────────
     @AuraEnabled
     public static List<User> searchUsers(String searchTerm) {

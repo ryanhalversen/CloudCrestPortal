@@ -872,12 +872,36 @@
     border-radius: 20px;
     padding: 1px 8px;
 }
+.subject-display-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.subject-edit-btn {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.subject-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.subject-edit-input {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.contact-result-title {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    margin-left: 6px;
+}
 .modal-subject {
     font-size: 1rem;
     font-weight: 700;
     color: #0d1b2a;
     margin: 0;
     line-height: 1.4;
+    flex: 1;
 }
 .modal-description {
     font-size: 0.85rem;

@@ -215,10 +215,15 @@
                                 <button class="btn-remove-support" onclick={handleSupportRemove} disabled={isAssigningSupport} title="Remove support user">✕</button>
                             </template>
 
-                            <template if:true={modalCard.contactName}>
-                                <span class="modal-meta-sep">·</span>
-                                <span class="modal-meta-label">Contact</span>
-                                <span class="modal-contact-name">{modalCard.contactName}</span>
+                            <span class="modal-meta-sep">·</span>
+                            <span class="modal-meta-label">Contact</span>
+                            <span class="modal-contact-name">{modalCard.contactName}</span>
+                            <button class="btn-change-epic" onclick={handleContactAssignClick} disabled={isAssigningContact}>
+                                <template if:true={modalCard.contactName}>Change</template>
+                                <template if:false={modalCard.contactName}>Assign</template>
+                            </button>
+                            <template if:true={modalCard.contactId}>
+                                <button class="btn-remove-support" onclick={handleContactRemove} disabled={isAssigningContact} title="Remove contact">✕</button>
                             </template>
                         </div>
                     </div>
@@ -288,6 +293,41 @@
                         </div>
                     </template>
 
+                    <!-- Contact search -->
+                    <template if:true={showContactSearch}>
+                        <div class="modal-owner-search">
+                            <div class="owner-search-wrap">
+                                <input class="new-story-input owner-search-input"
+                                       type="text"
+                                       placeholder="Search contacts by name…"
+                                       oninput={handleContactSearchChange} />
+                                <button class="btn-cancel ns-cancel-btn" onclick={handleContactSearchCancel}>Cancel</button>
+                            </div>
+                            <template if:true={isSearchingContact}>
+                                <span class="owner-searching">Searching…</span>
+                            </template>
+                            <template if:true={contactSearchResults.length}>
+                                <div class="owner-results">
+                                    <template for:each={contactSearchResults} for:item="c">
+                                        <div key={c.id}
+                                             class="owner-result-item"
+                                             data-id={c.id}
+                                             data-name={c.name}
+                                             onclick={handleContactResultSelect}>
+                                            <span>{c.name}</span>
+                                            <template if:true={c.title}>
+                                                <span class="contact-result-title">{c.title}</span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:true={contactAssignError}>
+                                <span class="field-error">{contactAssignError}</span>
+                            </template>
+                        </div>
+                    </template>
+
                     <!-- Owner search (expands between header and body) -->
                     <template if:true={showOwnerSearch}>
                         <div class="modal-owner-search">
@@ -324,13 +364,40 @@
 
                         <!-- ── Left: story details ── -->
                         <div class="modal-col-detail">
-                            <h3 class="modal-subject">{modalCard.subject}</h3>
-
-                            <template if:true={modalCard.description}>
-                                <p class="modal-description">{modalCard.description}</p>
+                            <template if:false={isEditingSubjectDesc}>
+                                <div class="subject-display-row">
+                                    <h3 class="modal-subject">{modalCard.subject}</h3>
+                                    <button class="ns-edit-btn subject-edit-btn" onclick={handleEditSubjectDescClick} title="Edit subject &amp; description">✎</button>
+                                </div>
+                                <template if:true={modalCard.description}>
+                                    <p class="modal-description">{modalCard.description}</p>
+                                </template>
+                                <template if:false={modalCard.description}>
+                                    <p class="modal-no-desc">No description provided.</p>
+                                </template>
                             </template>
-                            <template if:false={modalCard.description}>
-                                <p class="modal-no-desc">No description provided.</p>
+                            <template if:true={isEditingSubjectDesc}>
+                                <div class="subject-edit-form">
+                                    <input type="text"
+                                           class="new-story-input subject-edit-input"
+                                           value={editSubjectInput}
+                                           oninput={handleEditSubjectChange}
+                                           placeholder="Subject…" />
+                                    <textarea class="new-story-textarea story-detail-textarea"
+                                              oninput={handleEditDescChange}
+                                              placeholder="Description…"
+                                              rows="4">{editDescInput}</textarea>
+                                    <div class="ns-edit-actions">
+                                        <button class="btn-save-hrs" onclick={handleEditSubjectDescSave} disabled={isSavingSubjectDesc}>
+                                            <template if:true={isSavingSubjectDesc}>Saving…</template>
+                                            <template if:false={isSavingSubjectDesc}>Save</template>
+                                        </button>
+                                        <button class="btn-cancel ns-cancel-btn" onclick={handleEditSubjectDescCancel}>Cancel</button>
+                                        <template if:true={subjectDescSaveError}>
+                                            <span class="field-error">Failed to save — please try again</span>
+                                        </template>
+                                    </div>
+                                </div>
                             </template>
 
                             <div class="priority-status-row">

@@ -21,8 +21,11 @@ import assignEpic           from '@salesforce/apex/StoryBoardController.assignEp
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import updateTimeEntry      from '@salesforce/apex/StoryBoardController.updateTimeEntry';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
-import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
-import assignStorySupport     from '@salesforce/apex/StoryBoardController.assignStorySupport';
+import searchUsers             from '@salesforce/apex/StoryBoardController.searchUsers';
+import assignStorySupport      from '@salesforce/apex/StoryBoardController.assignStorySupport';
+import getContactsForProject   from '@salesforce/apex/StoryBoardController.getContactsForProject';
+import assignContact           from '@salesforce/apex/StoryBoardController.assignContact';
+import updateSubjectDescription from '@salesforce/apex/StoryBoardController.updateSubjectDescription';
 import getChatMessages        from '@salesforce/apex/StoryBoardController.getChatMessages';
 import postChatMessage        from '@salesforce/apex/StoryBoardController.postChatMessage';
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
@@ -82,8 +85,9 @@ let _startY           = 0;
 let _ghost            = null;
 let _isDragging       = false;
 let _didDrag          = false;
-let _ownerSearchTimer   = null;
-let _supportSearchTimer = null;
+let _ownerSearchTimer    = null;
+let _supportSearchTimer  = null;
+let _contactSearchTimer  = null;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -134,6 +138,20 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isSearchingSupport    = false;
     @track isAssigningSupport    = false;
     @track supportAssignError    = '';
+
+    // ── Contact assignment state ──────────────────────────────────────────
+    @track showContactSearch    = false;
+    @track contactSearchResults = [];
+    @track isSearchingContact   = false;
+    @track isAssigningContact   = false;
+    @track contactAssignError   = '';
+
+    // ── Subject/Description edit state ───────────────────────────────────
+    @track isEditingSubjectDesc  = false;
+    @track editSubjectInput      = '';
+    @track editDescInput         = '';
+    @track isSavingSubjectDesc   = false;
+    @track subjectDescSaveError  = false;
 
     // ── Support Chat state ────────────────────────────────────────────────
     @track chatMessages   = [];
@@ -506,6 +524,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showSupportSearch    = false;
         this.supportSearchResults = [];
         this.supportAssignError   = '';
+        this.showContactSearch    = false;
+        this.contactSearchResults = [];
+        this.contactAssignError   = '';
+        this.isEditingSubjectDesc = false;
+        this.editSubjectInput     = '';
+        this.editDescInput        = '';
         this.chatMessages         = [];
         this.chatInput            = '';
         this.chatSendError        = '';
@@ -930,6 +954,122 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showSupportSearch    = false;
         this.supportSearchResults = [];
         this.supportAssignError   = '';
+    }
+
+    // ── Contact Assignment ────────────────────────────────────────────────
+    handleContactAssignClick() {
+        this.showSupportSearch    = false;
+        this.showEpicChange       = false;
+        this.showOwnerSearch      = false;
+        this.showContactSearch    = !this.showContactSearch;
+        this.contactSearchResults = [];
+        this.contactAssignError   = '';
+    }
+
+    handleContactSearchCancel() {
+        this.showContactSearch    = false;
+        this.contactSearchResults = [];
+        this.contactAssignError   = '';
+    }
+
+    handleContactSearchChange(e) {
+        const term = (e.target.value || '').trim();
+        clearTimeout(_contactSearchTimer);
+        this.contactSearchResults = [];
+        if (term.length < 2) return;
+        _contactSearchTimer = setTimeout(async () => {
+            this.isSearchingContact = true;
+            try {
+                const results = await getContactsForProject({
+                    projectId:  this.modalCard.projectId,
+                    searchTerm: term
+                });
+                this.contactSearchResults = results.map(c => ({
+                    id:    c.Id,
+                    name:  c.Name,
+                    title: c.Title || ''
+                }));
+            } catch (err) {
+                console.error(err);
+            } finally {
+                this.isSearchingContact = false;
+            }
+        }, 300);
+    }
+
+    async handleContactResultSelect(e) {
+        const contactId   = e.currentTarget.dataset.id;
+        const contactName = e.currentTarget.dataset.name;
+        const caseId      = this.modalCard.id;
+        this.isAssigningContact = true;
+        this.contactAssignError = '';
+        try {
+            await assignContact({ caseId, contactId });
+            this.modalCard = { ...this.modalCard, contactId, contactName };
+            this.showContactSearch    = false;
+            this.contactSearchResults = [];
+        } catch (err) {
+            this.contactAssignError = 'Failed to assign — please try again';
+            console.error(err);
+        } finally {
+            this.isAssigningContact = false;
+        }
+    }
+
+    async handleContactRemove() {
+        const caseId = this.modalCard.id;
+        this.isAssigningContact = true;
+        try {
+            await assignContact({ caseId, contactId: null });
+            this.modalCard = { ...this.modalCard, contactId: null, contactName: '' };
+        } catch (err) {
+            console.error(err);
+        } finally {
+            this.isAssigningContact = false;
+        }
+    }
+
+    // ── Subject / Description Edit ────────────────────────────────────────
+    handleEditSubjectDescClick() {
+        this.editSubjectInput     = this.modalCard.subject;
+        this.editDescInput        = this.modalCard.description;
+        this.isEditingSubjectDesc = true;
+        this.subjectDescSaveError = false;
+    }
+
+    handleEditSubjectChange(e)  { this.editSubjectInput = e.target.value; }
+    handleEditDescChange(e)     { this.editDescInput    = e.target.value; }
+
+    handleEditSubjectDescCancel() {
+        this.isEditingSubjectDesc = false;
+        this.subjectDescSaveError = false;
+    }
+
+    async handleEditSubjectDescSave() {
+        const subject = (this.editSubjectInput || '').trim();
+        if (!subject) return;
+        this.isSavingSubjectDesc  = true;
+        this.subjectDescSaveError = false;
+        try {
+            await updateSubjectDescription({
+                caseId:      this.modalCard.id,
+                subject,
+                description: this.editDescInput.trim()
+            });
+            this.modalCard = { ...this.modalCard, subject, description: this.editDescInput.trim() };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c =>
+                    c.id !== this.modalCard.id ? c : { ...c, subject }
+                )
+            }));
+            this.isEditingSubjectDesc = false;
+        } catch (err) {
+            this.subjectDescSaveError = true;
+            console.error(err);
+        } finally {
+            this.isSavingSubjectDesc = false;
+        }
     }
 
     // ── Support Chat ──────────────────────────────────────────────────────
@@ -1462,6 +1602,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             ownerName:          c.Owner?.Name         || '',
             epicId:             c.Epic__c             || null,
             epicName:           c.Epic__r?.Name       || '',
+            contactId:          c.ContactId           || null,
             contactName:        c.Contact?.Name       || '',
             status:             c.Status              || '',
             storySupportId:     c.Story_Support__c    || null,
