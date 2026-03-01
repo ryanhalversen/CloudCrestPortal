@@ -168,7 +168,7 @@
         </template>
 
         <!-- ── Story Detail Modal ── -->
-        <template if:true={modalCard}>
+        <template if:true={showNormalModal}>
             <div class="modal-backdrop" onclick={handleModalBackdropClick}>
                 <div class={modalContainerClass} onclick={handleModalContainerClick}>
                 <div class="modal-story-pane">
@@ -762,26 +762,92 @@
                     </div>
                 </div><!-- end modal-story-pane -->
 
-                <!-- ── Attachment Viewer (side-by-side) ── -->
-                <template if:true={_openedAttachment}>
+                </div><!-- end modal-container (non-viewer) -->
+            </div>
+        </template>
+
+        <!-- ── Story Modal WITH Attachment Viewer (side-by-side) ── -->
+        <template if:true={_openedAttachment}>
+            <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+                <div class="modal-container modal-container-with-viewer" onclick={handleModalContainerClick}>
+
+                    <!-- LEFT: Attachment Viewer -->
                     <div class="modal-viewer-pane">
                         <div class="viewer-topbar">
                             <span class="viewer-title" title={_openedAttachment.title}>{_openedAttachment.title}</span>
                             <div class="viewer-topbar-actions">
+                                <template if:true={_openedAttachment.isImage}>
+                                    <button class="btn-viewer-zoom" onclick={handleZoomOut}>−</button>
+                                    <span class="viewer-zoom-label" onclick={handleZoomReset}>{imgZoomLabel}</span>
+                                    <button class="btn-viewer-zoom" onclick={handleZoomIn}>+</button>
+                                </template>
                                 <a class="btn-viewer-dl" href={_openedAttachment.downloadUrl} target="_blank">⬇ Download</a>
                                 <button class="btn-viewer-close" onclick={handleCloseAttachmentViewer}>✕</button>
                             </div>
                         </div>
                         <div class="viewer-body">
                             <template if:true={_openedAttachment.isImage}>
-                                <img src={_openedAttachment.downloadUrl} class="viewer-img" alt={_openedAttachment.title} />
+                                <img src={_openedAttachment.downloadUrl} class="viewer-img" style={imgZoomStyle} alt={_openedAttachment.title} />
                             </template>
                             <template if:false={_openedAttachment.isImage}>
                                 <iframe src={_openedAttachment.downloadUrl} class="viewer-iframe" title={_openedAttachment.title}></iframe>
                             </template>
                         </div>
                     </div>
-                </template>
+
+                    <!-- RIGHT: Story pane (re-rendered while viewer is open) -->
+                    <div class="modal-story-pane">
+                        <div class="modal-header">
+                            <div class="modal-header-top">
+                                <div class="modal-header-id">
+                                    <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                                    <span class="modal-case-number">#{modalCard.caseNumber}</span>
+                                    <template if:true={modalCard.type}>
+                                        <span class="meta-type">{modalCard.type}</span>
+                                    </template>
+                                </div>
+                                <div class="modal-header-actions">
+                                    <button class="btn-viewer-close" onclick={handleCloseAttachmentViewer} title="Back to normal view">← Back</button>
+                                    <button class="modal-close" onclick={handleModalClose}>✕</button>
+                                </div>
+                            </div>
+                            <div class="modal-header-meta">
+                                <span class="modal-meta-label">Project</span>
+                                <span class="modal-epic-name">{modalCard.projectName}</span>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Status</span>
+                                <span class="modal-epic-name">{modalCard.status}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 16px 20px; flex:1; overflow-y:auto;">
+                            <h3 style="font-size:1rem; font-weight:700; color:#111827; margin:0 0 8px;">{modalCard.subject}</h3>
+                            <p style="font-size:0.85rem; color:#4b5563; margin:0 0 16px;">{modalCard.description}</p>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Solution</label>
+                                    <textarea class="new-story-textarea story-detail-textarea" placeholder="Describe the solution…" oninput={handleSolutionChange} rows="4">{solutionInput}</textarea>
+                                </div>
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Components to Deploy</label>
+                                    <textarea class="new-story-textarea story-detail-textarea" placeholder="List components, classes, or metadata…" oninput={handleComponentsChange} rows="4">{componentsInput}</textarea>
+                                </div>
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Q&amp;A</label>
+                                    <textarea class="new-story-textarea story-detail-textarea" placeholder="Notes from quality assurance testing…" oninput={handleQaChange} rows="4">{qaInput}</textarea>
+                                </div>
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Documentation</label>
+                                    <textarea class="new-story-textarea story-detail-textarea" placeholder="Lucid Cart, Canva Documents, PowerPoint…" oninput={handleDocumentationChange} rows="3">{documentationInput}</textarea>
+                                </div>
+                                <div class="text-fields-save-row">
+                                    <button class="btn-save-hrs" onclick={handleTextFieldsSave} disabled={isSavingTextFields}>
+                                        <template if:true={isSavingTextFields}>Saving…</template>
+                                        <template if:false={isSavingTextFields}>Save Fields</template>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
             </div>

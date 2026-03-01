@@ -108,6 +108,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track _isUploadingAttachment = false;
     @track _openedAttachment   = null;
     @track _isDragOver         = false;
+    @track _imgZoom            = 1;
     @track modalSaveError      = false;
     @track estHoursInput       = '';
     @track isSavingEstHours    = false;
@@ -367,6 +368,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return cls;
     }
 
+    get showNormalModal() { return !!(this.modalCard && !this._openedAttachment); }
     get hasAttachments() { return this._attachments.length > 0; }
     get attachSectionClass() { return this._isDragOver ? 'attach-section attach-drag-over' : 'attach-section'; }
 
@@ -709,11 +711,20 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     handleOpenAttachment(e) {
         const id = e.currentTarget.dataset.id;
         this._openedAttachment = this._attachments.find(a => a.contentDocumentId === id) || null;
+        this._imgZoom = 1;
     }
 
     handleCloseAttachmentViewer() {
         this._openedAttachment = null;
+        this._imgZoom = 1;
     }
+
+    handleZoomIn()    { this._imgZoom = Math.min(+(this._imgZoom + 0.25).toFixed(2), 4); }
+    handleZoomOut()   { this._imgZoom = Math.max(+(this._imgZoom - 0.25).toFixed(2), 0.25); }
+    handleZoomReset() { this._imgZoom = 1; }
+
+    get imgZoomStyle()  { return `width: ${this._imgZoom * 100}%; height: auto;`; }
+    get imgZoomLabel()  { return `${Math.round(this._imgZoom * 100)}%`; }
 
     handleAttachLinkClick(e) {
         e.stopPropagation();
