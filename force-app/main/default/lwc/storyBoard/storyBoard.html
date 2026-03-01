@@ -171,6 +171,7 @@
         <template if:true={modalCard}>
             <div class="modal-backdrop" onclick={handleModalBackdropClick}>
                 <div class={modalContainerClass} onclick={handleModalContainerClick}>
+                <div class="modal-story-pane">
                     <div class="modal-header">
                         <!-- Row 1: identifiers + actions -->
                         <div class="modal-header-top">
@@ -709,6 +710,39 @@
                         </div>
                     </div>
 
+                    <!-- ── Attachments ── -->
+                    <div class="attach-section">
+                        <div class="attach-section-header">
+                            <span class="attach-section-title">Attachments</span>
+                            <label class="btn-add-attach" title="Upload file">
+                                <template if:true={_isUploadingAttachment}>Uploading…</template>
+                                <template if:false={_isUploadingAttachment}>+ Add</template>
+                                <input type="file" class="attach-file-input" onchange={handleFileInputChange} disabled={_isUploadingAttachment} />
+                            </label>
+                        </div>
+                        <template if:true={_isLoadingAttachments}>
+                            <div class="attach-empty">Loading…</div>
+                        </template>
+                        <template if:false={_isLoadingAttachments}>
+                            <template if:true={hasAttachments}>
+                                <div class="attach-list">
+                                    <template for:each={_attachments} for:item="a">
+                                        <div key={a.contentDocumentId} class="attach-chip">
+                                            <span class="attach-ext">{a.fileExtension}</span>
+                                            <span class="attach-name" title={a.title}>{a.title}</span>
+                                            <button class="attach-btn-open" data-id={a.contentDocumentId} onclick={handleOpenAttachment}>View</button>
+                                            <a class="attach-btn-dl" href={a.downloadUrl} target="_blank" onclick={handleAttachLinkClick}>↓</a>
+                                            <button class="attach-btn-del" data-id={a.contentDocumentId} onclick={handleDeleteAttachment}>✕</button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:false={hasAttachments}>
+                                <div class="attach-empty">No attachments yet.</div>
+                            </template>
+                        </template>
+                    </div>
+
                     <div class="modal-footer">
                         <template if:true={modalSaveError}>
                             <span class="modal-save-error">⚠ Failed to save — please try again</span>
@@ -718,6 +752,29 @@
                         </template>
                         <button class="btn-cancel" onclick={handleModalClose}>Close</button>
                     </div>
+                </div><!-- end modal-story-pane -->
+
+                <!-- ── Attachment Viewer (side-by-side) ── -->
+                <template if:true={_openedAttachment}>
+                    <div class="modal-viewer-pane">
+                        <div class="viewer-topbar">
+                            <span class="viewer-title" title={_openedAttachment.title}>{_openedAttachment.title}</span>
+                            <div class="viewer-topbar-actions">
+                                <a class="btn-viewer-dl" href={_openedAttachment.downloadUrl} target="_blank">⬇ Download</a>
+                                <button class="btn-viewer-close" onclick={handleCloseAttachmentViewer}>✕</button>
+                            </div>
+                        </div>
+                        <div class="viewer-body">
+                            <template if:true={_openedAttachment.isImage}>
+                                <img src={_openedAttachment.downloadUrl} class="viewer-img" alt={_openedAttachment.title} />
+                            </template>
+                            <template if:false={_openedAttachment.isImage}>
+                                <iframe src={_openedAttachment.downloadUrl} class="viewer-iframe" title={_openedAttachment.title}></iframe>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
                 </div>
             </div>
         </template>

@@ -456,4 +456,72 @@ public without sharing class StoryBoardController {
             throw new AuraHandledException(ex.getMessage());
         }
     }
+
+    // ── Attachments ───────────────────────────────────────────────────────────
+    public class AttachmentWrapper {
+        @AuraEnabled public Id      contentDocumentId;
+        @AuraEnabled public Id      latestVersionId;
+        @AuraEnabled public String  title;
+        @AuraEnabled public String  fileExtension;
+        @AuraEnabled public Long    sizeBytes;
+        @AuraEnabled public Boolean isImage;
+        @AuraEnabled public String  downloadUrl;
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static List<AttachmentWrapper> getAttachments(Id caseId) {
+        List<AttachmentWrapper> result = new List<AttachmentWrapper>();
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocument.Id, ContentDocument.Title,
+                   ContentDocument.FileExtension, ContentDocument.ContentSize,
+                   ContentDocument.LatestPublishedVersionId
+            FROM   ContentDocumentLink
+            WHERE  LinkedEntityId = :caseId
+            ORDER BY ContentDocument.CreatedDate DESC
+            LIMIT  25
+        ]) {
+            AttachmentWrapper w   = new AttachmentWrapper();
+            w.contentDocumentId   = cdl.ContentDocument.Id;
+            w.latestVersionId     = cdl.ContentDocument.LatestPublishedVersionId;
+            w.title               = cdl.ContentDocument.Title;
+            w.fileExtension       = (cdl.ContentDocument.FileExtension ?? '').toLowerCase();
+            w.sizeBytes           = cdl.ContentDocument.ContentSize;
+            w.isImage             = new Set<String>{'jpg','jpeg','png','gif','webp','svg','bmp'}.contains(w.fileExtension);
+            w.downloadUrl         = '/sfc/servlet.shepherd/version/download/' + w.latestVersionId;
+            result.add(w);
+        }
+        return result;
+    }
+
+    @AuraEnabled
+    public static Id uploadAttachment(Id caseId, String fileName, String base64Data) {
+        try {
+            ContentVersion cv = new ContentVersion(
+                Title           = fileName,
+                PathOnClient    = fileName,
+                VersionData     = EncodingUtil.base64Decode(base64Data),
+                ContentLocation = 'S'
+            );
+            insert cv;
+            Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1].ContentDocumentId;
+            insert new ContentDocumentLink(
+                ContentDocumentId = docId,
+                LinkedEntityId    = caseId,
+                ShareType         = 'V',
+                Visibility        = 'AllUsers'
+            );
+            return docId;
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static void deleteAttachment(Id contentDocumentId) {
+        try {
+            delete new ContentDocument(Id = contentDocumentId);
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
 }

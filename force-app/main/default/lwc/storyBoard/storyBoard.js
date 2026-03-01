@@ -9,6 +9,9 @@ import STORY_SUBMITTED_CHANNEL  from '@salesforce/messageChannel/StorySubmitted_
 import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected__c';
 import getStories        from '@salesforce/apex/StoryBoardController.getStories';
 import getProjects       from '@salesforce/apex/StoryBoardController.getProjects';
+import getAttachments       from '@salesforce/apex/StoryBoardController.getAttachments';
+import uploadAttachment     from '@salesforce/apex/StoryBoardController.uploadAttachment';
+import deleteAttachment     from '@salesforce/apex/StoryBoardController.deleteAttachment';
 import updateStoryStatus    from '@salesforce/apex/StoryBoardController.updateStoryStatus';
 import updatePriority       from '@salesforce/apex/StoryBoardController.updatePriority';
 import updateStoryType      from '@salesforce/apex/StoryBoardController.updateStoryType';
@@ -100,6 +103,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track modalPriority       = null;
     @track isSavingPriority    = false;
     @track isSavingType        = false;
+    @track _attachments        = [];
+    @track _isLoadingAttachments = false;
+    @track _isUploadingAttachment = false;
+    @track _openedAttachment   = null;
     @track modalSaveError      = false;
     @track estHoursInput       = '';
     @track isSavingEstHours    = false;
@@ -353,8 +360,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get modalContainerClass() {
-        return 'modal-container' + (this.showChatPanel ? ' modal-container-wide' : '');
+        let cls = 'modal-container';
+        if (this.showChatPanel)      cls += ' modal-container-wide';
+        if (this._openedAttachment)  cls += ' modal-container-with-viewer';
+        return cls;
     }
+
+    get hasAttachments() { return this._attachments.length > 0; }
 
     get isClosedStatus() {
         const s = this.modalCard?.status || '';
@@ -561,6 +573,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.textFieldsSaveError = false;
         this.textFieldsSaveSuccess = false;
         this.isLoadingTime       = true;
+        this._attachments        = [];
+        this._openedAttachment   = null;
+        this._isUploadingAttachment = false;
         Promise.all([
             getTimeEntries({ caseId: id }),
             getNextSteps({ caseId: id })
@@ -568,10 +583,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             this.timeEntries = times.map(t => this._mapTimeEntry(t));
             this.nextSteps   = steps.map(s => this._mapNextStep(s)).reverse();
         }).catch(() => {}).finally(() => { this.isLoadingTime = false; });
+        this._loadAttachments(id);
     }
 
     handleModalClose() {
-        this.modalCard = null;
+        this.modalCard           = null;
+        this._attachments        = [];
+        this._openedAttachment   = null;
         refreshApex(this._wiredStoriesResult);
     }
     handleModalBackdropClick() { this.modalCard = null; }
@@ -630,6 +648,58 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 this.isSavingType = false;
                 console.error('Failed to update type', err);
             });
+    }
+
+    // ── Attachments ────────────────────────────────────────────────────────────
+    _loadAttachments(caseId) {
+        this._isLoadingAttachments = true;
+        getAttachments({ caseId })
+            .then(data => { this._attachments = data; })
+            .catch(err => { console.error('Failed to load attachments', err); })
+            .finally(() => { this._isLoadingAttachments = false; });
+    }
+
+    handleFileInputChange(e) {
+        const file = e.target.files[0];
+        if (!file || !this.modalCard) return;
+        if (file.size > 4500000) {
+            // eslint-disable-next-line no-alert
+            alert('File too large. Max 4.5 MB per file.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            this._isUploadingAttachment = true;
+            uploadAttachment({ caseId: this.modalCard.id, fileName: file.name, base64Data: base64 })
+                .then(() => { this._loadAttachments(this.modalCard.id); })
+                .catch(err => { console.error('Upload failed', err); })
+                .finally(() => { this._isUploadingAttachment = false; });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // reset so same file can be re-uploaded
+    }
+
+    handleOpenAttachment(e) {
+        const id = e.currentTarget.dataset.id;
+        this._openedAttachment = this._attachments.find(a => a.contentDocumentId === id) || null;
+    }
+
+    handleCloseAttachmentViewer() {
+        this._openedAttachment = null;
+    }
+
+    handleAttachLinkClick(e) {
+        e.stopPropagation();
+    }
+
+    handleDeleteAttachment(e) {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        if (this._openedAttachment?.contentDocumentId === id) this._openedAttachment = null;
+        deleteAttachment({ contentDocumentId: id })
+            .then(() => { this._loadAttachments(this.modalCard.id); })
+            .catch(err => { console.error('Delete failed', err); });
     }
 
     handleModalSave() {}

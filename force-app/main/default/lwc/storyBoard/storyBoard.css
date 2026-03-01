@@ -625,6 +625,158 @@
 }
 .modal-container-wide { width: 1440px; }
 
+/* ── Side-by-side viewer layout ─────────────────────────────────────────── */
+.modal-container-with-viewer {
+    flex-direction: row;
+    align-items: stretch;
+    width: 90vw;
+    max-width: 90vw;
+    overflow-y: visible;
+    max-height: 95vh;
+}
+.modal-story-pane {
+    flex: 0 0 1100px;
+    min-width: 0;
+    overflow-y: auto;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+}
+.modal-viewer-pane {
+    flex: 1;
+    min-width: 420px;
+    border-left: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 0 14px 14px 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.viewer-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 0 14px 0 0;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.viewer-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.viewer-topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.btn-viewer-dl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #00b4d8;
+    text-decoration: none;
+    padding: 4px 10px;
+    border: 1.5px solid #00b4d8;
+    border-radius: 6px;
+}
+.btn-viewer-close {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+}
+.btn-viewer-close:hover { color: #374151; }
+.viewer-body { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 16px; }
+.viewer-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.viewer-iframe { width: 100%; height: 100%; min-height: 600px; border: none; border-radius: 6px; }
+
+/* ── Attachments section ─────────────────────────────────────────────────── */
+.attach-section {
+    padding: 14px 20px 10px;
+    border-top: 1px solid #f0f2f5;
+}
+.attach-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+.attach-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.btn-add-attach {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #00b4d8;
+    border: 1.5px solid #00b4d8;
+    border-radius: 6px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+.btn-add-attach:hover { background: #e0f7fc; }
+.attach-file-input { display: none; }
+.attach-list { display: flex; flex-direction: column; gap: 4px; }
+.attach-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+.attach-ext {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+    background: #6b7280;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.attach-name {
+    flex: 1;
+    font-size: 0.78rem;
+    color: #374151;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.attach-btn-open, .attach-btn-del {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+.attach-btn-open { background: #e0f7fc; color: #0096c7; }
+.attach-btn-open:hover { background: #00b4d8; color: #fff; }
+.attach-btn-dl {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-decoration: none;
+    padding: 2px 6px;
+}
+.attach-btn-dl:hover { color: #374151; }
+.attach-btn-del { background: #fee2e2; color: #b91c1c; }
+.attach-btn-del:hover { background: #fca5a5; }
+.attach-empty { font-size: 0.78rem; color: #9ca3af; font-style: italic; padding: 4px 0; }
+
 /* ── Support Chat ────────────────────────────────────────────────────────── */
 .modal-col-chat {
     width: 300px;
