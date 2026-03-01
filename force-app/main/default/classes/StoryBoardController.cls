@@ -571,6 +571,9 @@ public without sharing class StoryBoardController {
             }
             // Create new timer entry
             Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
+            if (c.Epic__c == null) {
+                throw new AuraHandledException('This story has no Epic assigned. Please assign an Epic before starting the timer.');
+            }
             Time__c t = new Time__c(
                 Case__c           = caseId,
                 Epic__c           = c.Epic__c,
@@ -579,10 +582,20 @@ public without sharing class StoryBoardController {
                 Logged_Date__c    = Date.today(),
                 Minutes_Logged__c = 0
             );
-            insert t;
+            try {
+                insert t;
+            } catch (DmlException dmlEx) {
+                String msg = dmlEx.getDmlMessage(0);
+                if (msg != null && msg.containsIgnoreCase('does not exist or does not match filter')) {
+                    throw new AuraHandledException('Could not start timer — the story\'s Epic may be invalid or archived. Please update the Epic on this story and try again.');
+                }
+                throw new AuraHandledException(msg);
+            }
             res.newTimeId   = t.Id;
             res.startTimeMs = t.Start_Time__c.getTime();
             return res;
+        } catch (AuraHandledException ex) {
+            throw ex;
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {

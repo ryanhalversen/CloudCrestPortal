@@ -1837,10 +1837,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         const timeId  = this._activeTimerId;
         const subject = this._activeTimerSubject;
         const minutes = Math.round((Date.now() - this._activeTimerStartMs) / 60000);
-        this._clearTimerState();
-        window.dispatchEvent(new CustomEvent('timerstopped'));
+        this._clearTimerState();                  // own UI clears immediately
         try {
-            await stopTimer({ timeId, notes: '' });
+            await stopTimer({ timeId, notes: '' }); // wait for DB commit
+            window.dispatchEvent(new CustomEvent('timerstopped')); // then notify eodTimeRetro
             this._stoppedNotif = { timeId, subject, minutes, notes: '' };
             refreshApex(this._wiredStoriesResult);
         } catch(err) { console.error('stopTimer', err); }

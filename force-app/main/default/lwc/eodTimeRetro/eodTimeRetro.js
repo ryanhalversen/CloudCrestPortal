@@ -818,10 +818,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     async handleEodStopTimer() {
         const timeId = this._timerTimeId;
         const notes  = this._timerNotes;
-        this._clearEodTimer();
-        window.dispatchEvent(new CustomEvent('timerstopped'));
+        this._clearEodTimer();                    // own UI clears immediately
         try {
-            await stopTimer({ timeId, notes });
+            await stopTimer({ timeId, notes });   // wait for DB commit
+            window.dispatchEvent(new CustomEvent('timerstopped')); // then notify storyBoard
             refreshApex(this._storiesWire);
             refreshApex(this._statsWire);
         } catch(err) { console.error('eod stopTimer', err); }
