@@ -361,6 +361,10 @@
     text-overflow: ellipsis;
     max-width: 100px;
 }
+.meta-type-none {
+    color: #d1d5db;
+    font-style: italic;
+}
 .card-footer {
     display: flex;
     justify-content: space-between;

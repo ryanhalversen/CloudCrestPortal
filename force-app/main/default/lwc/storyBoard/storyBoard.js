@@ -1637,9 +1637,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         if (!createdDate) return '';
         const days = Math.floor((Date.now() - new Date(createdDate).getTime()) / 86400000);
         if (days === 0)  return 'Today';
-        if (days < 7)   return `${days}d`;
-        if (days < 56)  return `${Math.floor(days / 7)}w`;
-        return `${Math.floor(days / 30)}mo`;
+        if (days < 7)   return `${days}d ago`;
+        if (days < 56)  return `${Math.floor(days / 7)}w ago`;
+        return `${Math.floor(days / 30)}mo ago`;
     }
 
     _buildColumns(cases) {

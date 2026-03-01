@@ -113,6 +113,9 @@
                                                 <template if:true={card.type}>
                                                     <span class="meta-type">{card.type}</span>
                                                 </template>
+                                                <template if:false={card.type}>
+                                                    <span class="meta-type meta-type-none">No Type</span>
+                                                </template>
                                             </div>
                                             <div class="card-footer">
                                                 <span class="card-hours-logged">⏱ {card.hoursLogged}h</span>
@@ -122,7 +125,7 @@
                                                 <template if:false={card.estimatedHours}>
                                                     <span class="card-est-hours card-est-missing">est 0h</span>
                                                 </template>
-                                                <span class="card-date">📅 {card.cardAge}</span>
+                                                <span class="card-date">{card.cardAge}</span>
                                             </div>
                                         </div>
                                     </template>
