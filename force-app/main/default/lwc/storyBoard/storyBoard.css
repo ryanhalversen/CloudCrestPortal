@@ -477,7 +477,7 @@
 }
 .btn-change-epic {
     padding: 3px 10px;
-    background: #6b7280;
+    background: #00b4d8;
     border: none;
     border-radius: 6px;
     font-size: 0.72rem;
@@ -489,8 +489,8 @@
     flex-shrink: 0;
     transition: background 0.15s;
 }
-.btn-change-epic:hover:not(:disabled) { background: #4b5563; }
-.btn-change-epic:disabled { background: #d1d5db; cursor: not-allowed; }
+.btn-change-epic:hover:not(:disabled) { background: #0096b4; }
+.btn-change-epic:disabled { background: #a5f3fc; cursor: not-allowed; }
 .btn-remove-support {
     padding: 2px 6px;
     background: none;
