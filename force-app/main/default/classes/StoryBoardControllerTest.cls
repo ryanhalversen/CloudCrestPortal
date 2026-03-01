@@ -324,6 +324,28 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testSearchUsers() {
+        Test.startTest();
+        List<User> result = StoryBoardController.searchUsers('User');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+    }
+
+    @isTest
+    static void testReassignStory() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.reassignStory(c.Id, u.Id);
+        Test.stopTest();
+
+        Case updated = [SELECT OwnerId FROM Case WHERE Id = :c.Id];
+        System.assertEquals(u.Id, updated.OwnerId, 'OwnerId should be updated');
+    }
+
+    @isTest
     static void testCreateStory_withEpicId() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];

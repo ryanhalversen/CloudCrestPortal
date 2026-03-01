@@ -248,6 +248,35 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Search Users ──────────────────────────────────────────────────────
+    @AuraEnabled
+    public static List<User> searchUsers(String searchTerm) {
+        String term = '%' + String.escapeSingleQuotes(searchTerm) + '%';
+        return [
+            SELECT Id, Name
+            FROM User
+            WHERE IsActive = true AND Name LIKE :term
+            ORDER BY Name ASC
+            LIMIT 10
+        ];
+    }
+
+    // ── Reassign Story ────────────────────────────────────────────────────
+    @AuraEnabled
+    public static void reassignStory(Id caseId, Id newOwnerId) {
+        try {
+            Database.DMLOptions dlo = new Database.DMLOptions();
+            dlo.assignmentRuleHeader.useDefaultRule = false;
+            Case c = new Case(Id = caseId, OwnerId = newOwnerId);
+            c.setOptions(dlo);
+            update c;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Create Story ──────────────────────────────────────────────────────
     @AuraEnabled
     public static void createStory(Id projectId, String subject, String description, String priority, String department, Id epicId) {

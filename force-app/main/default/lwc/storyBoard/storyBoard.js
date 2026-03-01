@@ -20,6 +20,8 @@ import createStory          from '@salesforce/apex/StoryBoardController.createSt
 import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
+import searchUsers          from '@salesforce/apex/StoryBoardController.searchUsers';
+import reassignStory        from '@salesforce/apex/StoryBoardController.reassignStory';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -67,13 +69,14 @@ const STATUS_MAP = {
 const DRAG_THRESHOLD = 6;
 
 // ── Module-level drag state (non-reactive) ────────────────────────────────
-let _dragCardId     = null;
-let _dragFromStatus = null;
-let _startX         = 0;
-let _startY         = 0;
-let _ghost          = null;
-let _isDragging     = false;
-let _didDrag        = false;
+let _dragCardId       = null;
+let _dragFromStatus   = null;
+let _startX           = 0;
+let _startY           = 0;
+let _ghost            = null;
+let _isDragging       = false;
+let _didDrag          = false;
+let _ownerSearchTimer = null;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -99,6 +102,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track newTimeHours        = '';
     @track newTimeDesc         = '';
     @track isSavingTime        = false;
+
+    // ── Owner reassignment state ──────────────────────────────────────────
+    @track showOwnerSearch    = false;
+    @track ownerSearchResults = [];
+    @track isSearchingOwners  = false;
+    @track isReassigning      = false;
+    @track reassignError      = '';
 
     // ── Close Story Modal state ───────────────────────────────────────────
     @track showCloseModal          = false;
@@ -420,6 +430,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.newTimeHours       = '';
         this.newTimeDesc        = '';
         this.isSavingTime       = false;
+        this.showOwnerSearch    = false;
+        this.ownerSearchResults = [];
+        this.reassignError      = '';
         this.isLoadingTime      = true;
         Promise.all([
             getTimeEntries({ caseId: id }),
@@ -594,6 +607,61 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             console.error('Failed to update next step', err);
         } finally {
             this.isSavingStepEdit = false;
+        }
+    }
+
+    // ── Owner Reassignment ────────────────────────────────────────────────
+    handleReassignClick() {
+        this.showOwnerSearch    = true;
+        this.ownerSearchResults = [];
+        this.reassignError      = '';
+    }
+
+    handleOwnerSearchCancel() {
+        clearTimeout(_ownerSearchTimer);
+        this.showOwnerSearch    = false;
+        this.ownerSearchResults = [];
+        this.reassignError      = '';
+    }
+
+    handleOwnerSearchChange(e) {
+        const term = (e.target.value || '').trim();
+        clearTimeout(_ownerSearchTimer);
+        this.ownerSearchResults = [];
+        if (term.length < 2) return;
+        _ownerSearchTimer = setTimeout(() => {
+            this.isSearchingOwners = true;
+            searchUsers({ searchTerm: term })
+                .then(users => {
+                    this.ownerSearchResults = users.map(u => ({ id: u.Id, name: u.Name }));
+                })
+                .catch(() => { this.ownerSearchResults = []; })
+                .finally(() => { this.isSearchingOwners = false; });
+        }, 300);
+    }
+
+    async handleOwnerResultSelect(e) {
+        const newOwnerId   = e.currentTarget.dataset.id;
+        const newOwnerName = e.currentTarget.dataset.name;
+        if (!newOwnerId || !this.modalCard) return;
+        this.isReassigning = true;
+        this.reassignError = '';
+        const caseId = this.modalCard.id;
+        try {
+            await reassignStory({ caseId, newOwnerId });
+            this.modalCard = { ...this.modalCard, ownerId: newOwnerId, ownerName: newOwnerName };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, ownerId: newOwnerId, ownerName: newOwnerName })
+            }));
+            this._caseOwnerNames = { ...this._caseOwnerNames, [newOwnerId]: newOwnerName };
+            this.showOwnerSearch    = false;
+            this.ownerSearchResults = [];
+            this._toast('Owner updated', `Story assigned to ${newOwnerName}`, 'success');
+        } catch (err) {
+            this.reassignError = err?.body?.message || 'Failed to reassign — please try again.';
+        } finally {
+            this.isReassigning = false;
         }
     }
 
@@ -997,8 +1065,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
-            ownerId:    c.OwnerId     || null,
-            projectId:  c.Projects__c || null,
+            ownerId:    c.OwnerId       || null,
+            ownerName:  c.Owner?.Name   || '',
+            projectId:  c.Projects__c   || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
             cardClass:  'story-card'
