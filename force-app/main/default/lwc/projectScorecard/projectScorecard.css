@@ -351,6 +351,8 @@
 
 .filter-btn:hover { background: #e8f0fe; border-color: #0176d3; color: #0176d3; }
 
+.filter-divider { color: #d1d5db; font-size: 14px; margin: 0 4px; user-select: none; }
+
 .filter-active {
     background: #0176d3;
     border-color: #0176d3;

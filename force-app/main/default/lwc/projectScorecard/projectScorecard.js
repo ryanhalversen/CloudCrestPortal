@@ -7,44 +7,40 @@ import getProjects from '@salesforce/apex/ProjectScorecardController.getProjects
 export default class ProjectScorecard extends NavigationMixin(LightningElement) {
     @track _projects      = [];
     @track isLoading      = true;
-    @track viewMode       = 'mine'; // 'mine' | 'all' | 'owner'
-    @track _apexViewMode  = 'mine'; // actual wire param — 'owner' maps to 'all'
+    @track viewMode       = 'mine'; // 'mine' | 'all'
     @track sortField      = null;
     @track sortDir        = 'asc';
     @track filterType     = 'all';  // 'all' | 'retainer' | 'results'
+    @track groupByOwner   = false;
 
     @wire(MessageContext)
     _msgCtx;
 
     // ── Toggle handlers ────────────────────────────────────────────────────────
-    get myBtnClass()    { return this.viewMode === 'mine'  ? 'toggle-btn active' : 'toggle-btn'; }
-    get allBtnClass()   { return this.viewMode === 'all'   ? 'toggle-btn active' : 'toggle-btn'; }
-    get ownerBtnClass() { return this.viewMode === 'owner' ? 'toggle-btn active' : 'toggle-btn'; }
+    get myBtnClass()  { return this.viewMode === 'mine' ? 'toggle-btn active' : 'toggle-btn'; }
+    get allBtnClass() { return this.viewMode === 'all'  ? 'toggle-btn active' : 'toggle-btn'; }
 
     showMine() {
         if (this.viewMode !== 'mine') {
-            this.viewMode = 'mine'; this._apexViewMode = 'mine';
-            this.isLoading = true;  this.filterType = 'all';
+            this.viewMode = 'mine';
+            this.isLoading = true;
+            this.filterType = 'all';
+            this.groupByOwner = false;
         }
     }
     showAll() {
         if (this.viewMode !== 'all') {
-            this.viewMode = 'all'; this._apexViewMode = 'all';
+            this.viewMode = 'all';
             this.isLoading = true;
         }
     }
-    showOwner() {
-        if (this.viewMode !== 'owner') {
-            this.viewMode = 'owner';
-            if (this._apexViewMode !== 'all') {
-                this._apexViewMode = 'all';
-                this.isLoading = true;
-            }
-        }
+
+    handleToggleGroupByOwner() {
+        this.groupByOwner = !this.groupByOwner;
     }
 
     // ── Wire ───────────────────────────────────────────────────────────────────
-    @wire(getProjects, { viewMode: '$_apexViewMode' })
+    @wire(getProjects, { viewMode: '$viewMode' })
     wiredProjects({ data, error }) {
         this.isLoading = false;
         if (data) {
@@ -56,8 +52,9 @@ export default class ProjectScorecard extends NavigationMixin(LightningElement) 
     }
 
     get hasProjects()  { return this._projects.length > 0; }
+    get isMineMode()   { return this.viewMode === 'mine'; }
     get isAllMode()    { return this.viewMode === 'all'; }
-    get isOwnerMode()  { return this.viewMode === 'owner'; }
+    get groupByOwnerBtnClass() { return this.groupByOwner ? 'filter-btn filter-active' : 'filter-btn'; }
 
     get ownerGroups() {
         const map = {};
