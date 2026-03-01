@@ -187,7 +187,7 @@ public class EpicManagementPanelControllerTest {
 
         Test.startTest();
         Id feedItemId = EpicManagementPanelController.saveMilestone(
-            epic.Id, null, 'Go Live', Date.newInstance(2026, 3, 15)
+            epic.Id, null, 'Go Live', Date.newInstance(2026, 3, 15), null
         );
         Test.stopTest();
 
@@ -205,7 +205,7 @@ public class EpicManagementPanelControllerTest {
 
         Test.startTest();
         EpicManagementPanelController.saveMilestone(
-            epic.Id, fi.Id, 'New Label', Date.newInstance(2026, 4, 30)
+            epic.Id, fi.Id, 'New Label', Date.newInstance(2026, 4, 30), null
         );
         Test.stopTest();
 
@@ -227,6 +227,20 @@ public class EpicManagementPanelControllerTest {
 
         List<FeedItem> remaining = [SELECT Id FROM FeedItem WHERE Id = :fiId];
         System.assertEquals(0, remaining.size(), 'FeedItem should be deleted');
+    }
+
+    @isTest
+    static void testSaveMilestone_withDescription() {
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Name = 'Feature A' LIMIT 1];
+
+        Test.startTest();
+        Id feedItemId = EpicManagementPanelController.saveMilestone(
+            epic.Id, null, 'Launch', Date.newInstance(2026, 5, 1), 'Full system launch'
+        );
+        Test.stopTest();
+
+        FeedItem fi = [SELECT Body FROM FeedItem WHERE Id = :feedItemId];
+        System.assertEquals('MILESTONE | Launch | 2026-05-01 | Full system launch', fi.Body, 'Body should include description');
     }
 
     @isTest

@@ -517,10 +517,14 @@
     transform: translate(-50%, -50%);
     font-size: 14px;
     color: #f97316;
-    cursor: pointer;
+    cursor: grab;
     z-index: 3;
     user-select: none;
     line-height: 1;
+}
+
+.tl-milestone:active {
+    cursor: grabbing;
 }
 
 .tl-milestone:hover {
@@ -586,6 +590,55 @@
 }
 
 /* ── Milestone editor ───────────────────────────────────────────────────── */
+/* ── Milestone hover card ───────────────────────────────────────────────── */
+.tl-ms-hover-card {
+    position: fixed;
+    z-index: 9050;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.13);
+    width: 220px;
+    pointer-events: auto;
+}
+
+.tl-ms-hover-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.tl-ms-hover-date {
+    font-size: 11px;
+    font-weight: 600;
+    color: #f97316;
+    margin-bottom: 6px;
+}
+
+.tl-ms-hover-desc {
+    font-size: 12px;
+    color: #374151;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tl-ms-hover-meta {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.tl-ms-hover-hint {
+    font-size: 10px;
+    color: #d1d5db;
+    font-style: italic;
+}
+
+/* ── Milestone editor ───────────────────────────────────────────────────── */
 .ms-editor {
     position: fixed;
     z-index: 9100;
@@ -598,6 +651,12 @@
     flex-direction: column;
     gap: 6px;
     width: 220px;
+}
+
+.ms-textarea {
+    resize: vertical;
+    font-family: inherit;
+    min-height: 56px;
 }
 
 .ms-input {

@@ -103,8 +103,11 @@
                                  style={m.dotStyle}
                                  data-epic-id={ep.epicId}
                                  data-id={m.feedItemId}
-                                 onclick={handleMilestoneClick}
-                                 title={m.label}>
+                                 onpointerdown={handleMilestonePointerDown}
+                                 onpointermove={handleMilestonePointerMove}
+                                 onpointerup={handleMilestonePointerUp}
+                                 onmouseenter={handleMilestoneMouseEnter}
+                                 onmouseleave={handleMilestoneMouseLeave}>
                                 ◆
                                 <span class="tl-milestone-name">{m.label}</span>
                                 <span class="tl-milestone-date">{m.dateLabel}</span>
@@ -123,6 +126,24 @@
 
         </div>
 
+        <!-- Hover card (position:fixed, shown on diamond mouseenter) -->
+        <template if:true={_hoverMilestone}>
+            <div class="tl-ms-hover-card"
+                 style={hoverCardStyle}
+                 onmouseenter={handleHoverCardMouseEnter}
+                 onmouseleave={handleHoverCardMouseLeave}>
+                <div class="tl-ms-hover-title">{_hoverMilestone.label}</div>
+                <div class="tl-ms-hover-date">{_hoverMilestone.dateLabel}</div>
+                <template if:true={_hoverMilestone.description}>
+                    <div class="tl-ms-hover-desc">{_hoverMilestone.description}</div>
+                </template>
+                <template if:true={_hoverMilestone.changedBy}>
+                    <div class="tl-ms-hover-meta">{_hoverMilestone.changedBy} · {_hoverMilestone.changedDate}</div>
+                </template>
+                <div class="tl-ms-hover-hint">Click to edit · Drag to move</div>
+            </div>
+        </template>
+
         <!-- Milestone inline editor (position:fixed, positioned via JS) -->
         <template if:true={_editingMilestone}>
             <div class="ms-editor" style={milestoneEditorStyle}>
@@ -135,6 +156,10 @@
                        type="date"
                        value={_editingMilestone.date}
                        onchange={handleMilestoneDateChange} />
+                <textarea class="ms-input ms-textarea"
+                          oninput={handleMilestoneDescChange}
+                          placeholder="Description (optional)…"
+                          rows="3">{_editingMilestone.description}</textarea>
                 <div class="ms-editor-actions">
                     <button class="btn-save"   onclick={handleMilestoneSave}>Save</button>
                     <template if:true={_editingMilestone.feedItemId}>

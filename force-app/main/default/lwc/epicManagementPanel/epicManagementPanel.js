@@ -10,13 +10,22 @@ import saveMilestone         from '@salesforce/apex/EpicManagementPanelControlle
 import deleteMilestone       from '@salesforce/apex/EpicManagementPanelController.deleteMilestone';
 import updateEpicDates       from '@salesforce/apex/EpicManagementPanelController.updateEpicDates';
 
-// Module-level drag state (non-reactive, avoids unnecessary re-renders during drag)
+// Module-level epic-bar drag state
 let _tlDragEpicId    = null;
 let _tlDragType      = null;   // 'body' | 'left' | 'right'
 let _tlDragStartX    = 0;
 let _tlDragOrigStart = null;
 let _tlDragOrigEnd   = null;
 let _tlDragging      = false;
+
+// Module-level milestone drag state
+let _tlMsDragEpicId     = null;
+let _tlMsDragFeedItemId = null;
+let _tlMsDragStartX     = 0;
+let _tlMsDragOrigDate   = null;
+let _tlMsDragging       = false;
+let _tlMsPointerId      = null;
+let _tlMsTrackWidth     = 600;
 
 export default class EpicManagementPanel extends LightningElement {
 
@@ -30,7 +39,8 @@ export default class EpicManagementPanel extends LightningElement {
     @track viewMode          = 'chips';   // 'chips' | 'timeline'
     @track _milestones       = {};        // { epicId: [MilestoneWrapper, ...] }
     @track _milestonesLoaded = false;
-    @track _editingMilestone = null;      // { epicId, feedItemId|null, label, date, top, left }
+    @track _editingMilestone = null;      // { epicId, feedItemId|null, label, date, description, top, left }
+    @track _hoverMilestone   = null;      // { label, dateLabel, description, changedBy, changedDate, top, left }
 
     // Modal state
     @track showModal     = false;
@@ -45,7 +55,8 @@ export default class EpicManagementPanel extends LightningElement {
     _modalDesc           = '';
     _pendingDescUpdate   = false;
     _epicsWire;
-    _tlTrackWidth        = 600;   // updated on drag start
+    _tlTrackWidth        = 600;   // updated on epic bar drag start
+    _hoverTimeout        = null;  // delay handle for hover card hide
 
     // ── Wire ──────────────────────────────────────────────────────────────
     @wire(getEpicsForProject, { projectId: '$projectId' })
@@ -201,6 +212,16 @@ export default class EpicManagementPanel extends LightningElement {
         const editorWidth   = 220;
         const adjustedLeft  = Math.min(left, (window.innerWidth || 1200) - editorWidth - 10);
         return `top:${top}px;left:${adjustedLeft}px;`;
+    }
+
+    get hoverCardStyle() {
+        if (!this._hoverMilestone) return 'display:none;';
+        const { top, left } = this._hoverMilestone;
+        const cardWidth    = 220;
+        const vw           = window.innerWidth || 1200;
+        const adjustedLeft = Math.max(10, Math.min(left - cardWidth / 2, vw - cardWidth - 10));
+        // transform: translateY(-100%) positions card above the diamond
+        return `top:${top}px;left:${adjustedLeft}px;transform:translateY(calc(-100% - 10px));`;
     }
 
     // ── API methods (called by parent storyBoard) ─────────────────────────
@@ -408,29 +429,141 @@ export default class EpicManagementPanel extends LightningElement {
         const rect   = e.currentTarget.getBoundingClientRect();
         this._editingMilestone = {
             epicId,
-            feedItemId: null,
-            label:      '',
-            date:       '',
-            top:        rect.bottom + 6,
-            left:       rect.left
+            feedItemId:  null,
+            label:       '',
+            date:        '',
+            description: '',
+            top:         rect.bottom + 6,
+            left:        rect.left
         };
     }
 
-    handleMilestoneClick(e) {
+    // ── Milestone drag handlers ───────────────────────────────────────────
+    handleMilestonePointerDown(e) {
         e.stopPropagation();
         const epicId     = e.currentTarget.dataset.epicId;
         const feedItemId = e.currentTarget.dataset.id;
-        const ms         = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
+        const ms = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
+        if (!ms) return;
+
+        _tlMsDragEpicId     = epicId;
+        _tlMsDragFeedItemId = feedItemId;
+        _tlMsDragStartX     = e.clientX;
+        _tlMsDragOrigDate   = this._parseDate(ms.milestoneDate);
+        _tlMsDragging       = false;
+        _tlMsPointerId      = e.pointerId;
+
+        const track = e.currentTarget.closest('.tl-track');
+        _tlMsTrackWidth = track ? track.getBoundingClientRect().width : 600;
+
+        // Hide hover card when drag starts
+        clearTimeout(this._hoverTimeout);
+        this._hoverMilestone = null;
+    }
+
+    handleMilestonePointerMove(e) {
+        if (e.pointerId !== _tlMsPointerId || !_tlMsDragFeedItemId) return;
+
+        const dx = e.clientX - _tlMsDragStartX;
+        if (!_tlMsDragging && Math.abs(dx) < 5) return;  // movement threshold
+
+        if (!_tlMsDragging) {
+            _tlMsDragging = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+        }
+
+        const total    = this._tlEnd - this._tlStart;
+        const msPerPx  = total / _tlMsTrackWidth;
+        const newDate  = new Date(_tlMsDragOrigDate.getTime() + dx * msPerPx);
+        const newIso   = this._toIso(newDate);
+        const newLabel = this._formatShortDate(newIso);
+
+        this._milestones = {
+            ...this._milestones,
+            [_tlMsDragEpicId]: (this._milestones[_tlMsDragEpicId] || []).map(m =>
+                m.feedItemId === _tlMsDragFeedItemId
+                    ? { ...m, milestoneDate: newIso, dateLabel: newLabel }
+                    : m
+            )
+        };
+    }
+
+    async handleMilestonePointerUp(e) {
+        if (e.pointerId !== _tlMsPointerId || !_tlMsDragFeedItemId) return;
+
+        const wasDragging   = _tlMsDragging;
+        const epicId        = _tlMsDragEpicId;
+        const feedItemId    = _tlMsDragFeedItemId;
+        const el            = e.currentTarget;
+
+        _tlMsDragging       = false;
+        _tlMsDragEpicId     = null;
+        _tlMsDragFeedItemId = null;
+        _tlMsPointerId      = null;
+
+        if (wasDragging) {
+            el.releasePointerCapture(e.pointerId);
+            const ms = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
+            if (!ms) return;
+            try {
+                await saveMilestone({
+                    epicId,
+                    feedItemId,
+                    label:         ms.label,
+                    milestoneDate: String(ms.milestoneDate).split('T')[0],
+                    description:   ms.description || null
+                });
+            } catch (err) {
+                this._toast('Error', 'Failed to save milestone date', 'error');
+                await this._refreshMilestones(epicId);
+            }
+        } else {
+            // Short press = open editor
+            const ms = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
+            if (!ms) return;
+            const rect = el.getBoundingClientRect();
+            this._editingMilestone = {
+                epicId,
+                feedItemId,
+                label:       ms.label,
+                date:        ms.milestoneDate ? String(ms.milestoneDate).split('T')[0] : '',
+                description: ms.description || '',
+                top:         rect.bottom + 6,
+                left:        rect.left
+            };
+        }
+    }
+
+    // ── Milestone hover card ──────────────────────────────────────────────
+    handleMilestoneMouseEnter(e) {
+        if (_tlMsDragFeedItemId) return;  // suppress during drag
+        clearTimeout(this._hoverTimeout);
+        const epicId     = e.currentTarget.dataset.epicId;
+        const feedItemId = e.currentTarget.dataset.id;
+        const ms = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
         if (!ms) return;
         const rect = e.currentTarget.getBoundingClientRect();
-        this._editingMilestone = {
-            epicId,
-            feedItemId,
-            label: ms.label,
-            date:  ms.milestoneDate ? String(ms.milestoneDate) : '',
-            top:   rect.bottom + 6,
-            left:  rect.left
+        this._hoverMilestone = {
+            label:       ms.label,
+            dateLabel:   this._formatShortDate(ms.milestoneDate),
+            description: ms.description || '',
+            changedBy:   ms.changedBy   || '',
+            changedDate: ms.changedDate || '',
+            top:         rect.top,
+            left:        rect.left + rect.width / 2
         };
+    }
+
+    handleMilestoneMouseLeave() {
+        this._hoverTimeout = setTimeout(() => { this._hoverMilestone = null; }, 150);
+    }
+
+    handleHoverCardMouseEnter() {
+        clearTimeout(this._hoverTimeout);
+    }
+
+    handleHoverCardMouseLeave() {
+        this._hoverMilestone = null;
     }
 
     handleMilestoneLabelChange(e) {
@@ -441,8 +574,12 @@ export default class EpicManagementPanel extends LightningElement {
         this._editingMilestone = { ...this._editingMilestone, date: e.target.value };
     }
 
+    handleMilestoneDescChange(e) {
+        this._editingMilestone = { ...this._editingMilestone, description: e.target.value };
+    }
+
     async handleMilestoneSave() {
-        const { epicId, feedItemId, label, date } = this._editingMilestone;
+        const { epicId, feedItemId, label, date, description } = this._editingMilestone;
         if (!label.trim() || !date) {
             this._toast('Validation', 'Label and date are required', 'warning');
             return;
@@ -450,9 +587,10 @@ export default class EpicManagementPanel extends LightningElement {
         try {
             await saveMilestone({
                 epicId,
-                feedItemId: feedItemId || null,
-                label:      label.trim(),
-                milestoneDate: date
+                feedItemId:    feedItemId || null,
+                label:         label.trim(),
+                milestoneDate: date,
+                description:   description || null
             });
             this._editingMilestone = null;
             await this._refreshMilestones(epicId);

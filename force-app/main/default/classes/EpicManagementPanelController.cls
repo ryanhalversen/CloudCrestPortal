@@ -16,6 +16,7 @@ public without sharing class EpicManagementPanelController {
         @AuraEnabled public Id     feedItemId;
         @AuraEnabled public String label;
         @AuraEnabled public Date   milestoneDate;
+        @AuraEnabled public String description;
         @AuraEnabled public String changedBy;
         @AuraEnabled public String changedDate;
     }
@@ -125,12 +126,13 @@ public without sharing class EpicManagementPanelController {
             ORDER BY CreatedDate ASC
         ]) {
             if (fi.Body == null || !fi.Body.startsWith('MILESTONE | ')) continue;
-            List<String> parts = fi.Body.split(' \\| ');
+            List<String> parts = fi.Body.split(' \\| ', 4);
             if (parts.size() < 3) continue;
             MilestoneWrapper w = new MilestoneWrapper();
             w.feedItemId  = fi.Id;
             w.label       = parts[1];
             try { w.milestoneDate = Date.valueOf(parts[2].trim()); } catch (Exception e) { continue; }
+            w.description = parts.size() >= 4 ? parts[3].trim() : '';
             w.changedBy   = fi.CreatedBy.Name;
             w.changedDate = fi.LastEditDate != null
                 ? fi.LastEditDate.format('M/d/yyyy')
@@ -142,8 +144,9 @@ public without sharing class EpicManagementPanelController {
 
     // ── Save Milestone ────────────────────────────────────────────────────
     @AuraEnabled
-    public static Id saveMilestone(Id epicId, Id feedItemId, String label, Date milestoneDate) {
-        String body = 'MILESTONE | ' + label + ' | ' + String.valueOf(milestoneDate);
+    public static Id saveMilestone(Id epicId, Id feedItemId, String label, Date milestoneDate, String description) {
+        String body = 'MILESTONE | ' + label + ' | ' + String.valueOf(milestoneDate)
+            + (String.isNotBlank(description) ? ' | ' + description : '');
         try {
             if (feedItemId == null) {
                 FeedItem fi = new FeedItem(ParentId = epicId, Body = body);
