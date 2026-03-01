@@ -21,7 +21,6 @@ import assignEpic           from '@salesforce/apex/StoryBoardController.assignEp
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
-import searchContacts         from '@salesforce/apex/StoryBoardController.searchContacts';
 import assignStorySupport     from '@salesforce/apex/StoryBoardController.assignStorySupport';
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
@@ -781,11 +780,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         _supportSearchTimer = setTimeout(async () => {
             try {
-                const results = await searchContacts({ searchTerm: term });
-                this.supportSearchResults = results.map(c => ({
-                    id:      c.Id,
-                    name:    c.Name,
-                    subtitle: [c.Title, c.Account?.Name].filter(Boolean).join(' · ')
+                const results = await searchUsers({ searchTerm: term });
+                this.supportSearchResults = results.map(u => ({
+                    id:   u.Id,
+                    name: u.Name
                 }));
             } catch (err) {
                 console.error(err);

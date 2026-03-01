@@ -281,24 +281,11 @@ public without sharing class StoryBoardController {
         ];
     }
 
-    // ── Search Contacts ───────────────────────────────────────────────────
-    @AuraEnabled
-    public static List<Contact> searchContacts(String searchTerm) {
-        String term = '%' + String.escapeSingleQuotes(searchTerm) + '%';
-        return [
-            SELECT Id, Name, Title, Account.Name
-            FROM Contact
-            WHERE Name LIKE :term
-            ORDER BY Name ASC
-            LIMIT 10
-        ];
-    }
-
     // ── Assign Story Support ──────────────────────────────────────────────
     @AuraEnabled
-    public static void assignStorySupport(Id caseId, Id contactId) {
+    public static void assignStorySupport(Id caseId, Id userId) {
         try {
-            update new Case(Id = caseId, Story_Support__c = contactId);
+            update new Case(Id = caseId, Story_Support__c = userId);
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {

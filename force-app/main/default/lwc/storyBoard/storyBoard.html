@@ -265,10 +265,7 @@
                                              data-id={c.id}
                                              data-name={c.name}
                                              onclick={handleSupportResultSelect}>
-                                            <span class="support-result-name">{c.name}</span>
-                                            <template if:true={c.subtitle}>
-                                                <span class="support-result-sub">{c.subtitle}</span>
-                                            </template>
+                                            {c.name}
                                         </div>
                                     </template>
                                 </div>

@@ -3,7 +3,7 @@
     <fullName>Story_Support__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <label>Story Support</label>
-    <referenceTo>Contact</referenceTo>
+    <referenceTo>User</referenceTo>
     <relationshipLabel>Story Support Cases</relationshipLabel>
     <relationshipName>Story_Support_Cases</relationshipName>
     <required>false</required>
