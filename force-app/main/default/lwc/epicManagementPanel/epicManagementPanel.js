@@ -18,6 +18,12 @@ let _tlDragOrigStart = null;
 let _tlDragOrigEnd   = null;
 let _tlDragging      = false;
 
+// Module-level pan state (drag empty space to scroll timeline)
+let _panActive         = false;
+let _panPointerId      = null;
+let _panStartX         = 0;
+let _panStartScrollLeft = 0;
+
 // Module-level milestone drag state
 let _tlMsDragEpicId     = null;
 let _tlMsDragFeedItemId = null;
@@ -349,10 +355,29 @@ export default class EpicManagementPanel extends LightningElement {
         }
     }
 
-    // ── Timeline drag handlers ────────────────────────────────────────────
+    // ── Timeline bar click (opens edit modal) ─────────────────────────────
+    handleBarClick(e) {
+        if (e.target.dataset.type) return; // click on a resize handle — ignore
+        const epicId = e.currentTarget.dataset.id;
+        const ep = this._epics.find(x => x.epicId === epicId);
+        if (!ep) return;
+        this._editEpicId        = epicId;
+        this.modalName          = ep.name          || '';
+        this.modalStart         = ep.startDate     ? ep.startDate.split('T')[0]  : '';
+        this.modalEnd           = ep.endDate       ? ep.endDate.split('T')[0]    : '';
+        this.modalEstHours      = ep.estimatedHours != null ? String(ep.estimatedHours) : '';
+        this._modalDesc         = ep.description   || '';
+        this._pendingDescUpdate = true;
+        this.modalError         = '';
+        this.isSaving           = false;
+        this.showModal          = true;
+    }
+
+    // ── Timeline drag handlers (handles only — body is click-to-edit) ─────
     handleBarPointerDown(e) {
+        const type = e.target.dataset.type; // 'left' | 'right', undefined for body
+        if (!type) return;                  // body click — let handleBarClick handle it
         e.stopPropagation();
-        const type   = e.target.dataset.type || 'body';
         const epicId = e.currentTarget.dataset.id;
         const ep     = this._epics.find(x => x.epicId === epicId);
         if (!ep || !ep.startDate || !ep.endDate) return;
@@ -383,10 +408,7 @@ export default class EpicManagementPanel extends LightningElement {
         let newStart = _tlDragOrigStart;
         let newEnd   = _tlDragOrigEnd;
 
-        if (_tlDragType === 'body') {
-            newStart = new Date(_tlDragOrigStart.getTime() + deltaMs);
-            newEnd   = new Date(_tlDragOrigEnd.getTime()   + deltaMs);
-        } else if (_tlDragType === 'left') {
+        if (_tlDragType === 'left') {
             newStart = new Date(_tlDragOrigStart.getTime() + deltaMs);
             if (newStart >= newEnd) newStart = new Date(newEnd.getTime() - DAY);
         } else {
@@ -618,6 +640,33 @@ export default class EpicManagementPanel extends LightningElement {
 
     handleMilestoneCancel() {
         this._editingMilestone = null;
+    }
+
+    // ── Pan (drag empty space to scroll timeline) ─────────────────────────
+    handleContainerPointerDown(e) {
+        // Only initiate pan from empty space inside a track row
+        if (!e.target.closest('.tl-track')) return;
+        if (e.target.closest('.tl-bar, .tl-milestone, .tl-add-ms, button, a')) return;
+        _panActive          = true;
+        _panPointerId       = e.pointerId;
+        _panStartX          = e.clientX;
+        _panStartScrollLeft = e.currentTarget.scrollLeft;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        e.currentTarget.style.cursor = 'grabbing';
+    }
+
+    handleContainerPointerMove(e) {
+        if (!_panActive || e.pointerId !== _panPointerId) return;
+        const dx = e.clientX - _panStartX;
+        e.currentTarget.scrollLeft = _panStartScrollLeft - dx;
+    }
+
+    handleContainerPointerUp(e) {
+        if (!_panActive || e.pointerId !== _panPointerId) return;
+        _panActive    = false;
+        _panPointerId = null;
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        e.currentTarget.style.cursor = '';
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

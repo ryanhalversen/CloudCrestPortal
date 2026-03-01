@@ -58,7 +58,10 @@
 
     <!-- ── Timeline ── -->
     <template if:true={isTimelineView}>
-        <div class="tl-container">
+        <div class="tl-container"
+             onpointerdown={handleContainerPointerDown}
+             onpointermove={handleContainerPointerMove}
+             onpointerup={handleContainerPointerUp}>
 
             <!-- Today line -->
             <div class="tl-today" style={todayLineStyle}></div>
@@ -89,6 +92,7 @@
                             <div class="tl-bar"
                                  style={ep.barStyle}
                                  data-id={ep.epicId}
+                                 onclick={handleBarClick}
                                  onpointerdown={handleBarPointerDown}
                                  onpointermove={handleBarPointerMove}
                                  onpointerup={handleBarPointerUp}>
