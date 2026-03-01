@@ -154,16 +154,6 @@
                                                 </template>
                                                 <span class="card-date">{card.cardAge}</span>
                                             </div>
-                                            <template if:true={card.isTimerActive}>
-                                                <button class="card-timer-btn card-timer-stop"
-                                                        data-id={card.id} onclick={handleStopTimer}
-                                                        title="Stop timer">⏹</button>
-                                            </template>
-                                            <template if:false={card.isTimerActive}>
-                                                <button class="card-timer-btn card-timer-start"
-                                                        data-id={card.id} onclick={handleStartTimer}
-                                                        title="Start timer">▶</button>
-                                            </template>
                                         </div>
                                     </template>
                                 </template>
@@ -224,6 +214,17 @@
                                     <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
                                     Open
                                 </a>
+                                <template if:true={isModalTimerActive}>
+                                    <button class="btn-modal-timer btn-modal-timer-stop"
+                                            onclick={handleStopTimer}
+                                            title="Stop timer">⏹ Stop Timer</button>
+                                </template>
+                                <template if:false={isModalTimerActive}>
+                                    <button class="btn-modal-timer btn-modal-timer-start"
+                                            data-id={modalCard.id}
+                                            onclick={handleStartTimer}
+                                            title="Start timer">▶ Start Timer</button>
+                                </template>
                                 <button class="modal-close" onclick={handleModalClose}>✕</button>
                             </div>
                         </div>

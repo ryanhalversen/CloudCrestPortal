@@ -1561,13 +1561,17 @@
 }
 .timer-notif-save    { background: #0e7490; color: #fff; }
 .timer-notif-dismiss { background: #f3f4f6; color: #6b7280; }
-.card-timer-btn {
-    position: absolute; top: 7px; right: 7px;
-    background: none; border: none; cursor: pointer;
-    font-size: 0.65rem; color: #9ca3af; padding: 2px 4px;
-    opacity: 0; transition: opacity 0.15s; line-height: 1;
+.btn-modal-timer {
+    padding: 4px 12px; border: none; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    white-space: nowrap; transition: background 0.15s;
 }
-.story-card:hover .card-timer-btn { opacity: 1; }
-.card-timer-start:hover { color: #00b4d8; }
-.card-timer-stop  { opacity: 1 !important; color: #00b4d8; }
+.btn-modal-timer-start {
+    background: #e0f7fa; color: #0e7490;
+}
+.btn-modal-timer-start:hover { background: #b2ebf2; }
+.btn-modal-timer-stop {
+    background: #0e7490; color: #fff;
+}
+.btn-modal-timer-stop:hover { background: #0a5f7a; }
 

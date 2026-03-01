@@ -428,9 +428,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     // ── Timer getters ─────────────────────────────────────────────────────
-    get hasActiveTimer()   { return !!this._activeTimerId; }
-    get timerBannerLabel() { return `⏱  ${this._activeTimerSubject}  —  ${this._activeTimerElapsed}`; }
-    get hasStoppedNotif()  { return !!this._stoppedNotif; }
+    get hasActiveTimer()    { return !!this._activeTimerId; }
+    get timerBannerLabel()  { return `⏱  ${this._activeTimerSubject}  —  ${this._activeTimerElapsed}`; }
+    get hasStoppedNotif()   { return !!this._stoppedNotif; }
+    get isModalTimerActive() { return !!this._activeTimerId && this._activeTimerCaseId === this.modalCard?.id; }
 
     get typeOptions() {
         return [
