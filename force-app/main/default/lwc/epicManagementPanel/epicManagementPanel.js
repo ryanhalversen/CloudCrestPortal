@@ -18,11 +18,12 @@ let _tlDragOrigStart = null;
 let _tlDragOrigEnd   = null;
 let _tlDragging      = false;
 
-// Module-level pan state (drag empty space to scroll timeline)
-let _panActive         = false;
-let _panPointerId      = null;
-let _panStartX         = 0;
-let _panStartScrollLeft = 0;
+// Module-level pan state (drag empty space to shift the visible date window)
+let _panActive      = false;
+let _panPointerId   = null;
+let _panStartX      = 0;
+let _panStartPanMs  = 0;   // _tlPanMs value at pan start
+let _panMsPerPx     = 1;   // ms per pixel, computed at pan start
 
 // Module-level milestone drag state
 let _tlMsDragEpicId     = null;
@@ -43,6 +44,7 @@ export default class EpicManagementPanel extends LightningElement {
 
     // View mode
     @track viewMode          = 'chips';   // 'chips' | 'timeline'
+    @track _tlPanMs          = 0;         // timeline pan offset in ms (positive = future, negative = past)
     @track _milestones       = {};        // { epicId: [MilestoneWrapper, ...] }
     @track _milestonesLoaded = false;
     @track _editingMilestone = null;      // { epicId, feedItemId|null, label, date, description, top, left }
@@ -128,32 +130,36 @@ export default class EpicManagementPanel extends LightningElement {
         const dates = this._epics
             .filter(e => e.startDate)
             .map(e => this._parseDate(e.startDate));
+        let base;
         if (dates.length === 0) {
-            const d = new Date();
-            d.setDate(1);
-            d.setMonth(d.getMonth() - 2);
-            return d;
+            base = new Date();
+            base.setDate(1);
+            base.setMonth(base.getMonth() - 2);
+        } else {
+            const min = new Date(Math.min(...dates.map(d => d.getTime())));
+            min.setDate(min.getDate() - 14);
+            // Snap to month start so labels align with day positions on the track
+            base = new Date(min.getFullYear(), min.getMonth(), 1);
         }
-        const min = new Date(Math.min(...dates.map(d => d.getTime())));
-        min.setDate(min.getDate() - 14);
-        // Snap to month start so month labels always align with day positions on the track
-        return new Date(min.getFullYear(), min.getMonth(), 1);
+        return new Date(base.getTime() + this._tlPanMs);
     }
 
     get _tlEnd() {
         const dates = this._epics
             .filter(e => e.endDate)
             .map(e => this._parseDate(e.endDate));
+        let base;
         if (dates.length === 0) {
-            const d = new Date();
-            d.setDate(1);
-            d.setMonth(d.getMonth() + 3);
-            return d;
+            base = new Date();
+            base.setDate(1);
+            base.setMonth(base.getMonth() + 3);
+        } else {
+            const max = new Date(Math.max(...dates.map(d => d.getTime())));
+            max.setDate(max.getDate() + 14);
+            // Snap to start of next month for a clean right boundary
+            base = new Date(max.getFullYear(), max.getMonth() + 1, 1);
         }
-        const max = new Date(Math.max(...dates.map(d => d.getTime())));
-        max.setDate(max.getDate() + 14);
-        // Snap to start of the next month so the axis ends at a clean boundary
-        return new Date(max.getFullYear(), max.getMonth() + 1, 1);
+        return new Date(base.getTime() + this._tlPanMs);
     }
 
     get timelineEpics() {
@@ -642,14 +648,18 @@ export default class EpicManagementPanel extends LightningElement {
         this._editingMilestone = null;
     }
 
-    // ── Pan (drag empty space to scroll timeline) ─────────────────────────
+    // ── Pan (drag empty space to shift the visible date window) ──────────
     handleContainerPointerDown(e) {
         // Block pan if the click landed on any interactive element
         if (e.target.closest('.tl-bar, .tl-milestone, .tl-add-ms, .tl-label-col, button, a, input')) return;
-        _panActive          = true;
-        _panPointerId       = e.pointerId;
-        _panStartX          = e.clientX;
-        _panStartScrollLeft = e.currentTarget.scrollLeft;
+        // Compute px→ms ratio: track area width is container minus the 160px label column
+        const trackWidth = Math.max(e.currentTarget.getBoundingClientRect().width - 160, 1);
+        const totalMs    = this._tlEnd.getTime() - this._tlStart.getTime();
+        _panActive     = true;
+        _panPointerId  = e.pointerId;
+        _panStartX     = e.clientX;
+        _panStartPanMs = this._tlPanMs;
+        _panMsPerPx    = totalMs / trackWidth;
         e.currentTarget.setPointerCapture(e.pointerId);
     }
 
@@ -657,7 +667,8 @@ export default class EpicManagementPanel extends LightningElement {
         if (!_panActive || e.pointerId !== _panPointerId) return;
         e.currentTarget.style.cursor = 'grabbing';
         const dx = e.clientX - _panStartX;
-        e.currentTarget.scrollLeft = _panStartScrollLeft - dx;
+        // Drag right → show earlier dates (subtract ms); drag left → show later dates
+        this._tlPanMs = Math.round(_panStartPanMs - dx * _panMsPerPx);
     }
 
     handleContainerPointerUp(e) {
