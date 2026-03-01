@@ -20,9 +20,11 @@ const _today = () => {
 };
 
 const _offsetDay = (offset, fromDate) => {
-    const d = new Date((fromDate || _today()) + 'T12:00:00');
+    const d  = new Date((fromDate || _today()) + 'T12:00:00');
     d.setDate(d.getDate() + offset);
-    return d.toISOString().split('T')[0];
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
 };
 
 export default class ProjectManagementPanel extends LightningElement {

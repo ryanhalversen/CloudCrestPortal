@@ -127,6 +127,21 @@
 
 .date-nav-label:hover { background: #e5e7eb; color: #0d1b2a; }
 
+.btn-today {
+    padding: 3px 10px;
+    background: #e6f7fb;
+    border: 1.5px solid #00b4d8;
+    border-radius: 999px;
+    color: #0077a8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.12s;
+}
+.btn-today:hover { background: #00b4d8; color: #fff; }
+
 /* ── Loading / Empty / Error ─────────────────────────────────────────────── */
 .section-loading {
     display: flex;

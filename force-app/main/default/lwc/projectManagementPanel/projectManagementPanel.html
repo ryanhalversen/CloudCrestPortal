@@ -26,9 +26,12 @@
                     </lightning-combobox>
                     <div class="date-nav">
                         <button class="date-nav-btn" onclick={handlePrevDay} title="Previous day">&#8249;</button>
-                        <button class="date-nav-label" onclick={handleTodayClick} title="Jump to today">{dateLabel}</button>
+                        <span class="date-nav-label">{dateLabel}</span>
                         <button class="date-nav-btn" onclick={handleNextDay} title="Next day">&#8250;</button>
                     </div>
+                    <template if:false={isToday}>
+                        <button class="btn-today" onclick={handleTodayClick}>Today</button>
+                    </template>
                 </div>
             </div>
 
@@ -65,7 +68,7 @@
                         </div>
                     </template>
                     <template if:false={hasEvents}>
-                        <div class="section-empty">No meetings today</div>
+                        <div class="section-empty">No meetings</div>
                     </template>
                 </template>
             </template>

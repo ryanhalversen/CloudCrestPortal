@@ -9,10 +9,21 @@ public without sharing class ProjectManagementPanelController {
         Id userId         = (filterUserId != null && filterUserId != '')
                               ? (Id) filterUserId
                               : UserInfo.getUserId();
+        // Collect event IDs the user is an attendee on (cross-object date filter)
+        Set<Id> attendeeIds = new Set<Id>();
+        for (EventRelation er : [
+            SELECT EventId FROM EventRelation
+            WHERE RelationId = :userId
+            AND Event.StartDateTime >= :dayStart
+            AND Event.StartDateTime < :dayEnd
+            AND Event.IsAllDayEvent = false
+        ]) {
+            attendeeIds.add(er.EventId);
+        }
         return [
             SELECT Id, Subject, StartDateTime, EndDateTime, Owner.Name
             FROM Event
-            WHERE OwnerId = :userId
+            WHERE (OwnerId = :userId OR Id IN :attendeeIds)
             AND StartDateTime >= :dayStart
             AND StartDateTime < :dayEnd
             AND IsAllDayEvent = false
