@@ -302,6 +302,13 @@
     transform: translateY(-1px);
     border-color: #00b4d8;
 }
+.story-card-support {
+    border-color: #f59e0b;
+    border-width: 2px;
+}
+.story-card-support:hover {
+    border-color: #d97706;
+}
 .story-card:active { cursor: grabbing; }
 
 .card-subject {

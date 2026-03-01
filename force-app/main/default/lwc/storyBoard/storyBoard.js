@@ -1292,7 +1292,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             projectId:          c.Projects__c         || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
-            cardClass:  'story-card'
+            cardClass:  'story-card' + (c.Story_Support__c ? ' story-card-support' : '')
         };
     }
 
