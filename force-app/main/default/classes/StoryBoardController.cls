@@ -562,7 +562,7 @@ public without sharing class StoryBoardController {
                                     .setScale(0, RoundingMode.HALF_UP);
                 ex.Active__c         = false;
                 ex.Stop_Time__c      = DateTime.now();
-                ex.Minutes_Logged__c = mins;
+                ex.Minutes_Logged__c = mins > 99999 ? 99999 : mins;
                 update ex;
                 res.stoppedTimeId     = ex.Id;
                 res.stoppedSubject    = ex.Case__r.Subject;
@@ -598,7 +598,7 @@ public without sharing class StoryBoardController {
                                .setScale(0, RoundingMode.HALF_UP);
             t.Active__c         = false;
             t.Stop_Time__c      = DateTime.now();
-            t.Minutes_Logged__c = mins;
+            t.Minutes_Logged__c = mins > 99999 ? 99999 : mins;
             if (String.isNotBlank(notes)) t.Additional_Comments__c = notes;
             update t;
         } catch (Exception ex) {
