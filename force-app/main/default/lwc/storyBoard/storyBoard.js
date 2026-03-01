@@ -515,7 +515,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }).catch(() => {}).finally(() => { this.isLoadingTime = false; });
     }
 
-    handleModalClose() { this.modalCard = null; }
+    handleModalClose() {
+        this.modalCard = null;
+        refreshApex(this._wiredStoriesResult);
+    }
     handleModalBackdropClick() { this.modalCard = null; }
     handleModalContainerClick(e) { e.stopPropagation(); }
 
