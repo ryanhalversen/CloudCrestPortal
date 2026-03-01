@@ -5,7 +5,8 @@ public without sharing class StoryBoardController {
         String q =
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
-            'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c, ' +
+            'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c, Epic__r.Name, ' +
+            'ContactId, Contact.Name, ' +
             'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c ' +
             'FROM Case';
 

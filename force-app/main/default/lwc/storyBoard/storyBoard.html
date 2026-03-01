@@ -163,30 +163,81 @@
             <div class="modal-backdrop" onclick={handleModalBackdropClick}>
                 <div class="modal-container" onclick={handleModalContainerClick}>
                     <div class="modal-header">
+                        <!-- Row 1: identifiers + actions -->
+                        <div class="modal-header-top">
+                            <div class="modal-header-id">
+                                <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                                <span class="modal-case-number">#{modalCard.caseNumber}</span>
+                                <template if:true={modalCard.type}>
+                                    <span class="meta-type">{modalCard.type}</span>
+                                </template>
+                            </div>
+                            <div class="modal-header-actions">
+                                <a href={modalCard.recordUrl}
+                                    target="_blank"
+                                    class="btn-open-record"
+                                    title="Open full record">
+                                    <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
+                                    Open
+                                </a>
+                                <button class="modal-close" onclick={handleModalClose}>✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: owner · epic · contact -->
                         <div class="modal-header-meta">
-                            <span class={modalCard.priorityClass}>{modalCard.priority}</span>
-                            <span class="modal-case-number">#{modalCard.caseNumber}</span>
-                            <template if:true={modalCard.type}>
-                                <span class="meta-type">{modalCard.type}</span>
-                            </template>
-                            <span class="modal-owner-sep">·</span>
+                            <span class="modal-meta-label">Owner</span>
                             <span class="modal-owner-name">{modalCard.ownerName}</span>
                             <button class="btn-reassign" onclick={handleReassignClick} disabled={isReassigning}>
                                 <template if:true={isReassigning}>…</template>
                                 <template if:false={isReassigning}>Reassign</template>
                             </button>
-                        </div>
-                        <div class="modal-header-actions">
-                            <a href={modalCard.recordUrl}
-                                target="_blank"
-                                class="btn-open-record"
-                                title="Open full record">
-                                <lightning-icon icon-name="utility:new_window" size="x-small"></lightning-icon>
-                                Open
-                            </a>
-                            <button class="modal-close" onclick={handleModalClose}>✕</button>
+
+                            <span class="modal-meta-sep">·</span>
+                            <span class="modal-meta-label">Epic</span>
+                            <span class="modal-epic-name">{modalEpicDisplay}</span>
+                            <button class="btn-change-epic" onclick={handleChangeEpicClick} disabled={isChangingEpic}>Change</button>
+
+                            <template if:true={modalCard.contactName}>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Contact</span>
+                                <span class="modal-contact-name">{modalCard.contactName}</span>
+                            </template>
                         </div>
                     </div>
+
+                    <!-- Epic change (expands between header and body) -->
+                    <template if:true={showEpicChange}>
+                        <div class="modal-owner-search">
+                            <template if:true={isLoadingEpics}>
+                                <span class="owner-searching">Loading epics…</span>
+                            </template>
+                            <template if:false={isLoadingEpics}>
+                                <template if:true={_epicOptions.length}>
+                                    <div class="owner-results">
+                                        <template for:each={_epicOptions} for:item="ep">
+                                            <div key={ep.epicId}
+                                                 class="owner-result-item"
+                                                 data-id={ep.epicId}
+                                                 data-name={ep.name}
+                                                 onclick={handleEpicSelect}>
+                                                {ep.name}
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template if:false={_epicOptions.length}>
+                                    <span class="owner-searching">No epics found for this project.</span>
+                                </template>
+                            </template>
+                            <template if:true={epicChangeError}>
+                                <span class="field-error">{epicChangeError}</span>
+                            </template>
+                            <div class="owner-search-wrap">
+                                <button class="btn-cancel ns-cancel-btn" onclick={handleEpicChangeCancel}>Cancel</button>
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- Owner search (expands between header and body) -->
                     <template if:true={showOwnerSearch}>

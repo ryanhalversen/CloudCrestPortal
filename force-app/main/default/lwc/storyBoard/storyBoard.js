@@ -21,6 +21,7 @@ import assignEpic           from '@salesforce/apex/StoryBoardController.assignEp
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
+import getEpicsForProject    from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
 
@@ -110,6 +111,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isSearchingOwners  = false;
     @track isReassigning      = false;
     @track reassignError      = '';
+
+    // ── Epic change state ─────────────────────────────────────────────────
+    @track showEpicChange    = false;
+    @track _epicOptions      = [];
+    @track isLoadingEpics    = false;
+    @track isChangingEpic    = false;
+    @track epicChangeError   = '';
 
     // ── Story text fields state ───────────────────────────────────────────
     @track solutionInput        = '';
@@ -276,6 +284,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                             ? `${PRIORITY_BTN_CLASSES[p]} selected`
                             : PRIORITY_BTN_CLASSES[p]
         }));
+    }
+
+    get modalEpicDisplay() {
+        return this.modalCard?.epicName || 'Unassigned';
     }
 
     get totalTimeLogged() {
@@ -448,6 +460,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showOwnerSearch     = false;
         this.ownerSearchResults  = [];
         this.reassignError       = '';
+        this.showEpicChange      = false;
+        this._epicOptions        = [];
+        this.epicChangeError     = '';
         this.solutionInput       = this._stripHtml(card.solution);
         this.componentsInput     = this._stripHtml(card.componentsToDeploy);
         this.qaInput             = this._stripHtml(card.qa);
@@ -680,8 +695,56 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         }
     }
 
+    // ── Epic Change ───────────────────────────────────────────────────────
+    async handleChangeEpicClick() {
+        if (this.showEpicChange) {
+            this.showEpicChange = false;
+            return;
+        }
+        this.showOwnerSearch  = false;
+        this.showEpicChange   = true;
+        this.isLoadingEpics   = true;
+        this.epicChangeError  = '';
+        try {
+            this._epicOptions = await getEpicsForProject({ projectId: this.modalCard.projectId });
+        } catch (err) {
+            this.epicChangeError = 'Failed to load epics';
+            console.error(err);
+        } finally {
+            this.isLoadingEpics = false;
+        }
+    }
+
+    async handleEpicSelect(e) {
+        const epicId   = e.currentTarget.dataset.id;
+        const epicName = e.currentTarget.dataset.name;
+        const caseId   = this.modalCard.id;
+        this.isChangingEpic  = true;
+        this.epicChangeError = '';
+        try {
+            await assignEpic({ caseId, epicId });
+            this.modalCard = { ...this.modalCard, epicId, epicName };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, epicId, epicName })
+            }));
+            this.showEpicChange = false;
+        } catch (err) {
+            this.epicChangeError = 'Failed to assign epic';
+            console.error(err);
+        } finally {
+            this.isChangingEpic = false;
+        }
+    }
+
+    handleEpicChangeCancel() {
+        this.showEpicChange  = false;
+        this.epicChangeError = '';
+    }
+
     // ── Owner Reassignment ────────────────────────────────────────────────
     handleReassignClick() {
+        this.showEpicChange     = false;
         this.showOwnerSearch    = true;
         this.ownerSearchResults = [];
         this.reassignError      = '';
@@ -1137,6 +1200,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
             ownerId:            c.OwnerId             || null,
             ownerName:          c.Owner?.Name         || '',
+            epicId:             c.Epic__c             || null,
+            epicName:           c.Epic__r?.Name       || '',
+            contactName:        c.Contact?.Name       || '',
             solution:           c.Solution__c         || '',
             componentsToDeploy: c.Components_to_Deploy__c || '',
             qa:                 c.Q_A__c              || '',

@@ -412,15 +412,25 @@
 }
 .modal-header {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid #f0f2f5;
+}
+.modal-header-top {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid #f0f2f5;
+}
+.modal-header-id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .modal-header-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 .modal-header-actions {
@@ -428,6 +438,42 @@
     align-items: center;
     gap: 10px;
 }
+.modal-meta-label {
+    font-size: 0.68rem;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+.modal-meta-sep {
+    color: #d1d5db;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.modal-epic-name,
+.modal-contact-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+}
+.btn-change-epic {
+    padding: 3px 10px;
+    background: #6b7280;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.btn-change-epic:hover:not(:disabled) { background: #4b5563; }
+.btn-change-epic:disabled { background: #d1d5db; cursor: not-allowed; }
 .modal-case-number {
     font-size: 0.75rem;
     color: #00b4d8;
@@ -989,12 +1035,6 @@
 }
 
 /* ── Owner reassignment ──────────────────────────────────────────────────── */
-.modal-owner-sep {
-    color: #d1d5db;
-    font-size: 0.85rem;
-    flex-shrink: 0;
-}
-
 .modal-owner-name {
     font-size: 0.78rem;
     font-weight: 600;
