@@ -444,7 +444,7 @@
     top: 4px;
     white-space: nowrap;
     overflow: hidden;
-    text-align: center;
+    padding-left: 4px;
 }
 
 /* ── Epic rows ──────────────────────────────────────────────────────────── */
