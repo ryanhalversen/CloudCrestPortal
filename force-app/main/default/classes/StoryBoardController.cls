@@ -6,7 +6,7 @@ public without sharing class StoryBoardController {
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
             'Hours_Estimate_to_Complete__c, OwnerId, Owner.Name, Epic__c, Epic__r.Name, ' +
-            'ContactId, Contact.Name, ' +
+            'ContactId, Contact.Name, Story_Support__c, Story_Support__r.Name, ' +
             'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c ' +
             'FROM Case';
 
@@ -279,6 +279,31 @@ public without sharing class StoryBoardController {
             ORDER BY Name ASC
             LIMIT 10
         ];
+    }
+
+    // ── Search Contacts ───────────────────────────────────────────────────
+    @AuraEnabled
+    public static List<Contact> searchContacts(String searchTerm) {
+        String term = '%' + String.escapeSingleQuotes(searchTerm) + '%';
+        return [
+            SELECT Id, Name, Title, Account.Name
+            FROM Contact
+            WHERE Name LIKE :term
+            ORDER BY Name ASC
+            LIMIT 10
+        ];
+    }
+
+    // ── Assign Story Support ──────────────────────────────────────────────
+    @AuraEnabled
+    public static void assignStorySupport(Id caseId, Id contactId) {
+        try {
+            update new Case(Id = caseId, Story_Support__c = contactId);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
     }
 
     // ── Reassign Story ────────────────────────────────────────────────────

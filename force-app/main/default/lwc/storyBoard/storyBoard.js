@@ -21,7 +21,9 @@ import assignEpic           from '@salesforce/apex/StoryBoardController.assignEp
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
-import getEpicsForProject    from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
+import searchContacts         from '@salesforce/apex/StoryBoardController.searchContacts';
+import assignStorySupport     from '@salesforce/apex/StoryBoardController.assignStorySupport';
+import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
 
@@ -78,7 +80,8 @@ let _startY           = 0;
 let _ghost            = null;
 let _isDragging       = false;
 let _didDrag          = false;
-let _ownerSearchTimer = null;
+let _ownerSearchTimer   = null;
+let _supportSearchTimer = null;
 
 export default class StoryBoard extends NavigationMixin(LightningElement) {
 
@@ -118,6 +121,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isLoadingEpics    = false;
     @track isChangingEpic    = false;
     @track epicChangeError   = '';
+
+    // ── Story Support state ───────────────────────────────────────────────
+    @track showSupportSearch     = false;
+    @track supportSearchResults  = [];
+    @track isSearchingSupport    = false;
+    @track isAssigningSupport    = false;
+    @track supportAssignError    = '';
 
     // ── Story text fields state ───────────────────────────────────────────
     @track solutionInput        = '';
@@ -463,6 +473,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showEpicChange      = false;
         this._epicOptions        = [];
         this.epicChangeError     = '';
+        this.showSupportSearch   = false;
+        this.supportSearchResults = [];
+        this.supportAssignError  = '';
         this.solutionInput       = this._stripHtml(card.solution);
         this.componentsInput     = this._stripHtml(card.componentsToDeploy);
         this.qaInput             = this._stripHtml(card.qa);
@@ -701,8 +714,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             this.showEpicChange = false;
             return;
         }
-        this.showOwnerSearch  = false;
-        this.showEpicChange   = true;
+        this.showOwnerSearch   = false;
+        this.showSupportSearch = false;
+        this.showEpicChange    = true;
         this.isLoadingEpics   = true;
         this.epicChangeError  = '';
         try {
@@ -742,10 +756,78 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.epicChangeError = '';
     }
 
+    // ── Story Support ─────────────────────────────────────────────────────
+    get modalSupportDisplay() {
+        return this.modalCard?.storySupportName || 'None';
+    }
+
+    handleSupportAssignClick() {
+        this.showOwnerSearch      = false;
+        this.showEpicChange       = false;
+        this.showSupportSearch    = !this.showSupportSearch;
+        this.supportSearchResults = [];
+        this.supportAssignError   = '';
+    }
+
+    handleSupportSearchChange(e) {
+        const term = e.target.value;
+        if (term.length < 2) {
+            this.supportSearchResults = [];
+            return;
+        }
+        this.isSearchingSupport = true;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        clearTimeout(_supportSearchTimer);
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        _supportSearchTimer = setTimeout(async () => {
+            try {
+                const results = await searchContacts({ searchTerm: term });
+                this.supportSearchResults = results.map(c => ({
+                    id:      c.Id,
+                    name:    c.Name,
+                    subtitle: [c.Title, c.Account?.Name].filter(Boolean).join(' · ')
+                }));
+            } catch (err) {
+                console.error(err);
+            } finally {
+                this.isSearchingSupport = false;
+            }
+        }, 300);
+    }
+
+    async handleSupportResultSelect(e) {
+        const contactId   = e.currentTarget.dataset.id;
+        const contactName = e.currentTarget.dataset.name;
+        const caseId      = this.modalCard.id;
+        this.isAssigningSupport  = true;
+        this.supportAssignError  = '';
+        try {
+            await assignStorySupport({ caseId, contactId });
+            this.modalCard = { ...this.modalCard, storySupportId: contactId, storySupportName: contactName };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== caseId ? c : { ...c, storySupportId: contactId, storySupportName: contactName })
+            }));
+            this.showSupportSearch = false;
+        } catch (err) {
+            this.supportAssignError = 'Failed to assign — please try again';
+            console.error(err);
+        } finally {
+            this.isAssigningSupport = false;
+        }
+    }
+
+    handleSupportSearchCancel() {
+        this.showSupportSearch    = false;
+        this.supportSearchResults = [];
+        this.supportAssignError   = '';
+    }
+
     // ── Owner Reassignment ────────────────────────────────────────────────
     handleReassignClick() {
-        this.showEpicChange     = false;
-        this.showOwnerSearch    = true;
+        this.showEpicChange       = false;
+        this.showSupportSearch    = false;
+        this.showOwnerSearch      = true;
         this.ownerSearchResults = [];
         this.reassignError      = '';
     }
@@ -1203,6 +1285,8 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             epicId:             c.Epic__c             || null,
             epicName:           c.Epic__r?.Name       || '',
             contactName:        c.Contact?.Name       || '',
+            storySupportId:     c.Story_Support__c    || null,
+            storySupportName:   c.Story_Support__r?.Name || '',
             solution:           c.Solution__c         || '',
             componentsToDeploy: c.Components_to_Deploy__c || '',
             qa:                 c.Q_A__c              || '',

@@ -373,4 +373,31 @@ public class StoryBoardControllerTest {
         System.assertEquals(1,       created.size(),    'Should have created one story');
         System.assertEquals(epic.Id, created[0].Epic__c, 'Story should be linked to the epic');
     }
+
+    @isTest
+    static void testSearchContacts() {
+        Contact con = new Contact(LastName = 'TestContractor', FirstName = 'Jane');
+        insert con;
+
+        Test.startTest();
+        List<Contact> result = StoryBoardController.searchContacts('TestContractor');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 1, 'Should find the test contact');
+    }
+
+    @isTest
+    static void testAssignStorySupport() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        Contact con = new Contact(LastName = 'SupportContact');
+        insert con;
+
+        Test.startTest();
+        StoryBoardController.assignStorySupport(c.Id, con.Id);
+        Test.stopTest();
+
+        Case updated = [SELECT Story_Support__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals(con.Id, updated.Story_Support__c, 'Story Support should be assigned');
+    }
 }

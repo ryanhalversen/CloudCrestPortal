@@ -1109,3 +1109,7 @@
     color: #9ca3af;
     font-style: italic;
 }
+
+/* Contact search result with subtitle */
+.owner-result-item .support-result-name  { display: block; font-weight: 600; }
+.owner-result-item .support-result-sub   { display: block; font-size: 0.72rem; color: #9ca3af; margin-top: 1px; }

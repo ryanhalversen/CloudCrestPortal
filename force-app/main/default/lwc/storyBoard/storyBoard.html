@@ -198,6 +198,11 @@
                             <span class="modal-epic-name">{modalEpicDisplay}</span>
                             <button class="btn-change-epic" onclick={handleChangeEpicClick} disabled={isChangingEpic}>Change</button>
 
+                            <span class="modal-meta-sep">·</span>
+                            <span class="modal-meta-label">Support</span>
+                            <span class="modal-epic-name">{modalSupportDisplay}</span>
+                            <button class="btn-change-epic" onclick={handleSupportAssignClick} disabled={isAssigningSupport}>Assign</button>
+
                             <template if:true={modalCard.contactName}>
                                 <span class="modal-meta-sep">·</span>
                                 <span class="modal-meta-label">Contact</span>
@@ -236,6 +241,41 @@
                             <div class="owner-search-wrap">
                                 <button class="btn-cancel ns-cancel-btn" onclick={handleEpicChangeCancel}>Cancel</button>
                             </div>
+                        </div>
+                    </template>
+
+                    <!-- Story Support search (expands between header and body) -->
+                    <template if:true={showSupportSearch}>
+                        <div class="modal-owner-search">
+                            <div class="owner-search-wrap">
+                                <input class="new-story-input owner-search-input"
+                                       type="text"
+                                       placeholder="Search contacts by name…"
+                                       oninput={handleSupportSearchChange} />
+                                <button class="btn-cancel ns-cancel-btn" onclick={handleSupportSearchCancel}>Cancel</button>
+                            </div>
+                            <template if:true={isSearchingSupport}>
+                                <span class="owner-searching">Searching…</span>
+                            </template>
+                            <template if:true={supportSearchResults.length}>
+                                <div class="owner-results">
+                                    <template for:each={supportSearchResults} for:item="c">
+                                        <div key={c.id}
+                                             class="owner-result-item"
+                                             data-id={c.id}
+                                             data-name={c.name}
+                                             onclick={handleSupportResultSelect}>
+                                            <span class="support-result-name">{c.name}</span>
+                                            <template if:true={c.subtitle}>
+                                                <span class="support-result-sub">{c.subtitle}</span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:true={supportAssignError}>
+                                <span class="field-error">{supportAssignError}</span>
+                            </template>
                         </div>
                     </template>
 
