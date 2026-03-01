@@ -1404,6 +1404,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             qa:                 c.Q_A__c              || '',
             documentation:      c.Documentation__c    || '',
             projectId:          c.Projects__c         || null,
+            projectName:        c.Projects__r?.Name   || '',
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
             cardClass:  'story-card' + (c.Story_Support__c ? ' story-card-support' : '')

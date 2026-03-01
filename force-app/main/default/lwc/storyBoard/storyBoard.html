@@ -193,6 +193,12 @@
                                 <template if:false={isReassigning}>Reassign</template>
                             </button>
 
+                            <template if:true={modalCard.projectName}>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Project</span>
+                                <span class="modal-epic-name">{modalCard.projectName}</span>
+                            </template>
+
                             <span class="modal-meta-sep">·</span>
                             <span class="modal-meta-label">Epic</span>
                             <span class="modal-epic-name">{modalEpicDisplay}</span>
