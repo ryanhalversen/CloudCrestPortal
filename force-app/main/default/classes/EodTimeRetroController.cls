@@ -92,6 +92,8 @@ public with sharing class EodTimeRetroController {
             String evSubject = (evId != null) ? eventSubjectById.get(evId) : null;
             tw.fromEvent     = evSubject != null;
             tw.displayLabel  = evSubject != null ? evSubject : t.Additional_Comments__c;
+            tw.startTimeMs   = t.Start_Time__c != null ? t.Start_Time__c.getTime() : null;
+            tw.stopTimeMs    = t.Stop_Time__c  != null ? t.Stop_Time__c.getTime()  : null;
             timeByStory.get(t.Case__c).add(tw);
         }
 
@@ -318,6 +320,8 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public String  note;
         @AuraEnabled public Boolean fromEvent;
         @AuraEnabled public String  displayLabel; // event subject if fromEvent, else note
+        @AuraEnabled public Long    startTimeMs;  // epoch millis, null if no timestamp
+        @AuraEnabled public Long    stopTimeMs;
     }
 
     public class AccountGroup {

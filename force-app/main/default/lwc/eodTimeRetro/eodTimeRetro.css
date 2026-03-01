@@ -264,3 +264,76 @@
     font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .eod-timer-stop-btn:hover { background: #e0f7fa; }
+
+/* ── View toggle ─────────────────────────────────────────────────────────── */
+.view-toggle-group { display:inline-flex; border:1px solid #d1d5db; border-radius:8px; overflow:hidden; }
+.view-tab { padding:5px 18px; border:none; background:#fff; font-size:0.8rem;
+            font-weight:600; color:#6b7280; cursor:pointer; transition:background .15s; }
+.view-tab-active { background:#0e7490; color:#fff; }
+.view-tab:not(.view-tab-active):hover { background:#f3f4f6; }
+
+/* ── Timeline layout ──────────────────────────────────────────────────────── */
+.timeline-wrap  { display:flex; gap:0; margin-top:6px; }
+.timeline-hours { width:52px; flex-shrink:0; position:relative; }
+.tl-hour-label  { position:absolute; right:8px; font-size:0.68rem; color:#9ca3af;
+                  transform:translateY(-50%); white-space:nowrap; pointer-events:none; }
+
+/* ── Grid ───────────────────────────────────────────────────────────────────*/
+.timeline-grid  { flex:1; position:relative; background:#fafafa;
+                  border-left:2px solid #e5e7eb; min-height:240px; }
+.tl-hour-line   { position:absolute; left:0; right:0; border-top:1px solid #e5e7eb;
+                  pointer-events:none; }
+
+/* ── Time blocks ─────────────────────────────────────────────────────────── */
+.tl-block {
+    position:absolute; left:4px; right:4px; border-radius:6px;
+    padding:4px 8px; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.12);
+    background:var(--tl-color, #0ea5e9); color:#fff;
+    min-height:20px;
+}
+.tl-block-subject { font-size:0.73rem; font-weight:700; line-height:1.2;
+                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tl-block-dur     { font-size:0.65rem; opacity:0.85; margin-top:1px; }
+
+@keyframes tl-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.tl-block-active { border:2px dashed rgba(255,255,255,0.7);
+                   animation:tl-pulse 2s ease-in-out infinite; }
+
+/* ── Gap blocks ──────────────────────────────────────────────────────────── */
+.tl-gap {
+    position:absolute; left:4px; right:4px;
+    border:1.5px dashed #f59e0b; border-radius:6px;
+    background:repeating-linear-gradient(
+        45deg, transparent, transparent 4px,
+        rgba(245,158,11,0.06) 4px, rgba(245,158,11,0.06) 8px);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:background .15s; min-height:20px;
+}
+.tl-gap:hover, .tl-gap-selected { background:rgba(245,158,11,0.15); border-color:#d97706; }
+.tl-gap-label { font-size:0.68rem; font-weight:700; color:#92400e; }
+
+/* ── Gap panel ───────────────────────────────────────────────────────────── */
+.gap-panel { margin-top:10px; background:#fff; border:1.5px solid #f59e0b;
+             border-radius:10px; padding:12px 16px; }
+.gap-panel-header { display:flex; justify-content:space-between; align-items:center;
+                    font-size:0.82rem; font-weight:700; color:#92400e; margin-bottom:8px; }
+.gap-panel-close  { background:none; border:none; cursor:pointer; color:#9ca3af; font-size:1rem; }
+.gap-story-row    { display:flex; align-items:center; gap:8px; width:100%;
+                    background:none; border:none; border-radius:6px;
+                    padding:6px 8px; cursor:pointer; text-align:left;
+                    transition:background .1s; margin-bottom:4px; }
+.gap-story-row:hover { background:#fef3c7; }
+.gap-story-name   { font-size:0.82rem; color:#374151; flex:1;
+                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gap-all-logged   { font-size:0.82rem; color:#6b7280; margin:4px 0 0; }
+.gap-log-form     { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.gap-log-story-name { font-size:0.82rem; font-weight:600; flex:1; min-width:120px; }
+.gap-log-hours    { width:80px; padding:5px 8px; border:1px solid #d1d5db;
+                    border-radius:6px; font-size:0.82rem; }
+.gap-log-btn      { padding:5px 14px; background:#0e7490; color:#fff; border:none;
+                    border-radius:6px; font-size:0.8rem; font-weight:700; cursor:pointer; }
+.gap-log-btn:disabled { background:#9ca3af; cursor:not-allowed; }
+.gap-log-back     { padding:5px 10px; background:#f3f4f6; color:#6b7280;
+                    border:none; border-radius:6px; font-size:0.8rem; cursor:pointer; }

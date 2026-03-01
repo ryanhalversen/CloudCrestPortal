@@ -79,6 +79,14 @@
             </div>
         </div>
 
+        <!-- VIEW TOGGLE -->
+        <div class="slds-p-horizontal_medium slds-m-bottom_small">
+            <div class="view-toggle-group">
+                <button class={storyListBtnClass} data-view="list"     onclick={handleViewToggle}>Story List</button>
+                <button class={timelineBtnClass}  data-view="timeline" onclick={handleViewToggle}>Timeline</button>
+            </div>
+        </div>
+
         <!-- ACTIVE TIMER BANNER -->
         <template if:true={hasActiveTimer}>
             <div class="slds-p-horizontal_medium slds-m-bottom_small">
@@ -100,6 +108,7 @@
         </template>
 
         <!-- MAIN CONTENT AREA -->
+        <template if:false={showTimeline}>
         <div class="slds-p-horizontal_medium">
 
             <!-- ── TIME BREAKDOWN VIEW (when a stat card is active) ── -->
@@ -282,6 +291,84 @@
                 </template>
             </template>
         </div>
+        </template>
+
+        <!-- TIMELINE VIEW -->
+        <template if:true={showTimeline}>
+        <div class="slds-p-horizontal_medium">
+
+          <div class="timeline-wrap">
+            <!-- LEFT: hour labels -->
+            <div class="timeline-hours">
+                <template for:each={timelineData.hourLabels} for:item="h">
+                    <div key={h.label} class="tl-hour-label" style={h.style}>{h.label}</div>
+                </template>
+            </div>
+
+            <!-- RIGHT: grid -->
+            <div class="timeline-grid" style={timelineData.gridStyle}>
+                <template for:each={timelineData.hourLines} for:item="line">
+                    <div key={line.key} class="tl-hour-line" style={line.style}></div>
+                </template>
+                <template for:each={timelineData.blocks} for:item="block">
+                    <div key={block.timeId} class="tl-block" style={block.style}>
+                        <span class="tl-block-subject">{block.subject}</span>
+                        <span class="tl-block-dur">{block.durationLabel}</span>
+                    </div>
+                </template>
+                <template for:each={timelineData.gaps} for:item="gap">
+                    <div key={gap.index} class={gap.cssClass}
+                         data-index={gap.index} onclick={handleGapClick}
+                         style={gap.style}>
+                        <span class="tl-gap-label">+ {gap.minutesLabel} unlogged</span>
+                    </div>
+                </template>
+                <template if:true={hasActiveTimer}>
+                    <div class="tl-block tl-block-active" style={activeTimerBlockStyle}>
+                        <span class="tl-block-subject">{_timerSubject}</span>
+                        <span class="tl-block-dur">{_timerElapsed}</span>
+                    </div>
+                </template>
+            </div>
+          </div>
+
+          <!-- Gap panel -->
+          <template if:true={selectedGap}>
+            <div class="gap-panel">
+              <div class="gap-panel-header">
+                  <span>Log time for this {selectedGap.minutesLabel} gap</span>
+                  <button class="gap-panel-close" onclick={handleGapClose}>✕</button>
+              </div>
+              <template if:false={gapLogStory}>
+                  <template if:true={hasUnlogged}>
+                      <div class="gap-panel-stories">
+                          <template for:each={unloggedStoriesForGap} for:item="s">
+                              <button key={s.storyId} class="gap-story-row"
+                                      data-id={s.storyId} onclick={handleGapStoryPick}>
+                                  <span class={s.priorityClass}>{s.priority}</span>
+                                  <span class="gap-story-name">{s.subject}</span>
+                              </button>
+                          </template>
+                      </div>
+                  </template>
+                  <template if:false={hasUnlogged}>
+                      <p class="gap-all-logged">All stories are logged for today.</p>
+                  </template>
+              </template>
+              <template if:true={gapLogStory}>
+                  <div class="gap-log-form">
+                      <span class="gap-log-story-name">{gapLogStory.subject}</span>
+                      <input class="gap-log-hours" type="number" min="0.1" max="24" step="0.25"
+                             value={_gapLogHours} oninput={handleGapHoursChange} placeholder="Hours" />
+                      <button class="gap-log-btn" onclick={handleGapLog} disabled={gapLogNotReady}>Log</button>
+                      <button class="gap-log-back" onclick={handleGapClose}>Cancel</button>
+                  </div>
+              </template>
+            </div>
+          </template>
+
+        </div>
+        </template>
 
         <!-- EDIT MODAL -->
         <template if:true={showEditModal}>
