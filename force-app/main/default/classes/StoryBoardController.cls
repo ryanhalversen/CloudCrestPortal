@@ -281,6 +281,36 @@ public without sharing class StoryBoardController {
         ];
     }
 
+    // ── Support Chat (Chatter FeedItem) ──────────────────────────────────
+    @AuraEnabled
+    public static List<FeedItem> getChatMessages(Id caseId) {
+        return [
+            SELECT Id, Body, CreatedDate, CreatedById, CreatedBy.Name
+            FROM FeedItem
+            WHERE ParentId = :caseId
+            AND Type = 'TextPost'
+            ORDER BY CreatedDate ASC
+            LIMIT 100
+        ];
+    }
+
+    @AuraEnabled
+    public static Id postChatMessage(Id caseId, String message) {
+        try {
+            FeedItem fi = new FeedItem(
+                ParentId = caseId,
+                Body     = message,
+                Type     = 'TextPost'
+            );
+            insert fi;
+            return fi.Id;
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Assign Story Support ──────────────────────────────────────────────
     @AuraEnabled
     public static void assignStorySupport(Id caseId, Id userId) {

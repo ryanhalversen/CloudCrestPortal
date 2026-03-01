@@ -22,6 +22,8 @@ import logTime              from '@salesforce/apex/StoryBoardController.logTime'
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
 import assignStorySupport     from '@salesforce/apex/StoryBoardController.assignStorySupport';
+import getChatMessages        from '@salesforce/apex/StoryBoardController.getChatMessages';
+import postChatMessage        from '@salesforce/apex/StoryBoardController.postChatMessage';
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
@@ -127,6 +129,13 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isSearchingSupport    = false;
     @track isAssigningSupport    = false;
     @track supportAssignError    = '';
+
+    // ── Support Chat state ────────────────────────────────────────────────
+    @track chatMessages   = [];
+    @track chatInput      = '';
+    @track isLoadingChat  = false;
+    @track isSendingChat  = false;
+    @track chatSendError  = '';
 
     // ── Story text fields state ───────────────────────────────────────────
     @track solutionInput        = '';
@@ -297,6 +306,14 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get modalEpicDisplay() {
         return this.modalCard?.epicName || 'Unassigned';
+    }
+
+    get showChatPanel() {
+        return !!(this.modalCard?.storySupportId);
+    }
+
+    get modalContainerClass() {
+        return 'modal-container' + (this.showChatPanel ? ' modal-container-wide' : '');
     }
 
     get totalTimeLogged() {
@@ -472,9 +489,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showEpicChange      = false;
         this._epicOptions        = [];
         this.epicChangeError     = '';
-        this.showSupportSearch   = false;
+        this.showSupportSearch    = false;
         this.supportSearchResults = [];
-        this.supportAssignError  = '';
+        this.supportAssignError   = '';
+        this.chatMessages         = [];
+        this.chatInput            = '';
+        this.chatSendError        = '';
+        if (card.storySupportId) {
+            this._loadChatMessages(id);
+        }
         this.solutionInput       = this._stripHtml(card.solution);
         this.componentsInput     = this._stripHtml(card.componentsToDeploy);
         this.qaInput             = this._stripHtml(card.qa);
@@ -812,6 +835,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                 })
             }));
             this.showSupportSearch = false;
+            this._loadChatMessages(caseId);
         } catch (err) {
             this.supportAssignError = 'Failed to assign — please try again';
             console.error(err);
@@ -836,6 +860,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                     cardClass:        'story-card'
                 })
             }));
+            this.chatMessages = [];
         } catch (err) {
             this.supportAssignError = 'Failed to remove — please try again';
             console.error(err);
@@ -848,6 +873,66 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.showSupportSearch    = false;
         this.supportSearchResults = [];
         this.supportAssignError   = '';
+    }
+
+    // ── Support Chat ──────────────────────────────────────────────────────
+    async _loadChatMessages(caseId) {
+        this.isLoadingChat = true;
+        try {
+            const msgs = await getChatMessages({ caseId });
+            this.chatMessages = msgs.map(m => this._mapChatMsg(m));
+        } catch (err) {
+            console.error(err);
+        } finally {
+            this.isLoadingChat = false;
+        }
+    }
+
+    _mapChatMsg(m) {
+        const d = new Date(m.CreatedDate);
+        return {
+            id:        m.Id,
+            body:      m.Body,
+            user:      m.CreatedBy?.Name || '',
+            timeLabel: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+                       d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        };
+    }
+
+    handleChatInputChange(e) { this.chatInput = e.target.value; }
+
+    handleChatKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.handleChatSend();
+        }
+    }
+
+    async handleChatSend() {
+        const message = this.chatInput.trim();
+        if (!message || this.isSendingChat) return;
+        const caseId = this.modalCard.id;
+        this.isSendingChat = true;
+        this.chatSendError = '';
+        try {
+            const feedId = await postChatMessage({ caseId, message });
+            const now = new Date();
+            this.chatMessages = [...this.chatMessages, {
+                id:        feedId,
+                body:      message,
+                user:      'You',
+                timeLabel: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+                           now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            }];
+            this.chatInput = '';
+            const ta = this.template.querySelector('.chat-input-textarea');
+            if (ta) ta.value = '';
+        } catch (err) {
+            this.chatSendError = 'Failed to send — please try again';
+            console.error(err);
+        } finally {
+            this.isSendingChat = false;
+        }
     }
 
     // ── Owner Reassignment ────────────────────────────────────────────────

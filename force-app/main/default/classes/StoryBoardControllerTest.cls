@@ -386,4 +386,30 @@ public class StoryBoardControllerTest {
         Case updated = [SELECT Story_Support__c FROM Case WHERE Id = :c.Id];
         System.assertEquals(u.Id, updated.Story_Support__c, 'Story Support should be assigned');
     }
+
+    @isTest
+    static void testPostChatMessage() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        Id feedId = StoryBoardController.postChatMessage(c.Id, 'Test chat message');
+        Test.stopTest();
+
+        System.assertNotEquals(null, feedId, 'Feed item ID should be returned');
+        FeedItem fi = [SELECT Body FROM FeedItem WHERE Id = :feedId];
+        System.assertEquals('Test chat message', fi.Body, 'Message body should match');
+    }
+
+    @isTest
+    static void testGetChatMessages() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        insert new FeedItem(ParentId = c.Id, Body = 'Hello', Type = 'TextPost');
+
+        Test.startTest();
+        List<FeedItem> result = StoryBoardController.getChatMessages(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 1, 'Should return at least one message');
+    }
 }

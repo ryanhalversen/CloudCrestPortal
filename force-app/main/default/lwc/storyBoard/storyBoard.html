@@ -161,7 +161,7 @@
         <!-- ── Story Detail Modal ── -->
         <template if:true={modalCard}>
             <div class="modal-backdrop" onclick={handleModalBackdropClick}>
-                <div class="modal-container" onclick={handleModalContainerClick}>
+                <div class={modalContainerClass} onclick={handleModalContainerClick}>
                     <div class="modal-header">
                         <!-- Row 1: identifiers + actions -->
                         <div class="modal-header-top">
@@ -476,6 +476,56 @@
                                 </template>
                             </template>
                         </div>
+
+                        <!-- ── Support Chat ── -->
+                        <template if:true={showChatPanel}>
+                            <div class="modal-col-chat">
+                                <div class="chat-header">
+                                    <lightning-icon icon-name="utility:chat" size="x-small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                                    <span class="chat-header-title">Support Chat</span>
+                                    <span class="chat-header-sub">Saved to Chatter</span>
+                                </div>
+
+                                <div class="chat-messages">
+                                    <template if:true={isLoadingChat}>
+                                        <div class="chat-empty">Loading…</div>
+                                    </template>
+                                    <template if:false={isLoadingChat}>
+                                        <template if:true={chatMessages.length}>
+                                            <template for:each={chatMessages} for:item="m">
+                                                <div key={m.id} class="chat-msg">
+                                                    <div class="chat-msg-meta">
+                                                        <span class="chat-msg-user">{m.user}</span>
+                                                        <span class="chat-msg-time">{m.timeLabel}</span>
+                                                    </div>
+                                                    <p class="chat-msg-body">{m.body}</p>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template if:false={chatMessages.length}>
+                                            <div class="chat-empty">No messages yet. Start the conversation!</div>
+                                        </template>
+                                    </template>
+                                </div>
+
+                                <div class="chat-input-wrap">
+                                    <textarea
+                                        class="chat-input-textarea"
+                                        placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                                        oninput={handleChatInputChange}
+                                        onkeydown={handleChatKeyDown}
+                                        rows="2">
+                                    </textarea>
+                                    <button class="btn-chat-send" onclick={handleChatSend} disabled={isSendingChat}>
+                                        <template if:true={isSendingChat}>Sending…</template>
+                                        <template if:false={isSendingChat}>Send</template>
+                                    </button>
+                                    <template if:true={chatSendError}>
+                                        <span class="field-error">{chatSendError}</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
 
                     </div>
 
