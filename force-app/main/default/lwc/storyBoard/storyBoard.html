@@ -169,6 +169,12 @@
                             <template if:true={modalCard.type}>
                                 <span class="meta-type">{modalCard.type}</span>
                             </template>
+                            <span class="modal-owner-sep">·</span>
+                            <span class="modal-owner-name">{modalCard.ownerName}</span>
+                            <button class="btn-reassign" onclick={handleReassignClick} disabled={isReassigning}>
+                                <template if:true={isReassigning}>…</template>
+                                <template if:false={isReassigning}>Reassign</template>
+                            </button>
                         </div>
                         <div class="modal-header-actions">
                             <a href={modalCard.recordUrl}
@@ -181,6 +187,38 @@
                             <button class="modal-close" onclick={handleModalClose}>✕</button>
                         </div>
                     </div>
+
+                    <!-- Owner search (expands between header and body) -->
+                    <template if:true={showOwnerSearch}>
+                        <div class="modal-owner-search">
+                            <div class="owner-search-wrap">
+                                <input class="new-story-input owner-search-input"
+                                       type="text"
+                                       placeholder="Search by name…"
+                                       oninput={handleOwnerSearchChange} />
+                                <button class="btn-cancel ns-cancel-btn" onclick={handleOwnerSearchCancel}>Cancel</button>
+                            </div>
+                            <template if:true={isSearchingOwners}>
+                                <span class="owner-searching">Searching…</span>
+                            </template>
+                            <template if:true={ownerSearchResults.length}>
+                                <div class="owner-results">
+                                    <template for:each={ownerSearchResults} for:item="u">
+                                        <div key={u.id}
+                                             class="owner-result-item"
+                                             data-id={u.id}
+                                             data-name={u.name}
+                                             onclick={handleOwnerResultSelect}>
+                                            {u.name}
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:true={reassignError}>
+                                <span class="field-error">{reassignError}</span>
+                            </template>
+                        </div>
+                    </template>
 
                     <div class="modal-body modal-body-split">
 
@@ -230,47 +268,6 @@
                                 </template>
                             </div>
                         </div>
-
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Assigned To</label>
-                                <template if:false={showOwnerSearch}>
-                                    <div class="owner-display-row">
-                                        <span class="owner-name">{modalCard.ownerName}</span>
-                                        <button class="btn-reassign" onclick={handleReassignClick}>Reassign</button>
-                                    </div>
-                                </template>
-                                <template if:true={showOwnerSearch}>
-                                    <div class="owner-search-wrap">
-                                        <input class="new-story-input owner-search-input"
-                                               type="text"
-                                               placeholder="Search by name…"
-                                               oninput={handleOwnerSearchChange} />
-                                        <button class="btn-cancel ns-cancel-btn" onclick={handleOwnerSearchCancel}>Cancel</button>
-                                    </div>
-                                    <template if:true={isSearchingOwners}>
-                                        <span class="owner-searching">Searching…</span>
-                                    </template>
-                                    <template if:true={ownerSearchResults.length}>
-                                        <div class="owner-results">
-                                            <template for:each={ownerSearchResults} for:item="u">
-                                                <div key={u.id}
-                                                     class="owner-result-item"
-                                                     data-id={u.id}
-                                                     data-name={u.name}
-                                                     onclick={handleOwnerResultSelect}>
-                                                    {u.name}
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <template if:true={reassignError}>
-                                        <span class="field-error">{reassignError}</span>
-                                    </template>
-                                    <template if:true={isReassigning}>
-                                        <span class="modal-saving">Reassigning…</span>
-                                    </template>
-                                </template>
-                            </div>
 
                         <div class="modal-field-row">
                             <label class="modal-field-label">Next Step</label>
