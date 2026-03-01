@@ -80,7 +80,10 @@
                             class="board-col"
                             data-status={col.status}>
                             <div class="col-header" style={col.headerStyle}>
-                                <span class="col-title">{col.status}</span>
+                                <div class="col-title-group" onclick={handleColSortClick} title="Click to change sort">
+                                    <span class="col-title">{col.status}</span>
+                                    <span class="col-sort-label">{colSortLabel}</span>
+                                </div>
                                 <div class="col-header-right">
                                     <span class="col-badge">{col.count}</span>
                                     <span class="col-est-hours">{col.estHoursLabel}</span>

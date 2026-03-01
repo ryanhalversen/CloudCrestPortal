@@ -93,6 +93,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     @track columns           = [];
     @track isLoading         = true;
+    @track colSortMode       = 'priority'; // 'priority' | 'age'
     @track errorMessage      = '';
     @track projectOptions    = [];
     @track modalCard           = null;
@@ -277,15 +278,30 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     get displayColumns() {
+        const sortCards = cards => {
+            if (this.colSortMode === 'age') {
+                return [...cards].sort((a, b) => a.createdAt - b.createdAt); // oldest first
+            }
+            return [...cards].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
+        };
         const addHours = col => {
-            const estHrs = col.cards.reduce((s, c) => s + (c.estimatedHours || 0), 0);
-            return { ...col, estHoursLabel: this._fmtHours(estHrs) || '0h' };
+            const sorted = sortCards(col.cards);
+            const estHrs = sorted.reduce((s, c) => s + (c.estimatedHours || 0), 0);
+            return { ...col, cards: sorted, estHoursLabel: this._fmtHours(estHrs) || '0h' };
         };
         if (!this.selectedOwnerFilter) return this.columns.map(addHours);
         return this.columns.map(col => {
             const cards = col.cards.filter(c => c.ownerId === this.selectedOwnerFilter);
             return addHours({ ...col, cards, count: cards.length, hasCards: cards.length > 0 });
         });
+    }
+
+    get colSortLabel() {
+        return this.colSortMode === 'age' ? '↑ Age' : '↑ Priority';
+    }
+
+    handleColSortClick() {
+        this.colSortMode = this.colSortMode === 'priority' ? 'age' : 'priority';
     }
 
     get totalCount() { return this.displayColumns.reduce((sum, c) => sum + c.count, 0); }
@@ -1608,6 +1624,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             department:    c.Department__c || '',
             priorityClass: PRIORITY_CLASSES[c.Priority] || 'priority-badge priority-low',
             cardAge:        this._calcAge(c.CreatedDate),
+            createdAt:      c.CreatedDate ? new Date(c.CreatedDate).getTime() : 0,
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
             hoursLogged:    c.Actual_Hours_to_Complete__c   ?? 0,
             ownerId:            c.OwnerId             || null,
