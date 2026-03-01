@@ -146,6 +146,7 @@
                  onmouseleave={handleHoverCardMouseLeave}>
                 <div class="tl-ms-hover-title">{_hoverMilestone.label}</div>
                 <div class="tl-ms-hover-date">{_hoverMilestone.dateLabel}</div>
+                <div class={_hoverMilestone.daysClass}>{_hoverMilestone.daysLabel}</div>
                 <template if:true={_hoverMilestone.description}>
                     <div class="tl-ms-hover-desc">{_hoverMilestone.description}</div>
                 </template>

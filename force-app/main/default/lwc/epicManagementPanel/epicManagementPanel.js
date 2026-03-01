@@ -581,13 +581,22 @@ export default class EpicManagementPanel extends LightningElement {
         const feedItemId = e.currentTarget.dataset.id;
         const ms = (this._milestones[epicId] || []).find(m => m.feedItemId === feedItemId);
         if (!ms) return;
-        const rect = e.currentTarget.getBoundingClientRect();
+        const rect    = e.currentTarget.getBoundingClientRect();
+        const today   = new Date(); today.setHours(0, 0, 0, 0);
+        const msDate  = this._parseDate(ms.milestoneDate); msDate.setHours(0, 0, 0, 0);
+        const diff    = Math.round((msDate - today) / 86400000);
+        const daysLabel = diff === 0 ? 'Today'
+            : diff > 0 ? `${diff} day${diff === 1 ? '' : 's'} remaining`
+            : `${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'} ago`;
+        const daysClass = 'tl-ms-hover-days ' + (diff < 0 ? 'tl-ms-hover-days-overdue' : diff === 0 ? 'tl-ms-hover-days-today' : 'tl-ms-hover-days-ok');
         this._hoverMilestone = {
             label:       ms.label,
             dateLabel:   this._formatShortDate(ms.milestoneDate),
-            description: ms.description || '',
-            changedBy:   ms.changedBy   || '',
-            changedDate: ms.changedDate || '',
+            daysLabel,
+            daysClass,
+            description: ms.description  || '',
+            changedBy:   ms.changedBy    || '',
+            changedDate: ms.changedDate  || '',
             top:         rect.top,
             left:        rect.left + rect.width / 2
         };

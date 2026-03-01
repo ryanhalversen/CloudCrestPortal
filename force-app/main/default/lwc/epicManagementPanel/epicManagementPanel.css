@@ -652,7 +652,31 @@
     font-size: 11px;
     font-weight: 600;
     color: #f97316;
+    margin-bottom: 4px;
+}
+
+.tl-ms-hover-days {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
     margin-bottom: 6px;
+}
+
+.tl-ms-hover-days-ok {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.tl-ms-hover-days-today {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.tl-ms-hover-days-overdue {
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 .tl-ms-hover-desc {
