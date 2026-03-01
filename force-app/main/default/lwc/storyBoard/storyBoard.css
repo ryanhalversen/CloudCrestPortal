@@ -936,3 +936,9 @@
 }
 .btn-close-story:hover    { background: #374151; }
 .btn-close-story:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.close-form-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}

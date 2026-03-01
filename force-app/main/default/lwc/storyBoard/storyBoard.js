@@ -109,9 +109,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track closeFormComments       = '';
     @track closeFormDepartment     = '';
     @track closeFormPriority       = '';
+    @track closeFormType           = '';
     @track closeFormCommentsError  = false;
     @track closeFormDeptError      = false;
     @track closeFormPriorityError  = false;
+    @track closeFormTypeError      = false;
     @track isClosingStory          = false;
     @track closeStoryError         = '';
 
@@ -267,6 +269,18 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     get newStorySubjectClass() {
         return `new-story-input${this.newStorySubjectError ? ' input-error' : ''}`;
+    }
+
+    get typeOptions() {
+        return [
+            { label: '--None--',     value: ''            },
+            { label: 'Bug',          value: 'Bug'          },
+            { label: 'Feature',      value: 'Feature'      },
+            { label: 'Enhancement',  value: 'Enhancement'  },
+            { label: 'Task',         value: 'Task'         },
+            { label: 'Question',     value: 'Question'     },
+            { label: 'Other',        value: 'Other'        },
+        ];
     }
 
     get closeModalTitle() {
@@ -645,9 +659,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.closeFormComments      = '';
         this.closeFormDepartment    = card ? (card.department || '') : '';
         this.closeFormPriority      = card ? (card.priority   || '') : '';
+        this.closeFormType          = card ? (card.type       || '') : '';
         this.closeFormCommentsError = false;
         this.closeFormDeptError     = false;
         this.closeFormPriorityError = false;
+        this.closeFormTypeError     = false;
         this.isClosingStory         = false;
         this.closeStoryError        = '';
         this.showCloseModal         = true;
@@ -669,6 +685,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.closeFormDeptError  = false;
     }
 
+    handleCloseFormTypeChange(e) {
+        this.closeFormType      = e.detail.value;
+        this.closeFormTypeError = false;
+    }
+
     handleCloseFormPrioritySelect(e) {
         this.closeFormPriority      = e.currentTarget.dataset.value;
         this.closeFormPriorityError = false;
@@ -688,6 +709,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             this.closeFormPriorityError = true;
             valid = false;
         }
+        if (!this.closeFormType) {
+            this.closeFormTypeError = true;
+            valid = false;
+        }
         if (!valid) return;
 
         this.isClosingStory  = true;
@@ -697,16 +722,18 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         const toStatus = this._pendingCloseTo;
         const priority = this.closeFormPriority;
         const dept     = this.closeFormDepartment;
+        const type     = this.closeFormType;
         try {
             await closeStory({
                 caseId:          id,
                 newStatus:       toStatus,
                 closingComments: this.closeFormComments.trim(),
                 department:      dept,
-                priority
+                priority,
+                type
             });
             this.showCloseModal = false;
-            // Optimistic move with updated fields
+            // Optimistic UI: move card to destination column with updated fields
             this.columns = this.columns.map(col => {
                 if (col.status === from) {
                     const cards = col.cards.filter(c => c.id !== id);
@@ -718,6 +745,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                     const updated = {
                         ...moved,
                         priority,
+                        type,
                         department:    dept,
                         priorityClass: PRIORITY_CLASSES[priority] || 'priority-badge priority-low'
                     };
@@ -794,11 +822,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             } else {
                 const toStatus = this._getColumnAtPoint(e.clientX, e.clientY);
                 if (toStatus && toStatus !== _dragFromStatus) {
-                    if (toStatus === 'Completed' || toStatus === 'Cancelled') {
-                        this._showCloseModal(_dragCardId, _dragFromStatus, toStatus);
-                    } else {
-                        this._moveCard(_dragCardId, _dragFromStatus, toStatus);
-                    }
+                    this._moveCard(_dragCardId, _dragFromStatus, toStatus);
                 }
             }
         }
@@ -867,6 +891,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     // ── Optimistic move + Apex save ───────────────────────────────────────
     _moveCard(id, fromStatus, toStatus) {
+        if (toStatus === 'Completed' || toStatus === 'Cancelled') {
+            this._showCloseModal(id, fromStatus, toStatus);
+            return;
+        }
         this.columns = this.columns.map(col => {
             if (col.status === fromStatus) {
                 const cards = col.cards.filter(c => c.id !== id);

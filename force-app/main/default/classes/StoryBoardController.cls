@@ -223,7 +223,7 @@ public without sharing class StoryBoardController {
 
     // ── Close Story (Completed / Cancelled) ──────────────────────────────
     @AuraEnabled
-    public static void closeStory(Id caseId, String newStatus, String closingComments, String department, String priority) {
+    public static void closeStory(Id caseId, String newStatus, String closingComments, String department, String priority, String type) {
         try {
             Set<String> validStatuses = new Set<String>{ 'Completed', 'Cancelled' };
             if (!validStatuses.contains(newStatus)) {
@@ -238,7 +238,8 @@ public without sharing class StoryBoardController {
                 Status              = newStatus,
                 Closing_Comments__c = closingComments,
                 Department__c       = department,
-                Priority            = priority
+                Priority            = priority,
+                Type                = type
             );
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));

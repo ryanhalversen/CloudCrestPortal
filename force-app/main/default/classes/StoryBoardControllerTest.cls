@@ -266,14 +266,15 @@ public class StoryBoardControllerTest {
         Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
 
         Test.startTest();
-        StoryBoardController.closeStory(c.Id, 'Completed', 'All tasks done', 'IT', 'High');
+        StoryBoardController.closeStory(c.Id, 'Completed', 'All tasks done', 'IT', 'High', 'Feature');
         Test.stopTest();
 
-        Case updated = [SELECT Status, Closing_Comments__c, Department__c, Priority FROM Case WHERE Id = :c.Id];
+        Case updated = [SELECT Status, Closing_Comments__c, Department__c, Priority, Type FROM Case WHERE Id = :c.Id];
         System.assertEquals('Completed',      updated.Status,              'Status should be Completed');
         System.assertEquals('All tasks done', updated.Closing_Comments__c, 'Closing comments should match');
         System.assertEquals('IT',             updated.Department__c,       'Department should match');
         System.assertEquals('High',           updated.Priority,            'Priority should match');
+        System.assertEquals('Feature',        updated.Type,                'Type should match');
     }
 
     @isTest
@@ -282,7 +283,7 @@ public class StoryBoardControllerTest {
 
         Test.startTest();
         try {
-            StoryBoardController.closeStory(c.Id, 'New', 'Comments', 'IT', 'High');
+            StoryBoardController.closeStory(c.Id, 'New', 'Comments', 'IT', 'High', 'Bug');
             System.assert(false, 'Should have thrown');
         } catch (AuraHandledException e) {
             System.assert(e.getMessage() != null);

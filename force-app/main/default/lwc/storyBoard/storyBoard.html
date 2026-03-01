@@ -395,22 +395,40 @@
                             </template>
                         </div>
 
-                        <!-- Department -->
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">
-                                Department <span class="new-story-required">*</span>
-                            </label>
-                            <lightning-combobox
-                                name="closeDept"
-                                variant="label-hidden"
-                                placeholder="--Select--"
-                                options={departmentOptions}
-                                value={closeFormDepartment}
-                                onchange={handleCloseFormDeptChange}>
-                            </lightning-combobox>
-                            <template if:true={closeFormDeptError}>
-                                <span class="field-error">Department is required.</span>
-                            </template>
+                        <!-- Two-column row: Department + Type -->
+                        <div class="close-form-two-col">
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">
+                                    Department <span class="new-story-required">*</span>
+                                </label>
+                                <lightning-combobox
+                                    name="closeDept"
+                                    variant="label-hidden"
+                                    placeholder="--Select--"
+                                    options={departmentOptions}
+                                    value={closeFormDepartment}
+                                    onchange={handleCloseFormDeptChange}>
+                                </lightning-combobox>
+                                <template if:true={closeFormDeptError}>
+                                    <span class="field-error">Required.</span>
+                                </template>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">
+                                    Type <span class="new-story-required">*</span>
+                                </label>
+                                <lightning-combobox
+                                    name="closeType"
+                                    variant="label-hidden"
+                                    placeholder="--Select--"
+                                    options={typeOptions}
+                                    value={closeFormType}
+                                    onchange={handleCloseFormTypeChange}>
+                                </lightning-combobox>
+                                <template if:true={closeFormTypeError}>
+                                    <span class="field-error">Required.</span>
+                                </template>
+                            </div>
                         </div>
 
                         <!-- Priority -->
