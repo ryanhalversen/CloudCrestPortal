@@ -190,6 +190,10 @@ export default class EpicManagementPanel extends LightningElement {
         });
     }
 
+    get timelineDividers() {
+        return this.timelineDateHeaders.map(h => ({ key: h.dividerKey, style: h.dividerStyle }));
+    }
+
     get timelineDateHeaders() {
         const start = this._tlStart;
         const end   = this._tlEnd;

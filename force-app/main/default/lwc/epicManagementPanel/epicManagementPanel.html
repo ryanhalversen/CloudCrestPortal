@@ -72,7 +72,6 @@
                 <div class="tl-axis">
                     <template for:each={timelineDateHeaders} for:item="h">
                         <div key={h.label} class="tl-month-label" style={h.style}>{h.label}</div>
-                        <div key={h.dividerKey} class="tl-month-divider" style={h.dividerStyle}></div>
                     </template>
                 </div>
             </div>
@@ -89,6 +88,11 @@
                     </div>
 
                     <div class="tl-track">
+
+                        <!-- Month divider lines (bounded to this row's height) -->
+                        <template for:each={timelineDividers} for:item="dv">
+                            <div key={dv.key} class="tl-track-divider" style={dv.style}></div>
+                        </template>
 
                         <!-- Epic bar (only when start + end dates are set) -->
                         <template if:true={ep.hasBar}>

@@ -453,12 +453,12 @@
     padding-left: 4px;
 }
 
-/* ── Month divider lines (full-height vertical rules) ───────────────────── */
-.tl-month-divider {
+/* ── Month divider lines (one per track row, bounded to row height) ──────── */
+.tl-track-divider {
     position: absolute;
     top: 0;
+    bottom: 0;
     width: 1px;
-    height: 2000px;
     background: #e5e7eb;
     pointer-events: none;
     z-index: 0;
