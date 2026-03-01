@@ -311,11 +311,11 @@
 }
 .card-support-badge {
     position: absolute;
-    top: 6px;
+    top: 5px;
     right: 7px;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 800;
-    color: #f59e0b;
+    color: #dc2626;
     pointer-events: none;
     line-height: 1;
 }
