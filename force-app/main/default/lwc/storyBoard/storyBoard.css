@@ -515,6 +515,8 @@
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    overflow-y: auto;
+    max-height: 68vh;
 }
 .modal-col-time {
     width: 260px;
@@ -941,6 +943,26 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+}
+
+/* ── Story detail textareas ──────────────────────────────────────────────── */
+.story-detail-textarea {
+    resize: vertical;
+    min-height: 68px;
+}
+
+.text-fields-save-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.text-fields-saved {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #15803d;
 }
 
 /* ── Owner reassignment ──────────────────────────────────────────────────── */

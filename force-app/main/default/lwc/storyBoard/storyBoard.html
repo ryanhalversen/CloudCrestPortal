@@ -267,6 +267,53 @@
                                     <span class="field-error">Failed to save — please try again</span>
                                 </template>
                             </div>
+
+                            <!-- Solution / Components / Q&A -->
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Solution</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Describe the solution…"
+                                    value={solutionInput}
+                                    oninput={handleSolutionChange}
+                                    rows="3">
+                                </textarea>
+                            </div>
+
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Components to Deploy</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="List components, classes, or metadata to deploy…"
+                                    value={componentsInput}
+                                    oninput={handleComponentsChange}
+                                    rows="3">
+                                </textarea>
+                            </div>
+
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Q&amp;A</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Notes from quality assurance testing…"
+                                    value={qaInput}
+                                    oninput={handleQaChange}
+                                    rows="3">
+                                </textarea>
+                            </div>
+
+                            <div class="text-fields-save-row">
+                                <template if:true={textFieldsSaveSuccess}>
+                                    <span class="text-fields-saved">✓ Saved</span>
+                                </template>
+                                <template if:true={textFieldsSaveError}>
+                                    <span class="field-error">Failed to save — please try again</span>
+                                </template>
+                                <button class="btn-save-hrs" onclick={handleTextFieldsSave} disabled={isSavingTextFields}>
+                                    <template if:true={isSavingTextFields}>Saving…</template>
+                                    <template if:false={isSavingTextFields}>Save Fields</template>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="modal-field-row">

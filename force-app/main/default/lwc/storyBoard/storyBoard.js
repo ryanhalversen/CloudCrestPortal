@@ -20,8 +20,9 @@ import createStory          from '@salesforce/apex/StoryBoardController.createSt
 import assignEpic           from '@salesforce/apex/StoryBoardController.assignEpic';
 import logTime              from '@salesforce/apex/StoryBoardController.logTime';
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
-import searchUsers          from '@salesforce/apex/StoryBoardController.searchUsers';
-import reassignStory        from '@salesforce/apex/StoryBoardController.reassignStory';
+import searchUsers            from '@salesforce/apex/StoryBoardController.searchUsers';
+import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
+import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -109,6 +110,14 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track isSearchingOwners  = false;
     @track isReassigning      = false;
     @track reassignError      = '';
+
+    // ── Story text fields state ───────────────────────────────────────────
+    @track solutionInput        = '';
+    @track componentsInput      = '';
+    @track qaInput              = '';
+    @track isSavingTextFields   = false;
+    @track textFieldsSaveError  = false;
+    @track textFieldsSaveSuccess = false;
 
     // ── Close Story Modal state ───────────────────────────────────────────
     @track showCloseModal          = false;
@@ -357,6 +366,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return `${Number(h.toFixed(2))}h`;
     }
 
+    _stripHtml(html) {
+        if (!html) return '';
+        return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+    }
+
     _mapNextStep(s) {
         let date = '';
         if (s.CreatedDate) {
@@ -430,10 +444,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.newTimeHours       = '';
         this.newTimeDesc        = '';
         this.isSavingTime       = false;
-        this.showOwnerSearch    = false;
-        this.ownerSearchResults = [];
-        this.reassignError      = '';
-        this.isLoadingTime      = true;
+        this.showOwnerSearch     = false;
+        this.ownerSearchResults  = [];
+        this.reassignError       = '';
+        this.solutionInput       = this._stripHtml(card.solution);
+        this.componentsInput     = this._stripHtml(card.componentsToDeploy);
+        this.qaInput             = this._stripHtml(card.qa);
+        this.isSavingTextFields  = false;
+        this.textFieldsSaveError = false;
+        this.textFieldsSaveSuccess = false;
+        this.isLoadingTime       = true;
         Promise.all([
             getTimeEntries({ caseId: id }),
             getNextSteps({ caseId: id })
@@ -607,6 +627,50 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             console.error('Failed to update next step', err);
         } finally {
             this.isSavingStepEdit = false;
+        }
+    }
+
+    // ── Story Text Fields ─────────────────────────────────────────────────
+    handleSolutionChange(e)   { this.solutionInput   = e.target.value; }
+    handleComponentsChange(e) { this.componentsInput = e.target.value; }
+    handleQaChange(e)         { this.qaInput         = e.target.value; }
+
+    async handleTextFieldsSave() {
+        this.isSavingTextFields   = true;
+        this.textFieldsSaveError  = false;
+        this.textFieldsSaveSuccess = false;
+        const caseId = this.modalCard.id;
+        try {
+            await updateStoryTextFields({
+                caseId,
+                solution:           this.solutionInput.trim()   || null,
+                componentsToDeploy: this.componentsInput.trim() || null,
+                qa:                 this.qaInput.trim()         || null
+            });
+            // Update in-memory card
+            this.modalCard = {
+                ...this.modalCard,
+                solution:           this.solutionInput.trim(),
+                componentsToDeploy: this.componentsInput.trim(),
+                qa:                 this.qaInput.trim()
+            };
+            this.columns = this.columns.map(col => ({
+                ...col,
+                cards: col.cards.map(c => c.id !== caseId ? c : {
+                    ...c,
+                    solution:           this.solutionInput.trim(),
+                    componentsToDeploy: this.componentsInput.trim(),
+                    qa:                 this.qaInput.trim()
+                })
+            }));
+            this.textFieldsSaveSuccess = true;
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => { this.textFieldsSaveSuccess = false; }, 2000);
+        } catch (err) {
+            this.textFieldsSaveError = true;
+            console.error('Failed to save text fields', err);
+        } finally {
+            this.isSavingTextFields = false;
         }
     }
 
@@ -1065,9 +1129,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
                                ? new Date(c.CreatedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                                : '',
             estimatedHours: c.Hours_Estimate_to_Complete__c ?? null,
-            ownerId:    c.OwnerId       || null,
-            ownerName:  c.Owner?.Name   || '',
-            projectId:  c.Projects__c   || null,
+            ownerId:            c.OwnerId             || null,
+            ownerName:          c.Owner?.Name         || '',
+            solution:           c.Solution__c         || '',
+            componentsToDeploy: c.Components_to_Deploy__c || '',
+            qa:                 c.Q_A__c              || '',
+            projectId:          c.Projects__c         || null,
             recordUrl:  `/lightning/r/Case/${c.Id}/view`,
             isSaving:   false,
             cardClass:  'story-card'
