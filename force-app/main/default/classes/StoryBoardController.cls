@@ -563,11 +563,16 @@ public without sharing class StoryBoardController {
                 ex.Active__c         = false;
                 ex.Stop_Time__c      = DateTime.now();
                 ex.Minutes_Logged__c = mins > 99999 ? 99999 : mins;
-                update ex;
-                res.stoppedTimeId     = ex.Id;
-                res.stoppedSubject    = ex.Case__r.Subject;
-                res.stoppedCaseNumber = ex.Case__r.CaseNumber;
-                res.stoppedMinutes    = mins;
+                try {
+                    update ex;
+                    res.stoppedTimeId     = ex.Id;
+                    res.stoppedSubject    = ex.Case__r.Subject;
+                    res.stoppedCaseNumber = ex.Case__r.CaseNumber;
+                    res.stoppedMinutes    = mins;
+                } catch (DmlException stopEx) {
+                    // If the concurrent stopTimer call already stopped this record, ignore and proceed
+                    System.debug('startTimer: could not auto-stop existing timer ' + ex.Id + ': ' + stopEx.getMessage());
+                }
             }
             // Create new timer entry
             Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
@@ -584,20 +589,14 @@ public without sharing class StoryBoardController {
             );
             try {
                 insert t;
-            } catch (DmlException dmlEx) {
-                String msg = dmlEx.getDmlMessage(0);
-                if (msg != null && msg.containsIgnoreCase('does not exist or does not match filter')) {
-                    throw new AuraHandledException('Could not start timer — the story\'s Epic may be invalid or archived. Please update the Epic on this story and try again.');
-                }
-                throw new AuraHandledException(msg);
+            } catch (DmlException insertEx) {
+                throw new AuraHandledException('Could not create timer entry: ' + insertEx.getDmlMessage(0));
             }
             res.newTimeId   = t.Id;
             res.startTimeMs = t.Start_Time__c.getTime();
             return res;
         } catch (AuraHandledException ex) {
             throw ex;
-        } catch (DmlException ex) {
-            throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {
             throw new AuraHandledException(ex.getMessage());
         }
