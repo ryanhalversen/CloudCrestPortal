@@ -196,26 +196,30 @@ public with sharing class EodTimeRetroController {
         Date weekStart  = today.toStartOfWeek();
         Date monthStart = Date.newInstance(today.year(), today.month(), 1);
         List<Time__c> allMonth = [
-            SELECT Minutes_Logged__c, Logged_Date__c FROM Time__c
+            SELECT Minutes_Logged__c, Logged_Date__c, Start_Time__c FROM Time__c
             WHERE CreatedById = :userId AND Logged_Date__c >= :monthStart
         ];
         Decimal todayMins = 0, weekMins = 0, monthMins = 0;
+        Decimal offCalMins = 0; Integer offCalCount = 0;
         Map<String, Decimal> dayMap = new Map<String, Decimal>();
         for (Time__c t : allMonth) {
             Decimal m = (t.Minutes_Logged__c != null) ? t.Minutes_Logged__c : 0;
             monthMins += m;
             if (t.Logged_Date__c >= weekStart) weekMins += m;
             if (t.Logged_Date__c == today) todayMins += m;
+            if (t.Start_Time__c == null) { offCalCount++; offCalMins += m; }
             String dk = String.valueOf(t.Logged_Date__c);
             dayMap.put(dk, (dayMap.containsKey(dk) ? dayMap.get(dk) : 0) + m);
         }
         List<DayEntry> entries = new List<DayEntry>();
         for (String d : dayMap.keySet()) entries.add(new DayEntry(d, dayMap.get(d)));
-        TimeStats s  = new TimeStats();
-        s.todayHours = (todayMins / 60).setScale(1, RoundingMode.HALF_UP);
-        s.weekHours  = (weekMins  / 60).setScale(1, RoundingMode.HALF_UP);
-        s.monthHours = (monthMins / 60).setScale(1, RoundingMode.HALF_UP);
-        s.byDay      = entries;
+        TimeStats s          = new TimeStats();
+        s.todayHours         = (todayMins  / 60).setScale(1, RoundingMode.HALF_UP);
+        s.weekHours          = (weekMins   / 60).setScale(1, RoundingMode.HALF_UP);
+        s.monthHours         = (monthMins  / 60).setScale(1, RoundingMode.HALF_UP);
+        s.byDay              = entries;
+        s.offCalendarCount   = offCalCount;
+        s.offCalendarHours   = (offCalMins / 60).setScale(1, RoundingMode.HALF_UP);
         return s;
     }
 
@@ -452,5 +456,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Decimal        weekHours;
         @AuraEnabled public Decimal        monthHours;
         @AuraEnabled public List<DayEntry> byDay;
+        @AuraEnabled public Integer        offCalendarCount;
+        @AuraEnabled public Decimal        offCalendarHours;
     }
 }

@@ -1,5 +1,12 @@
 <!-- eodTimeRetro.html -->
 <template>
+    <!-- CHIP DRAG GHOST (fixed-position, overlays viewport during chip drag) -->
+    <template if:true={chipGhost}>
+        <div class="tl-chip-ghost-fixed" style={chipGhost.style}>
+            <span class="tl-chip-ghost-label">{_chipSubject}</span>
+        </div>
+    </template>
+
     <lightning-card title="End of Day · Time Recap" icon-name="standard:timesheet">
 
         <!-- STATS ROW -->
@@ -30,14 +37,14 @@
                 </div>
             </div>
 
-            <!-- UNLOGGED / LOG TODAY -->
+            <!-- OFF-CALENDAR -->
             <div class="slds-col">
-                <div class={statCardLogClass} onclick={handleCloseBreakdown}>
-                    <div class="stat-label">Unlogged</div>
-                    <div class="stat-value stat-unlogged">{unloggedCount}</div>
+                <div class="stat-card stat-card-offcal">
+                    <div class="stat-label">Off Calendar</div>
+                    <div class="stat-value stat-offcal">{offCalendarCount}</div>
                     <div class="stat-sub">
-                        <template if:true={showBreakdown}>← log today</template>
-                        <template if:false={showBreakdown}>stories need time</template>
+                        <template if:true={hasOffCalendar}>{offCalendarHours}h not on timeline</template>
+                        <template if:false={hasOffCalendar}>all entries placed ✓</template>
                     </div>
                 </div>
             </div>
@@ -287,6 +294,23 @@
         <template if:true={showDay}>
         <div class="slds-p-horizontal_medium">
 
+          <!-- OFF-CALENDAR CHIP TRAY -->
+          <template if:true={showOffCalTray}>
+            <div class="offcal-tray">
+                <span class="offcal-tray-hint">No timestamp — drag onto calendar to place</span>
+                <div class="offcal-chips">
+                    <template for:each={offCalendarEntries} for:item="entry">
+                        <div key={entry.timeId} class="offcal-chip"
+                             style={entry.chipStyle} data-id={entry.timeId}
+                             onmousedown={handleChipMouseDown}>
+                            <span class="offcal-chip-subject">{entry.subject}</span>
+                            <span class="offcal-chip-hours">{entry.hours}h</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+          </template>
+
           <div class="cal-scroll">
           <div class="timeline-wrap">
             <!-- LEFT: hour labels -->
@@ -374,6 +398,24 @@
         <!-- WEEK VIEW -->
         <template if:true={showWeek}>
         <div class="slds-p-horizontal_medium">
+
+          <!-- OFF-CALENDAR CHIP TRAY -->
+          <template if:true={showOffCalTray}>
+            <div class="offcal-tray">
+                <span class="offcal-tray-hint">No timestamp — drag onto calendar to place</span>
+                <div class="offcal-chips">
+                    <template for:each={offCalendarEntries} for:item="entry">
+                        <div key={entry.timeId} class="offcal-chip"
+                             style={entry.chipStyle} data-id={entry.timeId}
+                             onmousedown={handleChipMouseDown}>
+                            <span class="offcal-chip-subject">{entry.subject}</span>
+                            <span class="offcal-chip-hours">{entry.hours}h</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+          </template>
+
             <template if:true={weekIsLoading}>
                 <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
             </template>

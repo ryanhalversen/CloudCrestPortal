@@ -36,7 +36,7 @@ let _eodTimerInterval = null;
 
 export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track stories          = [];
-    @track stats            = { todayHours: 0, weekHours: 0, monthHours: 0 };
+    @track stats            = { todayHours: 0, weekHours: 0, monthHours: 0, offCalendarCount: 0, offCalendarHours: 0 };
     @track isLoading        = true;
     @track showEditModal    = false;
     @track userOptions      = [];
@@ -60,6 +60,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track _selectedGapIdx  = null;
     @track _gapLogStoryId   = null;
     @track _gapLogHours     = '';
+    @track _chipGhost       = null;  // ghost block shown during chip drag
+    @track _chipSubject     = '';    // subject label shown on ghost
     _scrollAfterRender      = false;
 
     // Breakdown state
@@ -79,6 +81,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     _storiesWire;
     _statsWire;
     _drag       = null; // drag state during block move/resize
+    _chipDrag   = null; // drag state for off-calendar chip placement
     _skippedIds = new Set(); // persisted to localStorage by date key
 
     _skipKey() { return `eod_skipped_${new Date().toISOString().split('T')[0]}`; }
@@ -107,8 +110,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     }
     disconnectedCallback() {
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
-        if (this._boundDragMove) window.removeEventListener('mousemove', this._boundDragMove);
-        if (this._boundDragUp)   window.removeEventListener('mouseup',   this._boundDragUp);
+        if (this._boundDragMove)  window.removeEventListener('mousemove', this._boundDragMove);
+        if (this._boundDragUp)    window.removeEventListener('mouseup',   this._boundDragUp);
+        if (this._boundChipMove)  window.removeEventListener('mousemove', this._boundChipMove);
+        if (this._boundChipUp)    window.removeEventListener('mouseup',   this._boundChipUp);
         window.removeEventListener('timerstopped', this._handleExternalTimerStop);
         window.removeEventListener('timerstarted',  this._handleExternalTimerStart);
     }
@@ -151,9 +156,11 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         this._statsWire = result;
         if (result.data) {
             this.stats = {
-                todayHours : this._round(result.data.todayHours),
-                weekHours  : this._round(result.data.weekHours),
-                monthHours : this._round(result.data.monthHours)
+                todayHours       : this._round(result.data.todayHours),
+                weekHours        : this._round(result.data.weekHours),
+                monthHours       : this._round(result.data.monthHours),
+                offCalendarCount : result.data.offCalendarCount  || 0,
+                offCalendarHours : this._round(result.data.offCalendarHours || 0)
             };
             // Populate current-month day map for month view
             const map = {};
@@ -520,6 +527,152 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             await logTime({ storyId, epicId: story?.epicId, hours: hrs, notes: '', logDate: this.selectedDate });
             await Promise.all([refreshApex(this._storiesWire), refreshApex(this._statsWire)]);
         } catch(err) { this._toast('Error', err.body?.message, 'error'); }
+    }
+
+    // ── Off-calendar entries (logged but no Start_Time__c) ───────────────
+    get offCalendarEntries() {
+        const view = this.calendarView;
+        if (view === 'day' || view === 'list') {
+            const colorMap = new Map(); let ci = 0;
+            const entries = [];
+            (this.stories || []).forEach(s => {
+                const k = String(s.projectId);
+                if (!colorMap.has(k)) colorMap.set(k, BLOCK_COLORS[ci++ % BLOCK_COLORS.length]);
+                const color = colorMap.get(k) || BLOCK_COLORS[0];
+                (s.timeEntries || []).forEach(te => {
+                    if (!te.startTimeMs) {
+                        entries.push({
+                            timeId     : te.timeId,
+                            subject    : s.subject,
+                            hours      : te.hoursLogged || 0,
+                            durationMs : Math.max(15, Number(te.minutesLogged) || 0) * 60000,
+                            loggedDate : this.selectedDate || this._toIsoDate(new Date()),
+                            color,
+                            chipStyle  : `--chip-color:${color};`
+                        });
+                    }
+                });
+            });
+            return entries;
+        }
+        if (view === 'week') {
+            const colorMap = new Map(); let ci = 0;
+            return (this._weekEntries || [])
+                .filter(e => !e.startTimeMs)
+                .map(e => {
+                    const k = String(e.projectId);
+                    if (!colorMap.has(k)) colorMap.set(k, BLOCK_COLORS[ci++ % BLOCK_COLORS.length]);
+                    const color = colorMap.get(k) || BLOCK_COLORS[0];
+                    const mins  = Number(e.minutesLogged) || 0;
+                    return {
+                        timeId     : e.timeId,
+                        subject    : e.subject || '—',
+                        hours      : Math.round((mins / 60) * 10) / 10,
+                        durationMs : Math.max(15, mins) * 60000,
+                        loggedDate : e.loggedDate,
+                        color,
+                        chipStyle  : `--chip-color:${color};`
+                    };
+                });
+        }
+        return [];
+    }
+    get offCalendarCount()  {
+        if (this.calendarView === 'month') return this.stats.offCalendarCount || 0;
+        return this.offCalendarEntries.length;
+    }
+    get offCalendarHours()  {
+        if (this.calendarView === 'month') return this.stats.offCalendarHours || 0;
+        return Math.round(this.offCalendarEntries.reduce((s, e) => s + (e.hours || 0), 0) * 10) / 10;
+    }
+    get hasOffCalendar()    { return this.offCalendarCount > 0; }
+    get showOffCalTray()    { return this.hasOffCalendar && (this.calendarView === 'day' || this.calendarView === 'week'); }
+    get chipGhost()         { return this._chipGhost; }
+
+    // ── Chip drag: place off-calendar entry onto timeline ────────────────
+    handleChipMouseDown(e) {
+        if (e.button !== 0) return;
+        const el     = e.currentTarget;
+        const timeId = el.dataset.id;
+        const entry  = this.offCalendarEntries.find(en => en.timeId === timeId);
+        if (!entry) return;
+        e.preventDefault();
+        this._chipSubject = entry.subject;
+        this._chipDrag    = { el, timeId, durationMs: entry.durationMs, color: entry.color };
+        el.style.opacity  = '0.4';
+        this._boundChipMove = this._onChipMouseMove.bind(this);
+        this._boundChipUp   = this._onChipMouseUp.bind(this);
+        window.addEventListener('mousemove', this._boundChipMove);
+        window.addEventListener('mouseup',   this._boundChipUp);
+    }
+
+    _onChipMouseMove(e) {
+        const d = this._chipDrag;
+        if (!d) return;
+        const SNAP_MIN    = 15;
+        const durationMin = Math.max(SNAP_MIN, Math.round((d.durationMs / 60000) / SNAP_MIN) * SNAP_MIN);
+        const heightPx    = Math.max(11.25, durationMin * PX_PER_MIN);
+
+        if (this.calendarView === 'day') {
+            const grid = this.template.querySelector('.timeline-grid');
+            if (!grid) { this._chipGhost = null; return; }
+            const rect = grid.getBoundingClientRect();
+            if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+                this._chipGhost = null; return;
+            }
+            const snapMin    = Math.round(((e.clientY - rect.top) / PX_PER_MIN) / SNAP_MIN) * SNAP_MIN;
+            const clampedMin = Math.max(0, Math.min(snapMin, 24 * 60 - durationMin));
+            const anchor     = this._calendarAnchor ? new Date(this._calendarAnchor) : new Date();
+            anchor.setHours(0, 0, 0, 0);
+            this._chipGhost = {
+                style      : `position:fixed;top:${rect.top + clampedMin * PX_PER_MIN}px;left:${rect.left + 4}px;width:${rect.width - 8}px;height:${heightPx}px;--ghost-bg:${d.color};`,
+                snapMin    : clampedMin,
+                midnightMs : anchor.getTime(),
+                dateStr    : this._toIsoDate(anchor)
+            };
+        } else if (this.calendarView === 'week') {
+            const colGrids = Array.from(this.template.querySelectorAll('.week-col-grid'));
+            const cols     = this.weekColumns;
+            let ghost = null;
+            for (let i = 0; i < colGrids.length; i++) {
+                const rect = colGrids[i].getBoundingClientRect();
+                if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                    const snapMin    = Math.round(((e.clientY - rect.top) / PX_PER_MIN) / SNAP_MIN) * SNAP_MIN;
+                    const clampedMin = Math.max(0, Math.min(snapMin, 24 * 60 - durationMin));
+                    ghost = {
+                        style      : `position:fixed;top:${rect.top + clampedMin * PX_PER_MIN}px;left:${rect.left + 2}px;width:${rect.width - 4}px;height:${heightPx}px;--ghost-bg:${d.color};`,
+                        snapMin    : clampedMin,
+                        midnightMs : new Date(cols[i].dateStr + 'T00:00:00').getTime(),
+                        dateStr    : cols[i].dateStr
+                    };
+                    break;
+                }
+            }
+            this._chipGhost = ghost;
+        } else {
+            this._chipGhost = null;
+        }
+    }
+
+    _onChipMouseUp(e) {
+        window.removeEventListener('mousemove', this._boundChipMove);
+        window.removeEventListener('mouseup',   this._boundChipUp);
+        const d     = this._chipDrag;
+        const ghost = this._chipGhost;
+        this._chipDrag    = null;
+        this._chipGhost   = null;
+        this._chipSubject = '';
+        if (!d) return;
+        if (d.el) d.el.style.opacity = '';
+        if (!ghost) return; // released outside grid — cancel
+        const startMs = ghost.midnightMs + ghost.snapMin * 60000;
+        const stopMs  = startMs + Math.max(15 * 60000, d.durationMs);
+        updateTimeStamps({ timeId: d.timeId, startTimeMs: startMs, stopTimeMs: stopMs, loggedDate: ghost.dateStr })
+            .then(() => {
+                if (this.calendarView === 'day') return refreshApex(this._storiesWire);
+                this._loadWeekEntries();
+            })
+            .catch(err => this._toast('Error placing entry', err.body?.message, 'error'));
     }
 
     // ── Computed ──────────────────────────────────────────────────────────

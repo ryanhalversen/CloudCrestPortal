@@ -347,6 +347,61 @@ private class EodTimeRetroControllerTest {
         System.assertEquals(0, stats.byDay.size(), 'byDay should be empty with no time logged');
     }
 
+    @isTest
+    static void testGetTimeStats_offCalendarCountsEntriesWithoutTimestamp() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        // Entry WITH timestamps (should not count as off-calendar)
+        Time__c withTs = new Time__c(
+            Case__c           = story.Id, Epic__c = epic.Id,
+            Minutes_Logged__c = 60, Logged_Date__c = Date.today(),
+            Start_Time__c     = Datetime.now().addHours(-1),
+            Stop_Time__c      = Datetime.now(), Active__c = false
+        );
+        insert withTs;
+
+        // Entry WITHOUT timestamps (should count as off-calendar)
+        Time__c noTs = new Time__c(
+            Case__c           = story.Id, Epic__c = epic.Id,
+            Minutes_Logged__c = 90, Logged_Date__c = Date.today(),
+            Active__c         = false
+        );
+        insert noTs;
+
+        Test.startTest();
+        EodTimeRetroController.TimeStats stats =
+            EodTimeRetroController.getTimeStats(UserInfo.getUserId());
+        Test.stopTest();
+
+        System.assertEquals(1,   stats.offCalendarCount,  'Only the no-timestamp entry should count');
+        System.assertEquals(1.5, stats.offCalendarHours,  '90 mins = 1.5h off-calendar');
+    }
+
+    @isTest
+    static void testGetTimeStats_offCalendarZeroWhenAllHaveTimestamps() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Time__c t = new Time__c(
+            Case__c           = story.Id, Epic__c = epic.Id,
+            Minutes_Logged__c = 60, Logged_Date__c = Date.today(),
+            Start_Time__c     = Datetime.now().addHours(-1),
+            Stop_Time__c      = Datetime.now(), Active__c = false
+        );
+        insert t;
+
+        Test.startTest();
+        EodTimeRetroController.TimeStats stats =
+            EodTimeRetroController.getTimeStats(UserInfo.getUserId());
+        Test.stopTest();
+
+        System.assertEquals(0,   stats.offCalendarCount, 'Zero off-calendar when all have timestamps');
+        System.assertEquals(0.0, stats.offCalendarHours, 'Zero hours when all on calendar');
+    }
+
     // ── logTime ───────────────────────────────────────────────────────────
 
     @isTest

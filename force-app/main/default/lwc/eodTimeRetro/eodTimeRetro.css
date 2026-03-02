@@ -265,6 +265,48 @@
 }
 .eod-timer-stop-btn:hover { background: #e0f7fa; }
 
+/* ── Off-calendar stat card ──────────────────────────────────────────────── */
+.stat-card-offcal { border:1.5px solid #d1fae5; }
+.stat-offcal      { color:#059669; }
+
+/* ── Off-calendar chip tray ──────────────────────────────────────────────── */
+.offcal-tray {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px;
+    padding:8px 12px; margin-bottom:8px;
+}
+.offcal-tray-hint {
+    font-size:0.66rem; font-weight:700; color:#94a3b8;
+    white-space:nowrap; text-transform:uppercase; letter-spacing:.5px; flex-shrink:0;
+}
+.offcal-chips { display:flex; flex-wrap:wrap; gap:6px; flex:1; }
+.offcal-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--chip-color, #0ea5e9); color:#fff;
+    padding:4px 10px; border-radius:20px;
+    font-size:0.75rem; font-weight:700;
+    cursor:grab; user-select:none;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15); transition:box-shadow .1s, opacity .1s;
+}
+.offcal-chip:hover   { box-shadow:0 4px 12px rgba(0,0,0,0.25); }
+.offcal-chip:active  { cursor:grabbing; }
+.offcal-chip-subject { max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.offcal-chip-hours   { opacity:0.9; flex-shrink:0; }
+
+/* ── Chip drag ghost (position:fixed, floats over viewport) ──────────────── */
+.tl-chip-ghost-fixed {
+    position:fixed; z-index:9999; pointer-events:none;
+    border-radius:6px; opacity:0.82;
+    background:var(--ghost-bg, #0e7490); color:#fff;
+    box-shadow:0 6px 20px rgba(0,0,0,0.3);
+    border:2px dashed rgba(255,255,255,0.65);
+    display:flex; align-items:center; padding:4px 8px; box-sizing:border-box;
+}
+.tl-chip-ghost-label {
+    font-size:0.72rem; font-weight:700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
 /* ── View toggle ─────────────────────────────────────────────────────────── */
 .view-toggle-group { display:inline-flex; border:1px solid #d1d5db; border-radius:8px; overflow:hidden; }
 .view-tab { padding:5px 18px; border:none; background:#fff; font-size:0.8rem;
