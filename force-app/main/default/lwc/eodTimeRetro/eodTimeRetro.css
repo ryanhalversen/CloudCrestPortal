@@ -296,6 +296,8 @@
 .tl-block-subject { font-size:0.73rem; font-weight:700; line-height:1.2;
                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tl-block-dur     { font-size:0.65rem; opacity:0.85; margin-top:1px; }
+.tl-block-meta    { font-size:0.6rem; opacity:0.75; margin-top:2px;
+                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 @keyframes tl-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .tl-block-active { border:2px dashed rgba(255,255,255,0.7);

@@ -35,7 +35,7 @@ public with sharing class EodTimeRetroController {
         if (todayOnly) {
             stories = [
                 SELECT Id, CaseNumber, Subject, Status, Priority,
-                       LastModifiedDate, Epic__c, Projects__c, Projects__r.Name
+                       LastModifiedDate, Epic__c, Epic__r.Name, Projects__c, Projects__r.Name
                 FROM Case
                 WHERE LastModifiedById = :userId
                 AND LastModifiedDate = TODAY
@@ -46,7 +46,7 @@ public with sharing class EodTimeRetroController {
             Datetime endDt   = Datetime.newInstance(targetDate.addDays(1), Time.newInstance(0,0,0,0));
             stories = [
                 SELECT Id, CaseNumber, Subject, Status, Priority,
-                       LastModifiedDate, Epic__c, Projects__c, Projects__r.Name
+                       LastModifiedDate, Epic__c, Epic__r.Name, Projects__c, Projects__r.Name
                 FROM Case
                 WHERE LastModifiedById = :userId
                 AND LastModifiedDate >= :startDt
@@ -137,6 +137,7 @@ public with sharing class EodTimeRetroController {
             w.epicId        = c.Epic__c;
             w.projectId     = c.Projects__c;
             w.projectName   = c.Projects__r?.Name;
+            w.epicName      = c.Epic__r?.Name;
             w.timeEntries   = timeByStory.containsKey(c.Id) ? timeByStory.get(c.Id) : new List<TimeEntryWrapper>();
             Decimal totalMins = 0;
             for (TimeEntryWrapper tw : w.timeEntries) totalMins += tw.minutesLogged;
@@ -264,7 +265,8 @@ public with sharing class EodTimeRetroController {
         Date weekStart = Date.valueOf(startDate);
         Date weekEnd   = weekStart.addDays(6);
         List<Time__c> times = [
-            SELECT Id, Case__c, Case__r.Subject, Case__r.Projects__c,
+            SELECT Id, Case__c, Case__r.Subject, Case__r.Projects__c, Case__r.Projects__r.Name,
+                   Case__r.Epic__c, Case__r.Epic__r.Name,
                    Minutes_Logged__c, Start_Time__c, Stop_Time__c, Logged_Date__c
             FROM Time__c
             WHERE CreatedById = :userId
@@ -278,6 +280,8 @@ public with sharing class EodTimeRetroController {
             w.storyId      = t.Case__c;
             w.subject      = t.Case__r?.Subject;
             w.projectId    = t.Case__r?.Projects__c;
+            w.projectName  = t.Case__r?.Projects__r?.Name;
+            w.epicName     = t.Case__r?.Epic__r?.Name;
             w.loggedDate   = String.valueOf(t.Logged_Date__c);
             w.minutesLogged = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
             w.startTimeMs  = t.Start_Time__c != null ? t.Start_Time__c.getTime() : null;
@@ -347,6 +351,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Id                 epicId;
         @AuraEnabled public Id                 projectId;
         @AuraEnabled public String             projectName;
+        @AuraEnabled public String             epicName;
         @AuraEnabled public List<TimeEntryWrapper> timeEntries;
         @AuraEnabled public Decimal            totalMinutes;
         @AuraEnabled public Decimal            totalHours;
@@ -379,6 +384,8 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Id      storyId;
         @AuraEnabled public String  subject;
         @AuraEnabled public Id      projectId;
+        @AuraEnabled public String  projectName;
+        @AuraEnabled public String  epicName;
         @AuraEnabled public String  loggedDate;   // "YYYY-MM-DD"
         @AuraEnabled public Decimal minutesLogged;
         @AuraEnabled public Long    startTimeMs;

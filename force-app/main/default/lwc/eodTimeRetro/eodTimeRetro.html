@@ -303,9 +303,12 @@
                 </template>
                 <template for:each={timelineData.blocks} for:item="block">
                     <div key={block.timeId} class="tl-block" style={block.style}
-                         data-id={block.storyId} onclick={handleBlockClick}>
+                         data-id={block.timeId} onclick={handleBlockClick}>
                         <span class="tl-block-subject">{block.subject}</span>
                         <span class="tl-block-dur">{block.durationLabel}</span>
+                        <template if:true={block.metaLabel}>
+                            <span class="tl-block-meta">{block.metaLabel}</span>
+                        </template>
                     </div>
                 </template>
                 <template for:each={timelineData.gaps} for:item="gap">
@@ -317,7 +320,7 @@
                 </template>
                 <template if:true={hasActiveTimer}>
                     <div class="tl-block tl-block-active" style={activeTimerBlockStyle}
-                         data-id={_timerCaseId} onclick={handleBlockClick}>
+                         data-id={_timerTimeId} onclick={handleBlockClick}>
                         <span class="tl-block-subject">{_timerSubject}</span>
                         <span class="tl-block-dur">{_timerElapsed}</span>
                     </div>
@@ -395,9 +398,12 @@
                             </template>
                             <template for:each={col.blocks} for:item="block">
                                 <div key={block.timeId} class="tl-block" style={block.style}
-                                     data-id={block.storyId} onclick={handleBlockClick}>
+                                     data-id={block.timeId} onclick={handleBlockClick}>
                                     <span class="tl-block-subject">{block.subject}</span>
                                     <span class="tl-block-dur">{block.durationLabel}</span>
+                                    <template if:true={block.metaLabel}>
+                                        <span class="tl-block-meta">{block.metaLabel}</span>
+                                    </template>
                                 </div>
                             </template>
                         </div>

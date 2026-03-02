@@ -324,8 +324,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 const topPx  = Math.max(0, (e.startTimeMs - fixedMs) / 60000 * PX_PER_MIN);
                 const hPx    = Math.max(20, durMin * PX_PER_MIN);
                 const h = Math.floor(durMin / 60), m = Math.round(durMin % 60);
+                const wMetaLabel = [e.projectName, e.epicName].filter(Boolean).join(' › ');
                 return {
                     timeId: e.timeId, storyId: e.storyId, subject: e.subject || '—', topPx,
+                    metaLabel: wMetaLabel,
                     durationLabel: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
                 };
@@ -335,8 +337,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 const topPx  = Math.max(0, (this._timerStartMs - fixedMs) / 60000 * PX_PER_MIN);
                 const hPx    = Math.max(20, durMin * PX_PER_MIN);
                 blocks.push({
-                    timeId: 'active-timer', storyId: this._timerCaseId, subject: this._timerSubject,
-                    topPx, durationLabel: this._timerElapsed,
+                    timeId: this._timerTimeId, storyId: this._timerCaseId, subject: this._timerSubject,
+                    metaLabel: '', topPx, durationLabel: this._timerElapsed,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:#00b4d8;`
                 });
             }
@@ -391,14 +393,16 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             (s.timeEntries || []).forEach(te => {
                 if (te.startTimeMs) {
                     entries.push({
-                        timeId   : te.timeId,
-                        storyId  : s.storyId,
-                        subject  : s.subject,
-                        caseNumber: s.caseNumber,
-                        projectId: s.projectId,
-                        startMs  : te.startTimeMs,
-                        stopMs   : te.stopTimeMs || (te.startTimeMs + (te.minutesLogged || 0) * 60000),
-                        color    : colorMap.get(s.projectId)
+                        timeId      : te.timeId,
+                        storyId     : s.storyId,
+                        subject     : s.subject,
+                        caseNumber  : s.caseNumber,
+                        projectId   : s.projectId,
+                        projectName : s.projectName || '',
+                        epicName    : s.epicName    || '',
+                        startMs     : te.startTimeMs,
+                        stopMs      : te.stopTimeMs || (te.startTimeMs + (te.minutesLogged || 0) * 60000),
+                        color       : colorMap.get(s.projectId)
                     });
                 }
             });
@@ -429,11 +433,13 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             const h = Math.floor(durationMin / 60);
             const m = Math.round(durationMin % 60);
             const durationLabel = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+            const metaLabel = [e.projectName, e.epicName].filter(Boolean).join(' › ');
             return {
                 timeId: e.timeId,
                 storyId: e.storyId,
                 subject: e.subject,
                 caseNumber: e.caseNumber,
+                metaLabel,
                 topPx, heightPx, durationLabel,
                 style: `top:${topPx}px; height:${heightPx}px; --tl-color:${e.color};`,
                 isActive: false
