@@ -411,7 +411,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 2.5, 'Test note', null, false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 2.5, 'Test note', null);
         Test.stopTest();
 
         System.assertNotEquals(null, timeId, 'Should return new Time record Id');
@@ -436,7 +436,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null, false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null);
         Test.stopTest();
 
         System.assertNotEquals(null, timeId, 'Should succeed with empty notes');
@@ -445,24 +445,18 @@ private class EodTimeRetroControllerTest {
     }
 
     @isTest
-    static void testLogTime_setsStartAndStopTime() {
+    static void testLogTime_noTimestampsOnCreate() {
         Map<String, Object> td = createTestData();
         Case story           = (Case) td.get('story');
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
-        Datetime before = Datetime.now().addSeconds(-1);
-
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null, false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null);
         Test.stopTest();
 
-        Datetime after = Datetime.now().addSeconds(1);
         Time__c t = [SELECT Start_Time__c, Stop_Time__c FROM Time__c WHERE Id = :timeId];
-
-        System.assert(t.Stop_Time__c >= before && t.Stop_Time__c <= after,
-            'Stop time should be approximately now');
-        System.assert(t.Start_Time__c < t.Stop_Time__c,
-            'Start time should be before stop time');
+        System.assertEquals(null, t.Start_Time__c, 'Quick-log should not set Start_Time__c');
+        System.assertEquals(null, t.Stop_Time__c,  'Quick-log should not set Stop_Time__c');
     }
 
     @isTest
@@ -472,7 +466,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 0.25, 'Quarter hour', null, false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 0.25, 'Quarter hour', null);
         Test.stopTest();
 
         Time__c t = [SELECT Minutes_Logged__c FROM Time__c WHERE Id = :timeId];
@@ -480,18 +474,18 @@ private class EodTimeRetroControllerTest {
     }
 
     @isTest
-    static void testLogTime_suppressTimestamp_noStartStop() {
+    static void testLogTime_noTimestampsWritten() {
         Map<String, Object> td = createTestData();
         Case story           = (Case) td.get('story');
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.5, 'PM work', null, true);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.5, 'PM work', null);
         Test.stopTest();
 
         Time__c t = [SELECT Start_Time__c, Stop_Time__c, Minutes_Logged__c FROM Time__c WHERE Id = :timeId];
-        System.assertEquals(null, t.Start_Time__c, 'Start_Time__c should be null when suppressTimestamp is true');
-        System.assertEquals(null, t.Stop_Time__c,  'Stop_Time__c should be null when suppressTimestamp is true');
+        System.assertEquals(null, t.Start_Time__c, 'Start_Time__c should always be null for quick-logged time');
+        System.assertEquals(null, t.Stop_Time__c,  'Stop_Time__c should always be null for quick-logged time');
         System.assertEquals(90,   t.Minutes_Logged__c, 'Minutes should still be set correctly');
     }
 
@@ -636,7 +630,7 @@ private class EodTimeRetroControllerTest {
         String yesterday = String.valueOf(Date.today().addDays(-1));
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'Back dated', yesterday, false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'Back dated', yesterday);
         Test.stopTest();
 
         Time__c t = [SELECT Logged_Date__c FROM Time__c WHERE Id = :timeId];
@@ -650,7 +644,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'No date', '', false);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'No date', '');
         Test.stopTest();
 
         Time__c t = [SELECT Logged_Date__c FROM Time__c WHERE Id = :timeId];

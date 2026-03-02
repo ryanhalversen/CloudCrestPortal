@@ -328,20 +328,15 @@ public with sharing class EodTimeRetroController {
 
     // ── Log time (supports optional back-date) ────────────────────────
     @AuraEnabled
-    public static Id logTime(Id storyId, Id epicId, Decimal hours, String notes, String logDate, Boolean suppressTimestamp) {
-        Decimal mins     = (hours * 60).setScale(0, RoundingMode.HALF_UP);
-        Date targetDate  = (logDate != null && logDate != '') ? Date.valueOf(logDate) : Date.today();
-        Datetime stopNow = Datetime.now();
-        Datetime startDt = stopNow.addMinutes(-(Integer)mins);
-        Boolean noStamp  = suppressTimestamp == true;
+    public static Id logTime(Id storyId, Id epicId, Decimal hours, String notes, String logDate) {
+        Decimal mins    = (hours * 60).setScale(0, RoundingMode.HALF_UP);
+        Date targetDate = (logDate != null && logDate != '') ? Date.valueOf(logDate) : Date.today();
         Time__c t = new Time__c(
             Case__c                = storyId,
             Epic__c                = epicId,
             Minutes_Logged__c      = mins,
             Additional_Comments__c = notes,
             Logged_Date__c         = targetDate,
-            Start_Time__c          = noStamp ? null : startDt,
-            Stop_Time__c           = noStamp ? null : stopNow,
             Active__c              = false
         );
         insert t;
