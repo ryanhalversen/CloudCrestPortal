@@ -27,9 +27,9 @@ const MIN_SPAN_MIN    = 240;   // show at least 4 hours
 const EDGE_PAD_MIN    = 30;    // 30-min padding before first / after last entry
 const GAP_THRESH      = 15;    // gaps > 15 min are highlighted
 const BLOCK_COLORS    = ['#0ea5e9','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899'];
-const FIXED_START_HR  = 6;    // 6 AM — fixed grid start for week view
-const FIXED_END_HR    = 22;   // 10 PM — fixed grid end
-const GRID_HEIGHT_PX  = (FIXED_END_HR - FIXED_START_HR) * 60 * PX_PER_MIN; // 1440px
+const FIXED_START_HR  = 0;    // midnight — fixed grid start
+const FIXED_END_HR    = 24;   // midnight next day — fixed grid end
+const GRID_HEIGHT_PX  = (FIXED_END_HR - FIXED_START_HR) * 60 * PX_PER_MIN; // 1080px
 
 let _eodTimerInterval = null;
 
@@ -100,7 +100,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (this._scrollAfterRender) {
             this._scrollAfterRender = false;
             const el = this.template.querySelector('.cal-scroll');
-            if (el) el.scrollTop = 45; // 7 AM = 60min from 6am × 0.75px/min
+            if (el) el.scrollTop = 360; // 8 AM = 8h × 60min × 0.75px/min from midnight
         }
     }
     disconnectedCallback() {
@@ -403,36 +403,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             });
         });
 
-        if (entries.length === 0 && !this.hasActiveTimer) {
-            return { hourLabels: [], hourLines: [], blocks: [], gaps: [], gridStartMs: 0, gridStyle: 'height:360px' };
-        }
-
-        // 2. Compute grid bounds
-        let minStart = Infinity, maxStop = -Infinity;
-        entries.forEach(e => {
-            if (e.startMs < minStart) minStart = e.startMs;
-            if (e.stopMs  > maxStop)  maxStop  = e.stopMs;
-        });
-        if (this.hasActiveTimer && this._timerStartMs) {
-            if (this._timerStartMs < minStart) minStart = this._timerStartMs;
-            if (Date.now() > maxStop)           maxStop  = Date.now();
-        }
-        if (!isFinite(minStart)) {
-            // active timer only
-            minStart = this._timerStartMs;
-            maxStop  = Date.now();
-        }
-
-        const padMs      = EDGE_PAD_MIN * 60000;
-        const rawStart   = minStart - padMs;
-        const rawEnd     = maxStop  + padMs;
-        const gridStartMs = Math.floor(rawStart / 3600000) * 3600000;
-        let   gridEndMs   = Math.ceil(rawEnd    / 3600000) * 3600000;
-
-        const spanMin = (gridEndMs - gridStartMs) / 60000;
-        if (spanMin < MIN_SPAN_MIN) gridEndMs = gridStartMs + MIN_SPAN_MIN * 60000;
-
-        const totalPx = (gridEndMs - gridStartMs) / 60000 * PX_PER_MIN;
+        // 2. Fixed midnight→midnight grid (always shows all 24 hours)
+        const anchorDay = this._calendarAnchor ? new Date(this._calendarAnchor) : new Date();
+        anchorDay.setHours(0, 0, 0, 0);
+        const gridStartMs = anchorDay.getTime();
+        const gridEndMs   = gridStartMs + 24 * 3600000;
+        const totalPx     = 24 * 60 * PX_PER_MIN;
 
         // 3. Hour labels + lines
         const hourLabels = [], hourLines = [];
