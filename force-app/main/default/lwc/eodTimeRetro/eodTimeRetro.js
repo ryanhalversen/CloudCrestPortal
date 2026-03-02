@@ -847,7 +847,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 midnightMs: new Date(this.weekColumns[i].dateStr + 'T00:00:00').getTime()
             }));
         }
-        if (!block) return;
+        // Always continue — block metadata may be absent for newly placed entries,
+        // but click-to-navigate must still work.
         e.preventDefault();
 
         this._drag = {
@@ -855,11 +856,14 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             mode         : isResize ? 'resize' : 'move',
             startMouseY  : e.clientY,
             startMouseX  : e.clientX,
-            origTopPx    : block.topPx,
-            origHeightPx : block.heightPx,
-            origStartMs  : block.startMs,
-            origStopMs   : block.stopMs,
-            loggedDate, dayMidnightMs, colRects
+            origTopPx    : block?.topPx    ?? 0,
+            origHeightPx : block?.heightPx ?? 20,
+            origStartMs  : block?.startMs  ?? 0,
+            origStopMs   : block?.stopMs   ?? 0,
+            canDrag      : !!block,
+            loggedDate   : loggedDate   ?? '',
+            dayMidnightMs: dayMidnightMs ?? 0,
+            colRects
         };
         this._boundDragMove = this._onDragMouseMove.bind(this);
         this._boundDragUp   = this._onDragMouseUp.bind(this);
@@ -869,7 +873,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
 
     _onDragMouseMove(e) {
         const d = this._drag;
-        if (!d) return;
+        if (!d || !d.canDrag) return;
         const dy = e.clientY - d.startMouseY;
         if (d.mode === 'resize') {
             d.el.style.height = `${Math.max(11.25, d.origHeightPx + dy)}px`;
@@ -900,8 +904,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         const dx   = e.clientX - d.startMouseX;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Short tap → navigate to record, no Apex call
-        if (dist < 5) { this._openInNewTab(d.timeId); return; }
+        // Short tap or no block metadata → navigate to record, no Apex call
+        if (dist < 5 || !d.canDrag) { this._openInNewTab(d.timeId); return; }
 
         const SNAP_MIN = 15;
         const SNAP_PX  = SNAP_MIN * PX_PER_MIN;
