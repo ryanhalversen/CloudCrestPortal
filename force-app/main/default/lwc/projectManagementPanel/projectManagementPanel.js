@@ -221,6 +221,13 @@ export default class ProjectManagementPanel extends LightningElement {
     handleCategorySelect(e) { this.logCategory  = e.currentTarget.dataset.value; }
     handleProjectChange(e)  { this.logProjectId = e.detail.value; }
     handleMinutesChange(e)  { this.logMinutes   = parseInt(e.target.value, 10) || 0; }
+    handleMinutesKeyDown(e) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const delta = e.key === 'ArrowUp' ? 5 : -5;
+            this.logMinutes = Math.max(5, (this.logMinutes || 0) + delta);
+        }
+    }
     handleNoteChange(e)     { this.logNote      = e.target.value; }
     handleDateChange(e)     { this.logDate      = e.target.value; }
 
