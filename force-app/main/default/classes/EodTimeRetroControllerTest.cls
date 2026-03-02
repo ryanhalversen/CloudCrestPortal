@@ -411,7 +411,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 2.5, 'Test note', null);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 2.5, 'Test note', null, false);
         Test.stopTest();
 
         System.assertNotEquals(null, timeId, 'Should return new Time record Id');
@@ -436,7 +436,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null, false);
         Test.stopTest();
 
         System.assertNotEquals(null, timeId, 'Should succeed with empty notes');
@@ -453,7 +453,7 @@ private class EodTimeRetroControllerTest {
         Datetime before = Datetime.now().addSeconds(-1);
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, '', null, false);
         Test.stopTest();
 
         Datetime after = Datetime.now().addSeconds(1);
@@ -472,11 +472,27 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 0.25, 'Quarter hour', null);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 0.25, 'Quarter hour', null, false);
         Test.stopTest();
 
         Time__c t = [SELECT Minutes_Logged__c FROM Time__c WHERE Id = :timeId];
         System.assertEquals(15, t.Minutes_Logged__c, '0.25h should round to 15 mins');
+    }
+
+    @isTest
+    static void testLogTime_suppressTimestamp_noStartStop() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Test.startTest();
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.5, 'PM work', null, true);
+        Test.stopTest();
+
+        Time__c t = [SELECT Start_Time__c, Stop_Time__c, Minutes_Logged__c FROM Time__c WHERE Id = :timeId];
+        System.assertEquals(null, t.Start_Time__c, 'Start_Time__c should be null when suppressTimestamp is true');
+        System.assertEquals(null, t.Stop_Time__c,  'Stop_Time__c should be null when suppressTimestamp is true');
+        System.assertEquals(90,   t.Minutes_Logged__c, 'Minutes should still be set correctly');
     }
 
     // ── getStoriesForDate ─────────────────────────────────────────────────
@@ -620,7 +636,7 @@ private class EodTimeRetroControllerTest {
         String yesterday = String.valueOf(Date.today().addDays(-1));
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'Back dated', yesterday);
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'Back dated', yesterday, false);
         Test.stopTest();
 
         Time__c t = [SELECT Logged_Date__c FROM Time__c WHERE Id = :timeId];
@@ -634,7 +650,7 @@ private class EodTimeRetroControllerTest {
         Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
 
         Test.startTest();
-        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'No date', '');
+        Id timeId = EodTimeRetroController.logTime(story.Id, epic.Id, 1.0, 'No date', '', false);
         Test.stopTest();
 
         Time__c t = [SELECT Logged_Date__c FROM Time__c WHERE Id = :timeId];
@@ -748,5 +764,82 @@ private class EodTimeRetroControllerTest {
         Time__c updated = [SELECT Logged_Date__c, Minutes_Logged__c FROM Time__c WHERE Id = :t.Id];
         System.assertEquals(yesterday, updated.Logged_Date__c,    'Should move to yesterday');
         System.assertEquals(60,        updated.Minutes_Logged__c, 'Duration should still be 60 mins');
+    }
+
+    // ── getWeekEntries ────────────────────────────────────────────────────
+
+    @isTest
+    static void testGetWeekEntries_returnsEntriesForWeek() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Date weekStart = Date.today().toStartOfWeek();
+        Time__c t = createTimeRecord(story.Id, epic.Id, 60, weekStart);
+
+        Test.startTest();
+        List<EodTimeRetroController.WeekEntryWrapper> result =
+            EodTimeRetroController.getWeekEntries(UserInfo.getUserId(), String.valueOf(weekStart));
+        Test.stopTest();
+
+        System.assertEquals(1, result.size(), 'Should return the one entry in this week');
+        System.assertEquals(t.Id, result[0].timeId, 'Should return the correct Time record');
+        System.assertEquals(60,   result[0].minutesLogged, 'Minutes should be 60');
+    }
+
+    @isTest
+    static void testGetWeekEntries_nullUserIdDefaultsToCurrentUser() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Date weekStart = Date.today().toStartOfWeek();
+        createTimeRecord(story.Id, epic.Id, 30, weekStart);
+
+        Test.startTest();
+        List<EodTimeRetroController.WeekEntryWrapper> result =
+            EodTimeRetroController.getWeekEntries(null, String.valueOf(weekStart));
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should not return null');
+    }
+
+    // ── getMonthStats ─────────────────────────────────────────────────────
+
+    @isTest
+    static void testGetMonthStats_returnsDayTotals() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Date today = Date.today();
+        createTimeRecord(story.Id, epic.Id, 90, today);
+
+        Test.startTest();
+        List<EodTimeRetroController.DayEntry> result =
+            EodTimeRetroController.getMonthStats(UserInfo.getUserId(), today.year(), today.month());
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should return a list');
+        System.assertEquals(1, result.size(), 'Should have one day entry');
+        System.assertEquals(90, result[0].minutes, 'Day total should be 90 mins');
+    }
+
+    @isTest
+    static void testGetMonthStats_nullUserIdDefaultsToCurrentUser() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Date today = Date.today();
+        createTimeRecord(story.Id, epic.Id, 45, today);
+
+        Test.startTest();
+        List<EodTimeRetroController.DayEntry> result =
+            EodTimeRetroController.getMonthStats(null, today.year(), today.month());
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should not return null');
+        System.assert(result.size() >= 1, 'Should have at least one entry');
     }
 }
