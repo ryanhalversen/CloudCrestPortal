@@ -98,7 +98,10 @@
                            value={_timerNotes}
                            oninput={handleEodTimerNotesChange} />
                     <button class="eod-timer-stop-btn" onclick={handleEodStopTimer}>
-                        ⏹ Stop &amp; Log
+                        ⏹ Stop Timer
+                    </button>
+                    <button class="eod-timer-discard-btn" onclick={handleEodDiscardTimer} title="Discard timer — logs 0 minutes">
+                        ✕ Cancel
                     </button>
                 </div>
             </div>

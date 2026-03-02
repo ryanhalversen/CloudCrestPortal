@@ -264,6 +264,12 @@
     font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .eod-timer-stop-btn:hover { background: #e0f7fa; }
+.eod-timer-discard-btn {
+    flex-shrink: 0; padding: 7px 12px; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 7px;
+    background: transparent; color: rgba(255,255,255,0.75); font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.eod-timer-discard-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
 /* ── Off-calendar stat card ──────────────────────────────────────────────── */
 .stat-card-offcal { border:1.5px solid #d1fae5; }

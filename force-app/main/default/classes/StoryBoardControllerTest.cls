@@ -499,6 +499,180 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testDiscardTimer_stopsWithZeroMinutes() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+        StoryBoardController.startTimer(c.Id);
+        Time__c timer = [SELECT Id FROM Time__c WHERE Case__c = :c.Id AND Active__c = true LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.discardTimer(timer.Id);
+        Test.stopTest();
+
+        Time__c t = [SELECT Active__c, Minutes_Logged__c FROM Time__c WHERE Id = :timer.Id];
+        System.assertEquals(false, t.Active__c,         'Timer should be deactivated');
+        System.assertEquals(0,     t.Minutes_Logged__c, 'Discarded timer should log 0 minutes');
+    }
+
+    @isTest
+    static void testUpdateStoryType_valid() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.updateStoryType(c.Id, 'Bug');
+        Test.stopTest();
+
+        Case updated = [SELECT Type FROM Case WHERE Id = :c.Id];
+        System.assertEquals('Bug', updated.Type, 'Type should be updated to Bug');
+    }
+
+    @isTest
+    static void testUpdateStoryType_invalid() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        try {
+            StoryBoardController.updateStoryType(c.Id, 'NotAType');
+            System.assert(false, 'Should have thrown an exception');
+        } catch (AuraHandledException e) {
+            System.assert(e.getMessage() != null, 'Exception message should not be null');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testUpdateSubjectDescription() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.updateSubjectDescription(c.Id, 'Renamed Story', 'New description text');
+        Test.stopTest();
+
+        Case updated = [SELECT Subject, Description FROM Case WHERE Id = :c.Id];
+        System.assertEquals('Renamed Story',       updated.Subject,     'Subject should be updated');
+        System.assertEquals('New description text', updated.Description, 'Description should be updated');
+    }
+
+    @isTest
+    static void testGetContactsForProject_noAccount() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+
+        Test.startTest();
+        List<Contact> result = StoryBoardController.getContactsForProject(sprint.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return empty list when sprint has no account');
+    }
+
+    @isTest
+    static void testAssignContact() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        Account a = new Account(Name = 'Test Account');
+        insert a;
+        Contact ct = new Contact(LastName = 'Tester', AccountId = a.Id);
+        insert ct;
+
+        Test.startTest();
+        StoryBoardController.assignContact(c.Id, ct.Id);
+        Test.stopTest();
+
+        Case updated = [SELECT ContactId FROM Case WHERE Id = :c.Id];
+        System.assertEquals(ct.Id, updated.ContactId, 'Contact should be assigned to the case');
+    }
+
+    @isTest
+    static void testGetAttachments_empty() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 3' LIMIT 1];
+
+        Test.startTest();
+        List<StoryBoardController.AttachmentWrapper> result = StoryBoardController.getAttachments(c.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return empty list when no attachments');
+    }
+
+    @isTest
+    static void testUploadAttachment() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        String base64 = EncodingUtil.base64Encode(Blob.valueOf('Test file content'));
+
+        Test.startTest();
+        Id docId = StoryBoardController.uploadAttachment(c.Id, 'upload.txt', base64);
+        Test.stopTest();
+
+        System.assertNotEquals(null, docId, 'Document Id should be returned');
+        List<ContentDocumentLink> links = [
+            SELECT Id FROM ContentDocumentLink
+            WHERE LinkedEntityId = :c.Id AND ContentDocumentId = :docId
+        ];
+        System.assertEquals(1, links.size(), 'Content should be linked to the case');
+    }
+
+    @isTest
+    static void testGetAttachments_withFile() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+        ContentVersion cv = new ContentVersion(
+            Title           = 'sample.txt',
+            PathOnClient    = 'sample.txt',
+            VersionData     = Blob.valueOf('sample content'),
+            ContentLocation = 'S'
+        );
+        insert cv;
+        Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1].ContentDocumentId;
+        insert new ContentDocumentLink(
+            ContentDocumentId = docId,
+            LinkedEntityId    = c.Id,
+            ShareType         = 'V',
+            Visibility        = 'AllUsers'
+        );
+
+        Test.startTest();
+        List<StoryBoardController.AttachmentWrapper> result = StoryBoardController.getAttachments(c.Id);
+        Test.stopTest();
+
+        System.assertEquals(1, result.size(), 'Should return one attachment');
+        System.assertEquals('sample.txt', result[0].title, 'Title should match');
+        System.assertNotEquals(null, result[0].contentDocumentId, 'ContentDocumentId should be set');
+    }
+
+    @isTest
+    static void testDeleteAttachment() {
+        ContentVersion cv = new ContentVersion(
+            Title           = 'todelete.txt',
+            PathOnClient    = 'todelete.txt',
+            VersionData     = Blob.valueOf('delete me'),
+            ContentLocation = 'S'
+        );
+        insert cv;
+        Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1].ContentDocumentId;
+
+        Test.startTest();
+        StoryBoardController.deleteAttachment(docId);
+        Test.stopTest();
+
+        List<ContentDocument> docs = [SELECT Id FROM ContentDocument WHERE Id = :docId];
+        System.assertEquals(0, docs.size(), 'Document should be deleted');
+    }
+
+    @isTest
+    static void testCloseStory_invalidPriority() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 2' LIMIT 1];
+
+        Test.startTest();
+        try {
+            StoryBoardController.closeStory(c.Id, 'Completed', 'Comments', 'IT', 'SuperUrgent', 'Bug');
+            System.assert(false, 'Should have thrown an exception');
+        } catch (AuraHandledException e) {
+            System.assert(e.getMessage() != null, 'Exception message should not be null');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
     static void testUpdateTimeEntry_notesOnly() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];

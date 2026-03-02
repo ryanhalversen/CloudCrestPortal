@@ -13,6 +13,7 @@ import updateTimeStamps from '@salesforce/apex/EodTimeRetroController.updateTime
 import USER_ID          from '@salesforce/user/Id';
 import getActiveTimer   from '@salesforce/apex/StoryBoardController.getActiveTimer';
 import stopTimer        from '@salesforce/apex/StoryBoardController.stopTimer';
+import discardTimer     from '@salesforce/apex/StoryBoardController.discardTimer';
 import getWeekEntries   from '@salesforce/apex/EodTimeRetroController.getWeekEntries';
 import getMonthStats    from '@salesforce/apex/EodTimeRetroController.getMonthStats';
 
@@ -1088,6 +1089,21 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         } catch(err) {
             this._restoreEodTimer(savedTimer);    // put the banner back — DB was NOT updated
             this._toast('Could not stop timer', err?.body?.message || 'Please try again.', 'error');
+        }
+    }
+
+    async handleEodDiscardTimer() {
+        const timeId     = this._timerTimeId;
+        const savedTimer = { timeId, caseId: this._timerCaseId, subject: this._timerSubject, startTimeMs: this._timerStartMs };
+        this._clearEodTimer();
+        try {
+            await discardTimer({ timeId });
+            window.dispatchEvent(new CustomEvent('timerstopped'));
+            refreshApex(this._storiesWire);
+            refreshApex(this._statsWire);
+        } catch(err) {
+            this._restoreEodTimer(savedTimer);
+            this._toast('Could not discard timer', err?.body?.message || 'Please try again.', 'error');
         }
     }
 }

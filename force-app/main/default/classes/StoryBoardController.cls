@@ -618,6 +618,20 @@ public without sharing class StoryBoardController {
         }
     }
 
+    @AuraEnabled
+    public static void discardTimer(Id timeId) {
+        try {
+            update new Time__c(
+                Id                = timeId,
+                Active__c         = false,
+                Stop_Time__c      = DateTime.now(),
+                Minutes_Logged__c = 0
+            );
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     // ── Timer Wrappers ────────────────────────────────────────────────────
 
     public class TimerWrapper {
