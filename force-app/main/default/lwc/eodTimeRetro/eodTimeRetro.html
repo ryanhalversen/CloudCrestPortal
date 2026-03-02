@@ -65,16 +65,6 @@
         </div>
 
 
-        <!-- VIEW TOGGLE -->
-        <div class="slds-p-horizontal_medium slds-m-bottom_small">
-            <div class="view-toggle-group">
-                <button class={listBtnClass}  data-view="list"  onclick={handleViewToggle}>Story List</button>
-                <button class={dayBtnClass}   data-view="day"   onclick={handleViewToggle}>Day</button>
-                <button class={weekBtnClass}  data-view="week"  onclick={handleViewToggle}>Week</button>
-                <button class={monthBtnClass} data-view="month" onclick={handleViewToggle}>Month</button>
-            </div>
-        </div>
-
         <!-- CALENDAR NAV -->
         <template if:true={showCalNav}>
         <div class="slds-p-horizontal_medium slds-m-bottom_small">

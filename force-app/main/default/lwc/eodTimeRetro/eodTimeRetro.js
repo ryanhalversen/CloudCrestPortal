@@ -549,11 +549,11 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         return map[this.activePeriod] || 'Time breakdown';
     }
 
-    // Stat card classes — highlight active
-    get statCardTodayClass() { return this.activePeriod === 'today' ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
-    get statCardWeekClass()  { return this.activePeriod === 'week'  ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
-    get statCardMonthClass() { return this.activePeriod === 'month' ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
-    get statCardLogClass()   { return this.showBreakdown ? 'stat-card stat-card-clickable stat-card-log-today' : 'stat-card'; }
+    // Stat card classes — highlight active view
+    get statCardTodayClass() { return this.calendarView === 'day'   ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
+    get statCardWeekClass()  { return this.calendarView === 'week'  ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
+    get statCardMonthClass() { return this.calendarView === 'month' ? 'stat-card stat-card-active' : 'stat-card stat-card-clickable'; }
+    get statCardLogClass()   { return this.calendarView === 'list'  ? 'stat-card stat-card-active stat-card-log-today' : 'stat-card stat-card-clickable stat-card-log-today'; }
 
     // Look-back day buttons (today + last 6 days)
     get lookbackDays() {
@@ -585,40 +585,24 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         return order.map(k => map[k]);
     }
 
-    // ── Stat card click → show breakdown ─────────────────────────────────
+    // ── Stat card click → switch calendar view ───────────────────────────
     handleStatClick(evt) {
-        const period = evt.currentTarget.dataset.period;
-        if (this.activePeriod === period) {
-            // Toggle off
-            this.activePeriod  = null;
-            this.showBreakdown = false;
-            return;
-        }
-        this.activePeriod        = period;
-        this.showBreakdown       = true;
-        this.isLoadingBreakdown  = true;
-        this.breakdown           = [];
-        getTimeBreakdown({ userId: this.selectedUserId, period })
-            .then(data => {
-                this.breakdown          = data;
-                this.isLoadingBreakdown = false;
-            })
-            .catch(e => {
-                this._toast('Error', e.body?.message, 'error');
-                this.isLoadingBreakdown = false;
-            });
+        const period  = evt.currentTarget.dataset.period;
+        const viewMap = { today: 'day', week: 'week', month: 'month' };
+        const view    = viewMap[period];
+        if (!view) return;
+        this.calendarView    = view;
+        this._calendarAnchor = null;
+        this._selectedGapIdx = null;
+        if (view === 'day')   { this._scrollAfterRender = true; }
+        if (view === 'week')  { this._loadWeekEntries(); this._scrollAfterRender = true; }
+        if (view === 'month') { this._loadMonthStats(); }
     }
 
     handleCloseBreakdown() {
+        this.calendarView  = 'list';
         this.showBreakdown = false;
         this.activePeriod  = null;
-        // Also snap date picker back to today
-        if (this.selectedDate) {
-            this.selectedDate = null;
-            this.isLoading    = true;
-            this.stories      = [];
-            refreshApex(this._storiesWire);
-        }
     }
 
     // ── Look-back date pick ───────────────────────────────────────────────
