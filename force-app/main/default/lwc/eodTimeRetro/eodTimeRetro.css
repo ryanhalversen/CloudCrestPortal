@@ -291,8 +291,9 @@
     display:flex; flex-direction:row; align-items:center; gap:6px;
     box-shadow:0 1px 3px rgba(0,0,0,0.12);
     background:var(--tl-color, #0ea5e9); color:#fff;
-    min-height:20px; cursor:pointer;
+    min-height:20px; cursor:grab; user-select:none;
 }
+.tl-block:active { cursor:grabbing; }
 .tl-block-subject { flex-shrink:0; font-size:0.73rem; font-weight:700; line-height:1.2;
                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:35%; }
 .tl-block-meta    { flex-shrink:0; font-size:0.7rem; font-weight:700; opacity:0.95; white-space:nowrap; }
@@ -303,6 +304,14 @@
 @keyframes tl-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .tl-block-active { border:2px dashed rgba(255,255,255,0.7);
                    animation:tl-pulse 2s ease-in-out infinite; }
+
+/* ── Resize handle ────────────────────────────────────────────────────────── */
+.tl-resize-handle {
+    position:absolute; bottom:0; left:0; right:0; height:8px;
+    cursor:ns-resize; border-radius:0 0 6px 6px;
+    background:rgba(0,0,0,0.15);
+}
+.tl-resize-handle:hover { background:rgba(0,0,0,0.3); }
 
 /* ── Gap blocks ──────────────────────────────────────────────────────────── */
 .tl-gap {

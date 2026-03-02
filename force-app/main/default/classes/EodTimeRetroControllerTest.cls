@@ -622,4 +622,76 @@ private class EodTimeRetroControllerTest {
         Time__c updated = [SELECT Additional_Comments__c FROM Time__c WHERE Id = :t.Id];
         System.assertEquals(null, updated.Additional_Comments__c, 'Notes should be null when cleared');
     }
+
+    // ── updateTimeStamps ──────────────────────────────────────────────────
+
+    @isTest
+    static void testUpdateTimeStamps_updatesStartStopAndMinutes() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Time__c t = createTimeRecord(story.Id, epic.Id, 60, Date.today());
+
+        // New window: 9:00 AM → 10:30 AM today (90 minutes)
+        Datetime newStart = Datetime.newInstance(Date.today(), Time.newInstance(9, 0, 0, 0));
+        Datetime newStop  = Datetime.newInstance(Date.today(), Time.newInstance(10, 30, 0, 0));
+        Long startMs = newStart.getTime();
+        Long stopMs  = newStop.getTime();
+        String logDate = String.valueOf(Date.today());
+
+        Test.startTest();
+        EodTimeRetroController.updateTimeStamps(t.Id, startMs, stopMs, logDate);
+        Test.stopTest();
+
+        Time__c updated = [
+            SELECT Start_Time__c, Stop_Time__c, Minutes_Logged__c, Logged_Date__c
+            FROM Time__c WHERE Id = :t.Id
+        ];
+        System.assertEquals(newStart,     updated.Start_Time__c,     'Start_Time__c should be updated');
+        System.assertEquals(newStop,      updated.Stop_Time__c,      'Stop_Time__c should be updated');
+        System.assertEquals(90,           updated.Minutes_Logged__c, 'Minutes should be 90 (1.5h)');
+        System.assertEquals(Date.today(), updated.Logged_Date__c,    'Logged_Date__c should match logDate');
+    }
+
+    @isTest
+    static void testUpdateTimeStamps_nullLogDateFallsBackToStartDate() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Time__c t = createTimeRecord(story.Id, epic.Id, 30, Date.today());
+
+        Datetime newStart = Datetime.newInstance(Date.today(), Time.newInstance(8, 0, 0, 0));
+        Datetime newStop  = Datetime.newInstance(Date.today(), Time.newInstance(8, 30, 0, 0));
+
+        Test.startTest();
+        EodTimeRetroController.updateTimeStamps(t.Id, newStart.getTime(), newStop.getTime(), null);
+        Test.stopTest();
+
+        Time__c updated = [SELECT Logged_Date__c FROM Time__c WHERE Id = :t.Id];
+        System.assertEquals(Date.today(), updated.Logged_Date__c, 'Null logDate should derive date from startTime');
+    }
+
+    @isTest
+    static void testUpdateTimeStamps_crossDayMove() {
+        Map<String, Object> td = createTestData();
+        Case story           = (Case) td.get('story');
+        Sprint_Items__c epic = (Sprint_Items__c) td.get('epic');
+
+        Time__c t = createTimeRecord(story.Id, epic.Id, 60, Date.today());
+
+        Date yesterday     = Date.today().addDays(-1);
+        Datetime newStart  = Datetime.newInstance(yesterday, Time.newInstance(14, 0, 0, 0));
+        Datetime newStop   = Datetime.newInstance(yesterday, Time.newInstance(15, 0, 0, 0));
+        String   logDate   = String.valueOf(yesterday);
+
+        Test.startTest();
+        EodTimeRetroController.updateTimeStamps(t.Id, newStart.getTime(), newStop.getTime(), logDate);
+        Test.stopTest();
+
+        Time__c updated = [SELECT Logged_Date__c, Minutes_Logged__c FROM Time__c WHERE Id = :t.Id];
+        System.assertEquals(yesterday, updated.Logged_Date__c,    'Should move to yesterday');
+        System.assertEquals(60,        updated.Minutes_Logged__c, 'Duration should still be 60 mins');
+    }
 }

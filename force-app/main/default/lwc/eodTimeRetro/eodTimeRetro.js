@@ -9,6 +9,7 @@ import getTimeBreakdown from '@salesforce/apex/EodTimeRetroController.getTimeBre
 import getTeamUsers     from '@salesforce/apex/EodTimeRetroController.getTeamUsers';
 import logTime          from '@salesforce/apex/EodTimeRetroController.logTime';
 import updateTime       from '@salesforce/apex/EodTimeRetroController.updateTime';
+import updateTimeStamps from '@salesforce/apex/EodTimeRetroController.updateTimeStamps';
 import USER_ID          from '@salesforce/user/Id';
 import getActiveTimer   from '@salesforce/apex/StoryBoardController.getActiveTimer';
 import stopTimer        from '@salesforce/apex/StoryBoardController.stopTimer';
@@ -77,6 +78,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     editNotes   = '';
     _storiesWire;
     _statsWire;
+    _drag       = null; // drag state during block move/resize
     _skippedIds = new Set(); // persisted to localStorage by date key
 
     _skipKey() { return `eod_skipped_${new Date().toISOString().split('T')[0]}`; }
@@ -105,6 +107,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     }
     disconnectedCallback() {
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
+        if (this._boundDragMove) window.removeEventListener('mousemove', this._boundDragMove);
+        if (this._boundDragUp)   window.removeEventListener('mouseup',   this._boundDragUp);
         window.removeEventListener('timerstopped', this._handleExternalTimerStop);
         window.removeEventListener('timerstarted',  this._handleExternalTimerStart);
     }
@@ -329,6 +333,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                     timeId: e.timeId, storyId: e.storyId, subject: e.subject || '—', topPx,
                     metaLabel: wMetaLabel, note: e.notes || '',
                     durationLabel: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`,
+                    startMs: e.startTimeMs, stopMs, loggedDate: dateStr, dayMidnightMs: fixedMs,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
                 };
             });
@@ -442,6 +447,8 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 caseNumber: e.caseNumber,
                 metaLabel,
                 note: e.note,
+                startMs: e.startMs,
+                stopMs: e.stopMs,
                 topPx, heightPx, durationLabel,
                 style: `top:${topPx}px; height:${heightPx}px; --tl-color:${e.color};`,
                 isActive: false
@@ -657,6 +664,123 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     handleBlockClick(evt) {
         const id = evt.currentTarget.dataset.id;
         if (id) this._openInNewTab(id);
+    }
+
+    // ── Block drag-and-drop ───────────────────────────────────────────────
+    handleBlockMouseDown(e) {
+        if (e.button !== 0) return;
+        const el     = e.currentTarget;
+        const timeId = el.dataset.id;
+        if (!timeId) return;
+
+        const isResize = e.target.classList.contains('tl-resize-handle');
+        const view     = this.calendarView;
+        let block, loggedDate, dayMidnightMs, colRects = null;
+
+        if (view === 'day') {
+            block = (this.timelineData.blocks || []).find(b => b.timeId === timeId);
+            const anchor = this._calendarAnchor ? new Date(this._calendarAnchor) : new Date();
+            anchor.setHours(0, 0, 0, 0);
+            dayMidnightMs = anchor.getTime();
+            loggedDate    = this._toIsoDate(anchor);
+        } else {
+            for (const col of this.weekColumns) {
+                const b = col.blocks.find(b => b.timeId === timeId);
+                if (b) { block = b; loggedDate = b.loggedDate; dayMidnightMs = b.dayMidnightMs; break; }
+            }
+            colRects = Array.from(this.template.querySelectorAll('.week-col-grid')).map((colEl, i) => ({
+                rect     : colEl.getBoundingClientRect(),
+                dateStr  : this.weekColumns[i].dateStr,
+                midnightMs: new Date(this.weekColumns[i].dateStr + 'T00:00:00').getTime()
+            }));
+        }
+        if (!block) return;
+        e.preventDefault();
+
+        this._drag = {
+            el, timeId, view,
+            mode         : isResize ? 'resize' : 'move',
+            startMouseY  : e.clientY,
+            startMouseX  : e.clientX,
+            origTopPx    : block.topPx,
+            origHeightPx : block.heightPx,
+            origStartMs  : block.startMs,
+            origStopMs   : block.stopMs,
+            loggedDate, dayMidnightMs, colRects
+        };
+        this._boundDragMove = this._onDragMouseMove.bind(this);
+        this._boundDragUp   = this._onDragMouseUp.bind(this);
+        window.addEventListener('mousemove', this._boundDragMove);
+        window.addEventListener('mouseup',   this._boundDragUp);
+    }
+
+    _onDragMouseMove(e) {
+        const d = this._drag;
+        if (!d) return;
+        const dy = e.clientY - d.startMouseY;
+        if (d.mode === 'resize') {
+            d.el.style.height = `${Math.max(11.25, d.origHeightPx + dy)}px`;
+        } else {
+            const dx = d.view === 'week' ? e.clientX - d.startMouseX : 0;
+            d.el.style.transform  = `translate(${dx}px, ${dy}px)`;
+            d.el.style.zIndex     = '1000';
+            d.el.style.opacity    = '0.85';
+            d.el.style.boxShadow  = '0 8px 24px rgba(0,0,0,0.25)';
+        }
+    }
+
+    _onDragMouseUp(e) {
+        window.removeEventListener('mousemove', this._boundDragMove);
+        window.removeEventListener('mouseup',   this._boundDragUp);
+        const d = this._drag;
+        this._drag = null;
+        if (!d) return;
+
+        // Reset inline styles set during drag
+        d.el.style.transform = '';
+        d.el.style.zIndex    = '';
+        d.el.style.opacity   = '';
+        d.el.style.boxShadow = '';
+        d.el.style.height    = '';
+
+        const dy   = e.clientY - d.startMouseY;
+        const dx   = e.clientX - d.startMouseX;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Short tap → navigate to record, no Apex call
+        if (dist < 5) { this._openInNewTab(d.timeId); return; }
+
+        const SNAP_MIN = 15;
+        const SNAP_PX  = SNAP_MIN * PX_PER_MIN;
+        let newStartMs, newStopMs, newLoggedDate;
+
+        if (d.mode === 'resize') {
+            const rawH    = Math.max(SNAP_PX, d.origHeightPx + dy);
+            const durMin  = Math.round((rawH / PX_PER_MIN) / SNAP_MIN) * SNAP_MIN;
+            newStartMs    = d.origStartMs;
+            newStopMs     = d.origStartMs + Math.max(SNAP_MIN, durMin) * 60000;
+            newLoggedDate = d.loggedDate;
+        } else {
+            let targetMidnightMs = d.dayMidnightMs;
+            newLoggedDate        = d.loggedDate;
+            if (d.view === 'week' && d.colRects) {
+                const col = d.colRects.find(c => e.clientX >= c.rect.left && e.clientX < c.rect.right);
+                if (col) { targetMidnightMs = col.midnightMs; newLoggedDate = col.dateStr; }
+            }
+            const rawStartMin  = (d.origTopPx + dy) / PX_PER_MIN;
+            const snapStartMin = Math.round(rawStartMin / SNAP_MIN) * SNAP_MIN;
+            const clampedMin   = Math.max(0, Math.min(snapStartMin, 24 * 60 - SNAP_MIN));
+            const durMs        = d.origStopMs - d.origStartMs;
+            newStartMs = targetMidnightMs + clampedMin * 60000;
+            newStopMs  = newStartMs + durMs;
+        }
+
+        updateTimeStamps({ timeId: d.timeId, startTimeMs: newStartMs, stopTimeMs: newStopMs, loggedDate: newLoggedDate })
+            .then(() => {
+                if (d.view === 'day') return refreshApex(this._storiesWire);
+                this._loadWeekEntries();
+            })
+            .catch(err => this._toast('Error moving block', err.body?.message, 'error'));
     }
 
     // ── Log single story ──────────────────────────────────────────────────

@@ -350,6 +350,25 @@ public with sharing class EodTimeRetroController {
         update new Time__c(Id = timeId, Minutes_Logged__c = mins, Additional_Comments__c = notes);
     }
 
+    // ── Update timestamps (drag-and-drop repositioning) ───────────────
+    @AuraEnabled
+    public static void updateTimeStamps(Id timeId, Long startTimeMs, Long stopTimeMs, String loggedDate) {
+        Datetime startDt = Datetime.newInstance(startTimeMs);
+        Datetime stopDt  = Datetime.newInstance(stopTimeMs);
+        Decimal  mins    = (Decimal.valueOf(stopTimeMs) - Decimal.valueOf(startTimeMs))
+                           / 60000;
+        mins = mins.setScale(0, RoundingMode.HALF_UP);
+        Date targetDate  = (loggedDate != null && loggedDate != '')
+                           ? Date.valueOf(loggedDate) : startDt.date();
+        update new Time__c(
+            Id                = timeId,
+            Start_Time__c     = startDt,
+            Stop_Time__c      = stopDt,
+            Minutes_Logged__c = mins,
+            Logged_Date__c    = targetDate
+        );
+    }
+
     // ── Wrappers ──────────────────────────────────────────────────────
     public class StoryWrapper {
         @AuraEnabled public Id                 storyId;

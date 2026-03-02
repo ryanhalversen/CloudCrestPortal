@@ -303,7 +303,7 @@
                 </template>
                 <template for:each={timelineData.blocks} for:item="block">
                     <div key={block.timeId} class="tl-block" style={block.style}
-                         data-id={block.timeId} onclick={handleBlockClick}>
+                         data-id={block.timeId} onmousedown={handleBlockMouseDown}>
                         <span class="tl-block-subject">{block.subject}</span>
                         <template if:true={block.metaLabel}>
                             <span class="tl-block-meta">{block.metaLabel}</span>
@@ -312,6 +312,7 @@
                             <span class="tl-block-note">{block.note}</span>
                         </template>
                         <span class="tl-block-dur">{block.durationLabel}</span>
+                        <div class="tl-resize-handle"></div>
                     </div>
                 </template>
                 <template for:each={timelineData.gaps} for:item="gap">
@@ -401,7 +402,7 @@
                             </template>
                             <template for:each={col.blocks} for:item="block">
                                 <div key={block.timeId} class="tl-block" style={block.style}
-                                     data-id={block.timeId} onclick={handleBlockClick}>
+                                     data-id={block.timeId} onmousedown={handleBlockMouseDown}>
                                     <span class="tl-block-subject">{block.subject}</span>
                                     <template if:true={block.metaLabel}>
                                         <span class="tl-block-meta">{block.metaLabel}</span>
@@ -410,6 +411,7 @@
                                         <span class="tl-block-note">{block.note}</span>
                                     </template>
                                     <span class="tl-block-dur">{block.durationLabel}</span>
+                                    <div class="tl-resize-handle"></div>
                                 </div>
                             </template>
                         </div>
