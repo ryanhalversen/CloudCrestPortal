@@ -30,15 +30,24 @@ public with sharing class EodTimeRetroController {
 
     // ── Shared story-building logic ────────────────────────────────────
     private static List<StoryWrapper> buildStoryWrappers(Id userId, Date targetDate, Boolean todayOnly) {
+        // Collect all Case IDs that have time logged by this user on targetDate.
+        // This ensures stories appear on the calendar even if the Case wasn't modified that day.
+        Set<Id> timeLoggedCaseIds = new Set<Id>();
+        for (Time__c t : [
+            SELECT Case__c FROM Time__c
+            WHERE CreatedById = :userId AND Logged_Date__c = :targetDate AND Case__c != null
+        ]) { timeLoggedCaseIds.add(t.Case__c); }
+
         // For today: use LastModifiedDate = TODAY. For past: use a date range.
+        // In both cases, also include Cases with time logged on the target date.
         List<Case> stories;
         if (todayOnly) {
             stories = [
                 SELECT Id, CaseNumber, Subject, Status, Priority,
                        LastModifiedDate, Epic__c, Epic__r.Name, Projects__c, Projects__r.Name
                 FROM Case
-                WHERE LastModifiedById = :userId
-                AND LastModifiedDate = TODAY
+                WHERE (LastModifiedById = :userId AND LastModifiedDate = TODAY)
+                   OR Id IN :timeLoggedCaseIds
                 ORDER BY Projects__c NULLS LAST, LastModifiedDate DESC
             ];
         } else {
@@ -48,9 +57,8 @@ public with sharing class EodTimeRetroController {
                 SELECT Id, CaseNumber, Subject, Status, Priority,
                        LastModifiedDate, Epic__c, Epic__r.Name, Projects__c, Projects__r.Name
                 FROM Case
-                WHERE LastModifiedById = :userId
-                AND LastModifiedDate >= :startDt
-                AND LastModifiedDate < :endDt
+                WHERE (LastModifiedById = :userId AND LastModifiedDate >= :startDt AND LastModifiedDate < :endDt)
+                   OR Id IN :timeLoggedCaseIds
                 ORDER BY Projects__c NULLS LAST, LastModifiedDate DESC
             ];
         }
