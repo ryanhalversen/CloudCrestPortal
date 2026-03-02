@@ -22,7 +22,7 @@ const PRIORITY_CLASSES = {
     'Low'      : 'tag tag-low'
 };
 
-const PX_PER_MIN      = 1.5;   // 90px per hour
+const PX_PER_MIN      = 0.75;  // 45px per hour — full 16h day ≈ 720px, no internal scroll needed
 const MIN_SPAN_MIN    = 240;   // show at least 4 hours
 const EDGE_PAD_MIN    = 30;    // 30-min padding before first / after last entry
 const GAP_THRESH      = 15;    // gaps > 15 min are highlighted
@@ -100,7 +100,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (this._scrollAfterRender) {
             this._scrollAfterRender = false;
             const el = this.template.querySelector('.cal-scroll');
-            if (el) el.scrollTop = 90; // 7 AM = 60min from 6am × 1.5px/min
+            if (el) el.scrollTop = 45; // 7 AM = 60min from 6am × 0.75px/min
         }
     }
     disconnectedCallback() {
