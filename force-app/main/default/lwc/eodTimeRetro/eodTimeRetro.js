@@ -1071,14 +1071,18 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     handleEodTimerNotesChange(e) { this._timerNotes = e.target.value; }
 
     async handleEodStopTimer() {
-        const timeId = this._timerTimeId;
-        const notes  = this._timerNotes;
+        const timeId      = this._timerTimeId;
+        const notes       = this._timerNotes;
+        const savedTimer  = { timeId, caseId: this._timerCaseId, subject: this._timerSubject, startTimeMs: this._timerStartMs };
         this._clearEodTimer();                    // own UI clears immediately
         try {
             await stopTimer({ timeId, notes });   // wait for DB commit
             window.dispatchEvent(new CustomEvent('timerstopped')); // then notify storyBoard
             refreshApex(this._storiesWire);
             refreshApex(this._statsWire);
-        } catch(err) { console.error('eod stopTimer', err); }
+        } catch(err) {
+            this._restoreEodTimer(savedTimer);    // put the banner back — DB was NOT updated
+            this._toast('Could not stop timer', err?.body?.message || 'Please try again.', 'error');
+        }
     }
 }
