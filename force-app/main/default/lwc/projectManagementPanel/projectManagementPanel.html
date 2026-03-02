@@ -2,6 +2,14 @@
 <template>
     <div class="mgmt-wrapper">
 
+        <!-- ── Component Title ── -->
+        <div class="mgmt-panel-header">
+            <span class="mgmt-panel-title">Quick Log Center</span>
+        </div>
+
+        <!-- ── Sections Row ── -->
+        <div class="mgmt-sections-row">
+
         <!-- ── Meetings Section ── -->
         <div class="mgmt-section mgmt-meetings">
             <div class="section-header">
@@ -88,7 +96,6 @@
                 </div>
             </div>
             <div class="quicklog-btns">
-                <span class="quicklog-section-label">Quick Log Center</span>
                 <button class="quicklog-btn"
                     data-category="Meetings"
                     onclick={handleQuickLog}>
@@ -106,6 +113,8 @@
                 </button>
             </div>
         </div>
+
+        </div><!-- end mgmt-sections-row -->
 
     </div>
 
