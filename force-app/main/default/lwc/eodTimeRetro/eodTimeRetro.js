@@ -370,8 +370,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         const year    = anchor.getFullYear(), month = anchor.getMonth();
         const today   = this._toIsoDate(new Date());
         const lastDay = new Date(year, month + 1, 0).getDate();
-        let startDow  = new Date(year, month, 1).getDay();
-        startDow      = startDow === 0 ? 6 : startDow - 1; // Mon-based
+        const startDow = new Date(year, month, 1).getDay(); // Sun-based (0=Sun)
         const weeks = []; let week = [];
         for (let i = 0; i < startDow; i++) week.push({ key: `e${i}`, isEmpty: true });
         for (let day = 1; day <= lastDay; day++) {
