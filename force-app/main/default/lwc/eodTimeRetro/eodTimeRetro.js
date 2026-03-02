@@ -29,6 +29,7 @@ const EDGE_PAD_MIN    = 30;    // 30-min padding before first / after last entry
 const GAP_THRESH      = 15;    // gaps > 15 min are highlighted
 const BLOCK_COLORS    = ['#0ea5e9','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899'];
 const NO_TIMESTAMP_SUBJECTS = ['helpdesk', 'project management'];
+const _noTimestamp = subj => NO_TIMESTAMP_SUBJECTS.some(k => (subj || '').toLowerCase().includes(k));
 const FIXED_START_HR  = 0;    // midnight — fixed grid start
 const FIXED_END_HR    = 24;   // midnight next day — fixed grid end
 const GRID_HEIGHT_PX  = (FIXED_END_HR - FIXED_START_HR) * 60 * PX_PER_MIN; // 1080px
@@ -526,8 +527,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (!storyId || !hrs || hrs <= 0) return;
         this._selectedGapIdx = null; this._gapLogStoryId = null;
         try {
-            const suppressGap = NO_TIMESTAMP_SUBJECTS.includes((story?.subject || '').toLowerCase());
-            await logTime({ storyId, epicId: story?.epicId, hours: hrs, notes: '', logDate: this.selectedDate, suppressTimestamp: suppressGap });
+            await logTime({ storyId, epicId: story?.epicId, hours: hrs, notes: '', logDate: this.selectedDate, suppressTimestamp: _noTimestamp(story?.subject) });
             await Promise.all([refreshApex(this._storiesWire), refreshApex(this._statsWire)]);
         } catch(err) { this._toast('Error', err.body?.message, 'error'); }
     }
@@ -953,8 +953,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (!hrs || hrs <= 0) { this._toast('Hours required', 'Enter a value > 0', 'warning'); return; }
         const story = this.stories.find(x => x.storyId === id);
         // Pass selected date if looking back
-        const suppressLog = NO_TIMESTAMP_SUBJECTS.includes((story?.subject || '').toLowerCase());
-        logTime({ storyId: id, epicId: story?.epicId, hours: hrs, notes: notEl?.value || '', logDate: this.selectedDate, suppressTimestamp: suppressLog })
+        logTime({ storyId: id, epicId: story?.epicId, hours: hrs, notes: notEl?.value || '', logDate: this.selectedDate, suppressTimestamp: _noTimestamp(story?.subject) })
             .then(newTimeId => {
                 this.stories = this.stories.map(s =>
                     s.storyId === id ? { ...s, newTimeId: newTimeId || 'pending', newHours: hrs } : s
@@ -1000,7 +999,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     handleEditSave() {
         const action = this.editTimeId
             ? updateTime({ timeId: this.editTimeId, hours: this.editHours, notes: this.editNotes })
-            : logTime({ storyId: this.editStoryId, epicId: this.editEpicId, hours: this.editHours, notes: this.editNotes, logDate: null, suppressTimestamp: NO_TIMESTAMP_SUBJECTS.includes(this.editSubject.toLowerCase()) });
+            : logTime({ storyId: this.editStoryId, epicId: this.editEpicId, hours: this.editHours, notes: this.editNotes, logDate: null, suppressTimestamp: _noTimestamp(this.editSubject) });
         action
             .then(() => {
                 this._toast('Updated!', 'Time entry saved', 'success');
