@@ -348,7 +348,7 @@
 .cal-nav-title   { font-size:0.88rem; font-weight:700; color:#1a1a2e; margin-left:10px; }
 
 /* ── Scrollable container ────────────────────────────────────────────────── */
-.cal-scroll { border-radius:8px; }
+.cal-scroll { overflow-y:auto; border-radius:8px; }
 
 /* ── Week view ───────────────────────────────────────────────────────────── */
 .week-wrap            { display:flex; min-width:0; }
