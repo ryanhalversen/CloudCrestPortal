@@ -288,16 +288,16 @@
 .tl-block {
     position:absolute; left:4px; right:4px; border-radius:6px;
     padding:4px 8px; overflow:hidden;
-    display:flex; flex-direction:column; justify-content:center;
+    display:flex; flex-direction:row; align-items:center; gap:6px;
     box-shadow:0 1px 3px rgba(0,0,0,0.12);
     background:var(--tl-color, #0ea5e9); color:#fff;
-    min-height:20px;
+    min-height:20px; cursor:pointer;
 }
-.tl-block-subject { font-size:0.73rem; font-weight:700; line-height:1.2;
+.tl-block-subject { flex:1; min-width:0; font-size:0.73rem; font-weight:700; line-height:1.2;
                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.tl-block-dur     { font-size:0.65rem; opacity:0.85; margin-top:1px; }
-.tl-block-meta    { font-size:0.6rem; opacity:0.75; margin-top:2px;
-                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tl-block-dur     { flex-shrink:0; font-size:0.65rem; opacity:0.85; white-space:nowrap; }
+.tl-block-meta    { flex-shrink:0; font-size:0.6rem; opacity:0.75; white-space:nowrap;
+                    overflow:hidden; text-overflow:ellipsis; max-width:40%; }
 
 @keyframes tl-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .tl-block-active { border:2px dashed rgba(255,255,255,0.7);
