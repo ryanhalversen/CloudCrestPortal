@@ -317,7 +317,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             const d       = new Date(monday); d.setDate(d.getDate() + i);
             const dateStr = this._toIsoDate(d);
             const isToday = dateStr === todayStr;
-            const fixedMs = new Date(dateStr + 'T06:00:00').getTime();
+            const fixedMs = new Date(dateStr + 'T00:00:00').getTime();
             const blocks  = (byDate[dateStr] || []).filter(e => e.startTimeMs).map(e => {
                 const stopMs = e.stopTimeMs || (e.startTimeMs + (e.minutesLogged || 0) * 60000);
                 const durMin = (stopMs - e.startTimeMs) / 60000;
@@ -325,7 +325,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 const hPx    = Math.max(20, durMin * PX_PER_MIN);
                 const h = Math.floor(durMin / 60), m = Math.round(durMin % 60);
                 return {
-                    timeId: e.timeId, subject: e.subject || '—', topPx,
+                    timeId: e.timeId, storyId: e.storyId, subject: e.subject || '—', topPx,
                     durationLabel: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
                 };
@@ -335,7 +335,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 const topPx  = Math.max(0, (this._timerStartMs - fixedMs) / 60000 * PX_PER_MIN);
                 const hPx    = Math.max(20, durMin * PX_PER_MIN);
                 blocks.push({
-                    timeId: 'active-timer', subject: this._timerSubject,
+                    timeId: 'active-timer', storyId: this._timerCaseId, subject: this._timerSubject,
                     topPx, durationLabel: this._timerElapsed,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:#00b4d8;`
                 });
@@ -392,6 +392,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 if (te.startTimeMs) {
                     entries.push({
                         timeId   : te.timeId,
+                        storyId  : s.storyId,
                         subject  : s.subject,
                         caseNumber: s.caseNumber,
                         projectId: s.projectId,
@@ -430,6 +431,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             const durationLabel = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
             return {
                 timeId: e.timeId,
+                storyId: e.storyId,
                 subject: e.subject,
                 caseNumber: e.caseNumber,
                 topPx, heightPx, durationLabel,
@@ -642,6 +644,11 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         evt.stopPropagation();
         const id = evt.currentTarget.dataset.id;
         if (id && id !== 'pending') this._openInNewTab(id);
+    }
+
+    handleBlockClick(evt) {
+        const id = evt.currentTarget.dataset.id;
+        if (id) this._openInNewTab(id);
     }
 
     // ── Log single story ──────────────────────────────────────────────────

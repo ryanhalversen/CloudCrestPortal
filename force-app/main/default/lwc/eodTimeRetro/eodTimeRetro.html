@@ -302,7 +302,8 @@
                     <div key={line.key} class="tl-hour-line" style={line.style}></div>
                 </template>
                 <template for:each={timelineData.blocks} for:item="block">
-                    <div key={block.timeId} class="tl-block" style={block.style}>
+                    <div key={block.timeId} class="tl-block" style={block.style}
+                         data-id={block.storyId} onclick={handleBlockClick}>
                         <span class="tl-block-subject">{block.subject}</span>
                         <span class="tl-block-dur">{block.durationLabel}</span>
                     </div>
@@ -315,7 +316,8 @@
                     </div>
                 </template>
                 <template if:true={hasActiveTimer}>
-                    <div class="tl-block tl-block-active" style={activeTimerBlockStyle}>
+                    <div class="tl-block tl-block-active" style={activeTimerBlockStyle}
+                         data-id={_timerCaseId} onclick={handleBlockClick}>
                         <span class="tl-block-subject">{_timerSubject}</span>
                         <span class="tl-block-dur">{_timerElapsed}</span>
                     </div>
@@ -392,7 +394,8 @@
                                 <div key={line.key} class="tl-hour-line" style={line.style}></div>
                             </template>
                             <template for:each={col.blocks} for:item="block">
-                                <div key={block.timeId} class="tl-block" style={block.style}>
+                                <div key={block.timeId} class="tl-block" style={block.style}
+                                     data-id={block.storyId} onclick={handleBlockClick}>
                                     <span class="tl-block-subject">{block.subject}</span>
                                     <span class="tl-block-dur">{block.durationLabel}</span>
                                 </div>
