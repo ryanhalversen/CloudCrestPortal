@@ -499,6 +499,30 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testLogTimerSession() {
+        Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
+        Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+        update new Case(Id = c.Id, Epic__c = epic.Id);
+
+        Long startMs = DateTime.now().addHours(-2).getTime();
+        Long stopMs  = DateTime.now().getTime();
+
+        Test.startTest();
+        Id timeId = StoryBoardController.logTimerSession(c.Id, epic.Id, startMs, stopMs, 'Session notes');
+        Test.stopTest();
+
+        System.assertNotEquals(null, timeId, 'Time Id should be returned');
+        Time__c t = [SELECT Active__c, Minutes_Logged__c, Start_Time__c, Stop_Time__c, Additional_Comments__c
+                     FROM Time__c WHERE Id = :timeId];
+        System.assertEquals(false, t.Active__c, 'Should not be active');
+        System.assertNotEquals(null, t.Start_Time__c, 'Start time should be set');
+        System.assertNotEquals(null, t.Stop_Time__c,  'Stop time should be set');
+        System.assert(t.Minutes_Logged__c > 0, 'Minutes should be > 0');
+        System.assertEquals('Session notes', t.Additional_Comments__c, 'Notes should match');
+    }
+
+    @isTest
     static void testDiscardTimer_stopsWithZeroMinutes() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Test Sprint' LIMIT 1];
         Sprint_Items__c epic = [SELECT Id FROM Sprint_Items__c WHERE Projects_new__c = :sprint.Id LIMIT 1];

@@ -618,6 +618,30 @@ public without sharing class StoryBoardController {
         }
     }
 
+    // ── Log a completed timer session (creates Time__c at stop time) ─────
+    @AuraEnabled
+    public static Id logTimerSession(Id caseId, Id epicId, Long startMs, Long stopMs, String notes) {
+        try {
+            DateTime startDt = DateTime.newInstance(startMs);
+            DateTime stopDt  = DateTime.newInstance(stopMs);
+            Decimal  mins    = (Decimal.valueOf(stopMs - startMs) / 60000).setScale(0, RoundingMode.HALF_UP);
+            Time__c t = new Time__c(
+                Case__c                = caseId,
+                Epic__c                = epicId,
+                Start_Time__c          = startDt,
+                Stop_Time__c           = stopDt,
+                Minutes_Logged__c      = mins < 1 ? 1 : mins,
+                Additional_Comments__c = notes,
+                Logged_Date__c         = startDt.date(),
+                Active__c              = false
+            );
+            insert t;
+            return t.Id;
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
     @AuraEnabled
     public static void discardTimer(Id timeId) {
         try {

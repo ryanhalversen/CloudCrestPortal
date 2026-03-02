@@ -11,9 +11,7 @@ import logTime          from '@salesforce/apex/EodTimeRetroController.logTime';
 import updateTime       from '@salesforce/apex/EodTimeRetroController.updateTime';
 import updateTimeStamps from '@salesforce/apex/EodTimeRetroController.updateTimeStamps';
 import USER_ID          from '@salesforce/user/Id';
-import getActiveTimer   from '@salesforce/apex/StoryBoardController.getActiveTimer';
-import stopTimer        from '@salesforce/apex/StoryBoardController.stopTimer';
-import discardTimer     from '@salesforce/apex/StoryBoardController.discardTimer';
+import logTimerSession  from '@salesforce/apex/StoryBoardController.logTimerSession';
 import getWeekEntries   from '@salesforce/apex/EodTimeRetroController.getWeekEntries';
 import getMonthStats    from '@salesforce/apex/EodTimeRetroController.getMonthStats';
 
@@ -44,8 +42,9 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     @track selectedUserId   = USER_ID;
 
     // ── Active Timer state ────────────────────────────────────────────────
-    @track _timerTimeId   = null;
+    @track _timerTimeId   = null;  // null until timer is stopped and record created
     @track _timerCaseId   = null;
+    @track _timerEpicId   = null;
     @track _timerSubject  = '';
     @track _timerStartMs  = 0;
     @track _timerElapsed  = '';
@@ -92,11 +91,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             const stored = localStorage.getItem(this._skipKey());
             if (stored) this._skippedIds = new Set(JSON.parse(stored));
         } catch(e) { /* localStorage unavailable */ }
-        getActiveTimer()
-            .then(w => { if (w) this._restoreEodTimer(w); })
-            .catch(() => {});
+        try {
+            const stored = localStorage.getItem('sf_active_timer');
+            if (stored) this._restoreEodTimer(JSON.parse(stored));
+        } catch(e) { /* localStorage unavailable */ }
         this._scrollAfterRender = true;
-        this._handleExternalTimerStop  = () => { if (this._timerTimeId) this._clearEodTimer(); };
+        this._handleExternalTimerStop  = () => { if (this._timerCaseId) this._clearEodTimer(); };
         this._handleExternalTimerStart = (e) => { this._restoreEodTimer(e.detail); };
         window.addEventListener('timerstopped', this._handleExternalTimerStop);
         window.addEventListener('timerstarted',  this._handleExternalTimerStart);
@@ -173,7 +173,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     }
 
     // ── Timer getters ─────────────────────────────────────────────────────
-    get hasActiveTimer() { return !!this._timerTimeId; }
+    get hasActiveTimer() { return !!this._timerCaseId; }
     get eodTimerLabel()  { return `⏱  ${this._timerSubject}  —  ${this._timerElapsed}`; }
 
     // ── View toggle getters ───────────────────────────────────────────────
@@ -1051,10 +1051,11 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
 
     // ── Timer helpers ─────────────────────────────────────────────────────
     _restoreEodTimer(w) {
-        this._timerTimeId  = w.timeId;
+        this._timerTimeId  = null;  // no DB record until stop
         this._timerCaseId  = w.caseId;
-        this._timerSubject = w.subject;
-        this._timerStartMs = w.startTimeMs;
+        this._timerEpicId  = w.epicId  || null;
+        this._timerSubject = w.subject || '';
+        this._timerStartMs = w.startTimeMs || w.startMs || 0;
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
         _eodTimerInterval = setInterval(() => {
             const ms = Date.now() - this._timerStartMs;
@@ -1069,41 +1070,37 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (_eodTimerInterval) clearInterval(_eodTimerInterval);
         _eodTimerInterval  = null;
         this._timerTimeId  = null;
+        this._timerCaseId  = null;
+        this._timerEpicId  = null;
+        this._timerStartMs = 0;
         this._timerElapsed = '';
         this._timerNotes   = '';
+        try { localStorage.removeItem('sf_active_timer'); } catch(e) {}
     }
 
     // ── Timer handlers ────────────────────────────────────────────────────
     handleEodTimerNotesChange(e) { this._timerNotes = e.target.value; }
 
     async handleEodStopTimer() {
-        const timeId      = this._timerTimeId;
-        const notes       = this._timerNotes;
-        const savedTimer  = { timeId, caseId: this._timerCaseId, subject: this._timerSubject, startTimeMs: this._timerStartMs };
-        this._clearEodTimer();                    // own UI clears immediately
-        try {
-            await stopTimer({ timeId, notes });   // wait for DB commit
-            window.dispatchEvent(new CustomEvent('timerstopped')); // then notify storyBoard
-            refreshApex(this._storiesWire);
-            refreshApex(this._statsWire);
-        } catch(err) {
-            this._restoreEodTimer(savedTimer);    // put the banner back — DB was NOT updated
-            this._toast('Could not stop timer', err?.body?.message || 'Please try again.', 'error');
-        }
-    }
-
-    async handleEodDiscardTimer() {
-        const timeId     = this._timerTimeId;
-        const savedTimer = { timeId, caseId: this._timerCaseId, subject: this._timerSubject, startTimeMs: this._timerStartMs };
+        const caseId  = this._timerCaseId;
+        const epicId  = this._timerEpicId;
+        const subject = this._timerSubject;
+        const startMs = this._timerStartMs;
+        const notes   = this._timerNotes;
         this._clearEodTimer();
         try {
-            await discardTimer({ timeId });
+            await logTimerSession({ caseId, epicId, startMs, stopMs: Date.now(), notes });
             window.dispatchEvent(new CustomEvent('timerstopped'));
             refreshApex(this._storiesWire);
             refreshApex(this._statsWire);
         } catch(err) {
-            this._restoreEodTimer(savedTimer);
-            this._toast('Could not discard timer', err?.body?.message || 'Please try again.', 'error');
+            this._restoreEodTimer({ caseId, epicId, subject, startMs });
+            this._toast('Could not stop timer', err?.body?.message || 'Please try again.', 'error');
         }
+    }
+
+    handleEodDiscardTimer() {
+        this._clearEodTimer();
+        window.dispatchEvent(new CustomEvent('timerstopped'));
     }
 }

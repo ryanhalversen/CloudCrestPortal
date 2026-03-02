@@ -35,9 +35,7 @@ import postChatMessage        from '@salesforce/apex/StoryBoardController.postCh
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
-import startTimer             from '@salesforce/apex/StoryBoardController.startTimer';
-import stopTimer              from '@salesforce/apex/StoryBoardController.stopTimer';
-import getActiveTimer         from '@salesforce/apex/StoryBoardController.getActiveTimer';
+import logTimerSession        from '@salesforce/apex/StoryBoardController.logTimerSession';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -185,8 +183,9 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track textFieldsSaveSuccess = false;
 
     // ── Active Timer state ────────────────────────────────────────────────
-    @track _activeTimerId      = null;
+    @track _activeTimerId      = null;  // null for new timers (no DB record until stop)
     @track _activeTimerCaseId  = null;
+    @track _activeTimerEpicId  = null;
     @track _activeTimerSubject = '';
     @track _activeTimerStartMs = 0;
     @track _activeTimerElapsed = '';
@@ -286,10 +285,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     connectedCallback() {
-        getActiveTimer()
-            .then(w => { if (w) this._restoreTimer(w); })
-            .catch(() => {});
-        this._handleExternalTimerStop  = () => { if (this._activeTimerId) this._clearTimerState(); };
+        try {
+            const stored = localStorage.getItem('sf_active_timer');
+            if (stored) this._restoreTimer(JSON.parse(stored));
+        } catch(e) { /* localStorage unavailable */ }
+        this._handleExternalTimerStop  = () => { if (this._activeTimerCaseId) this._clearTimerState(); };
         this._handleExternalTimerStart = (e) => { this._restoreTimer(e.detail); };
         window.addEventListener('timerstopped', this._handleExternalTimerStop);
         window.addEventListener('timerstarted',  this._handleExternalTimerStart);
@@ -434,10 +434,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     // ── Timer getters ─────────────────────────────────────────────────────
-    get hasActiveTimer()    { return !!this._activeTimerId; }
+    get hasActiveTimer()    { return !!this._activeTimerCaseId; }
     get timerBannerLabel()  { return `⏱  ${this._activeTimerSubject}  —  ${this._activeTimerElapsed}`; }
     get hasStoppedNotif()   { return !!this._stoppedNotif; }
-    get isModalTimerActive() { return !!this._activeTimerId && this._activeTimerCaseId === this.modalCard?.id; }
+    get isModalTimerActive() { return !!this._activeTimerCaseId && this._activeTimerCaseId === this.modalCard?.id; }
 
     get typeOptions() {
         return [
@@ -1767,10 +1767,11 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     // ── Timer helpers ─────────────────────────────────────────────────────
     _restoreTimer(w) {
-        this._activeTimerId      = w.timeId;
+        this._activeTimerId      = null;  // no DB record until stop
         this._activeTimerCaseId  = w.caseId;
-        this._activeTimerSubject = w.subject;
-        this._activeTimerStartMs = w.startTimeMs;
+        this._activeTimerEpicId  = w.epicId  || null;
+        this._activeTimerSubject = w.subject || '';
+        this._activeTimerStartMs = w.startTimeMs || w.startMs || 0;
         this._startTimerTick();
     }
     _startTimerTick() {
@@ -1789,8 +1790,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         _timerInterval = null;
         this._activeTimerId      = null;
         this._activeTimerCaseId  = null;
+        this._activeTimerEpicId  = null;
         this._activeTimerSubject = '';
         this._activeTimerElapsed = '';
+        try { localStorage.removeItem('sf_active_timer'); } catch(e) {}
     }
     _findCardById(id) {
         for (const col of this.columns) {
@@ -1805,28 +1808,27 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         e.stopPropagation();
         const caseId = e.currentTarget.dataset.id;
         try {
-            const res = await startTimer({ caseId });
-            if (res.stoppedTimeId) {
-                this._stoppedNotif = {
-                    timeId:  res.stoppedTimeId,
-                    subject: res.stoppedSubject,
-                    minutes: res.stoppedMinutes,
-                    notes:   ''
-                };
+            // Auto-stop any currently running timer first
+            if (this._activeTimerCaseId) {
+                const prevCaseId  = this._activeTimerCaseId;
+                const prevEpicId  = this._activeTimerEpicId;
+                const prevSubject = this._activeTimerSubject;
+                const prevStartMs = this._activeTimerStartMs;
+                const stopMs      = Date.now();
+                const minutes     = Math.round((stopMs - prevStartMs) / 60000);
+                this._clearTimerState();
+                try {
+                    const prevTimeId = await logTimerSession({ caseId: prevCaseId, epicId: prevEpicId, startMs: prevStartMs, stopMs, notes: '' });
+                    this._stoppedNotif = { timeId: prevTimeId, subject: prevSubject, minutes, notes: '' };
+                } catch(stopErr) { console.error('auto-stop previous timer', stopErr); }
             }
-            const card = this._findCardById(caseId);
-            this._restoreTimer({
-                timeId:      res.newTimeId,
-                caseId,
-                subject:     card?.subject || '',
-                startTimeMs: res.startTimeMs
-            });
-            window.dispatchEvent(new CustomEvent('timerstarted', { detail: {
-                timeId:      res.newTimeId,
-                caseId,
-                subject:     card?.subject || '',
-                startTimeMs: res.startTimeMs
-            }}));
+            const card    = this._findCardById(caseId);
+            const epicId  = card?.epicId  || null;
+            const subject = card?.subject || '';
+            const startMs = Date.now();
+            try { localStorage.setItem('sf_active_timer', JSON.stringify({ caseId, epicId, subject, startMs })); } catch(e) {}
+            this._restoreTimer({ caseId, epicId, subject, startTimeMs: startMs });
+            window.dispatchEvent(new CustomEvent('timerstarted', { detail: { caseId, epicId, subject, startTimeMs: startMs } }));
         } catch(err) {
             this._toast('Could not start timer', err?.body?.message || err?.message || 'Unknown error', 'error');
         }
@@ -1834,13 +1836,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     async handleStopTimer(e) {
         e.stopPropagation();
-        const timeId  = this._activeTimerId;
+        const caseId  = this._activeTimerCaseId;
+        const epicId  = this._activeTimerEpicId;
         const subject = this._activeTimerSubject;
-        const minutes = Math.round((Date.now() - this._activeTimerStartMs) / 60000);
-        this._clearTimerState();                  // own UI clears immediately
+        const startMs = this._activeTimerStartMs;
+        const stopMs  = Date.now();
+        const minutes = Math.round((stopMs - startMs) / 60000);
+        this._clearTimerState();
         try {
-            await stopTimer({ timeId, notes: '' }); // wait for DB commit
-            window.dispatchEvent(new CustomEvent('timerstopped')); // then notify eodTimeRetro
+            const timeId = await logTimerSession({ caseId, epicId, startMs, stopMs, notes: '' });
+            window.dispatchEvent(new CustomEvent('timerstopped'));
             this._stoppedNotif = { timeId, subject, minutes, notes: '' };
             refreshApex(this._wiredStoriesResult);
         } catch(err) { console.error('stopTimer', err); }
