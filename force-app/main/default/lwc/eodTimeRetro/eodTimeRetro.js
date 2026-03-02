@@ -343,10 +343,12 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
                 };
             });
-            if (isToday && this.hasActiveTimer && this._timerStartMs) {
+            // Only show active timer if it started within today's grid (prevents enormous overlays)
+            if (isToday && this.hasActiveTimer && this._timerStartMs && this._timerStartMs >= fixedMs) {
                 const durMin = (Date.now() - this._timerStartMs) / 60000;
                 const topPx  = Math.max(0, (this._timerStartMs - fixedMs) / 60000 * PX_PER_MIN);
-                const hPx    = Math.max(20, durMin * PX_PER_MIN);
+                const maxH   = GRID_HEIGHT_PX - topPx;
+                const hPx    = Math.min(maxH, Math.max(20, durMin * PX_PER_MIN));
                 blocks.push({
                     timeId: this._timerTimeId, storyId: this._timerCaseId, subject: this._timerSubject,
                     metaLabel: '', topPx, durationLabel: this._timerElapsed,
@@ -490,8 +492,11 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     get activeTimerBlockStyle() {
         const td = this.timelineData;
         if (!this.hasActiveTimer || !td) return 'display:none;';
+        // Hide stale timers that started before today's grid — they'd render as enormous overlays
+        if (this._timerStartMs < td.gridStartMs) return 'display:none;';
         const topPx    = Math.max(0, ((this._timerStartMs - td.gridStartMs) / 60000) * PX_PER_MIN);
-        const heightPx = Math.max(20, ((Date.now() - this._timerStartMs) / 60000) * PX_PER_MIN);
+        const maxH     = GRID_HEIGHT_PX - topPx;
+        const heightPx = Math.min(maxH, Math.max(20, ((Date.now() - this._timerStartMs) / 60000) * PX_PER_MIN));
         return `top:${topPx}px; height:${heightPx}px; --tl-color:#00b4d8;`;
     }
 
