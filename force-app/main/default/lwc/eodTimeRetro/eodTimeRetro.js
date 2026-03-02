@@ -207,10 +207,10 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 : d.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric', year:'numeric' });
         }
         if (this.calendarView === 'week') {
-            const mon = this._weekMonday(d);
-            const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+            const sun = this._weekSunday(d);
+            const sat = new Date(sun); sat.setDate(sat.getDate() + 6);
             const fmt = { month:'short', day:'numeric' };
-            return `${mon.toLocaleDateString('en-US', fmt)} – ${sun.toLocaleDateString('en-US', fmt)}, ${sun.getFullYear()}`;
+            return `${sun.toLocaleDateString('en-US', fmt)} – ${sat.toLocaleDateString('en-US', fmt)}, ${sat.getFullYear()}`;
         }
         if (this.calendarView === 'month') {
             return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
@@ -245,10 +245,9 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
         if (this.calendarView === 'month') { this._loadMonthStats(); }
     }
     _anchorDate()   { return this._calendarAnchor ? new Date(this._calendarAnchor) : new Date(); }
-    _weekMonday(d) {
+    _weekSunday(d) {
         const date = d ? new Date(d) : this._anchorDate();
-        const dow  = date.getDay();
-        date.setDate(date.getDate() + (dow === 0 ? -6 : 1 - dow));
+        date.setDate(date.getDate() - date.getDay()); // Sunday = 0, so subtracting getDay() lands on Sunday
         date.setHours(0, 0, 0, 0);
         return date;
     }
@@ -265,7 +264,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             .catch(e => { this._toast('Error', e.body?.message, 'error'); this.isLoading = false; });
     }
     _loadWeekEntries() {
-        const startDate = this._toIsoDate(this._weekMonday());
+        const startDate = this._toIsoDate(this._weekSunday());
         this._weekLoading = true; this._weekEntries = [];
         getWeekEntries({ userId: this.selectedUserId, startDate })
             .then(data => { this._weekEntries = data; this._weekLoading = false; })
@@ -312,7 +311,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
     get weekGridStyle() { return `height:${GRID_HEIGHT_PX}px`; }
 
     get weekColumns() {
-        const monday   = this._weekMonday();
+        const sunday   = this._weekSunday();
         const todayStr = this._toIsoDate(new Date());
         const colorMap = new Map(); let ci = 0;
         (this._weekEntries || []).forEach(e => {
@@ -323,9 +322,9 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
             if (!byDate[e.loggedDate]) byDate[e.loggedDate] = [];
             byDate[e.loggedDate].push(e);
         });
-        const DAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         return DAY_LABELS.map((lbl, i) => {
-            const d       = new Date(monday); d.setDate(d.getDate() + i);
+            const d       = new Date(sunday); d.setDate(d.getDate() + i);
             const dateStr = this._toIsoDate(d);
             const isToday = dateStr === todayStr;
             const fixedMs = new Date(dateStr + 'T00:00:00').getTime();
