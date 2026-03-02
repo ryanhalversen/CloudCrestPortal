@@ -293,11 +293,12 @@
     background:var(--tl-color, #0ea5e9); color:#fff;
     min-height:20px; cursor:pointer;
 }
-.tl-block-subject { flex:1; min-width:0; font-size:0.73rem; font-weight:700; line-height:1.2;
-                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.tl-block-dur     { flex-shrink:0; font-size:0.65rem; opacity:0.85; white-space:nowrap; }
-.tl-block-meta    { flex-shrink:0; font-size:0.6rem; opacity:0.75; white-space:nowrap;
-                    overflow:hidden; text-overflow:ellipsis; max-width:40%; }
+.tl-block-subject { flex-shrink:0; font-size:0.73rem; font-weight:700; line-height:1.2;
+                    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:35%; }
+.tl-block-meta    { flex-shrink:0; font-size:0.7rem; font-weight:700; opacity:0.95; white-space:nowrap; }
+.tl-block-note    { flex:1; min-width:0; font-size:0.65rem; opacity:0.85; white-space:nowrap;
+                    overflow:hidden; text-overflow:ellipsis; }
+.tl-block-dur     { flex-shrink:0; margin-left:auto; font-size:0.65rem; opacity:0.85; white-space:nowrap; }
 
 @keyframes tl-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 .tl-block-active { border:2px dashed rgba(255,255,255,0.7);

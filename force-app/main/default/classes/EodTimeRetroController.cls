@@ -267,7 +267,7 @@ public with sharing class EodTimeRetroController {
         List<Time__c> times = [
             SELECT Id, Case__c, Case__r.Subject, Case__r.Projects__c, Case__r.Projects__r.Name,
                    Case__r.Epic__c, Case__r.Epic__r.Name,
-                   Minutes_Logged__c, Start_Time__c, Stop_Time__c, Logged_Date__c
+                   Minutes_Logged__c, Additional_Comments__c, Start_Time__c, Stop_Time__c, Logged_Date__c
             FROM Time__c
             WHERE CreatedById = :userId
             AND Logged_Date__c >= :weekStart AND Logged_Date__c <= :weekEnd
@@ -282,6 +282,7 @@ public with sharing class EodTimeRetroController {
             w.projectId    = t.Case__r?.Projects__c;
             w.projectName  = t.Case__r?.Projects__r?.Name;
             w.epicName     = t.Case__r?.Epic__r?.Name;
+            w.notes        = t.Additional_Comments__c;
             w.loggedDate   = String.valueOf(t.Logged_Date__c);
             w.minutesLogged = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
             w.startTimeMs  = t.Start_Time__c != null ? t.Start_Time__c.getTime() : null;
@@ -386,6 +387,7 @@ public with sharing class EodTimeRetroController {
         @AuraEnabled public Id      projectId;
         @AuraEnabled public String  projectName;
         @AuraEnabled public String  epicName;
+        @AuraEnabled public String  notes;
         @AuraEnabled public String  loggedDate;   // "YYYY-MM-DD"
         @AuraEnabled public Decimal minutesLogged;
         @AuraEnabled public Long    startTimeMs;

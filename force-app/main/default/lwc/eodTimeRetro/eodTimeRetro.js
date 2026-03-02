@@ -327,7 +327,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 const wMetaLabel = [e.projectName, e.epicName].filter(Boolean).join(' › ');
                 return {
                     timeId: e.timeId, storyId: e.storyId, subject: e.subject || '—', topPx,
-                    metaLabel: wMetaLabel,
+                    metaLabel: wMetaLabel, note: e.notes || '',
                     durationLabel: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`,
                     style: `top:${topPx}px; height:${hPx}px; --tl-color:${colorMap.get(String(e.projectId)) || BLOCK_COLORS[0]};`
                 };
@@ -400,6 +400,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                         projectId   : s.projectId,
                         projectName : s.projectName || '',
                         epicName    : s.epicName    || '',
+                        note        : te.note       || '',
                         startMs     : te.startTimeMs,
                         stopMs      : te.stopTimeMs || (te.startTimeMs + (te.minutesLogged || 0) * 60000),
                         color       : colorMap.get(s.projectId)
@@ -440,6 +441,7 @@ export default class EodTimeRetro extends NavigationMixin(LightningElement) {
                 subject: e.subject,
                 caseNumber: e.caseNumber,
                 metaLabel,
+                note: e.note,
                 topPx, heightPx, durationLabel,
                 style: `top:${topPx}px; height:${heightPx}px; --tl-color:${e.color};`,
                 isActive: false

@@ -305,10 +305,13 @@
                     <div key={block.timeId} class="tl-block" style={block.style}
                          data-id={block.timeId} onclick={handleBlockClick}>
                         <span class="tl-block-subject">{block.subject}</span>
-                        <span class="tl-block-dur">{block.durationLabel}</span>
                         <template if:true={block.metaLabel}>
                             <span class="tl-block-meta">{block.metaLabel}</span>
                         </template>
+                        <template if:true={block.note}>
+                            <span class="tl-block-note">{block.note}</span>
+                        </template>
+                        <span class="tl-block-dur">{block.durationLabel}</span>
                     </div>
                 </template>
                 <template for:each={timelineData.gaps} for:item="gap">
@@ -400,10 +403,13 @@
                                 <div key={block.timeId} class="tl-block" style={block.style}
                                      data-id={block.timeId} onclick={handleBlockClick}>
                                     <span class="tl-block-subject">{block.subject}</span>
-                                    <span class="tl-block-dur">{block.durationLabel}</span>
                                     <template if:true={block.metaLabel}>
                                         <span class="tl-block-meta">{block.metaLabel}</span>
                                     </template>
+                                    <template if:true={block.note}>
+                                        <span class="tl-block-note">{block.note}</span>
+                                    </template>
+                                    <span class="tl-block-dur">{block.durationLabel}</span>
                                 </div>
                             </template>
                         </div>
