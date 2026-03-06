@@ -3,7 +3,7 @@ import { loadScript } from 'lightning/platformResourceLoader';
 import CHARTJS from '@salesforce/resourceUrl/chartjs';
 import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacityData';
 
-const TEAM_CAPACITY = 35; // h/week — team billable target
+const TEAM_CAPACITY = 105; // h/week — 3 FTEs × 35h each
 const YEAR_START = new Date(2026, 0, 5);  // Jan 5, 2026 (first Monday of 2026)
 const YEAR_END   = new Date(2026, 11, 28); // Dec 28, 2026 (last Monday in Dec)
 
