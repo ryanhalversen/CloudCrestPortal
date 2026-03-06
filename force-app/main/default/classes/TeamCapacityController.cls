@@ -19,6 +19,7 @@ public with sharing class TeamCapacityController {
                    Pace_Status__c,
                    Remaining_Weeks__c,
                    On_Time_Weekly_Pace__c,
+                   Support_Split__c,
                    Contract_Type__c,
                    Accountlu__r.Name
             FROM Sprint__c
@@ -41,6 +42,7 @@ public with sharing class TeamCapacityController {
                                 ? String.valueOf(s.Project_End_Date__c) : null;
             w.paceStatus      = s.Pace_Status__c;
             w.remainingWeeks  = s.Remaining_Weeks__c;
+            w.supportSplit    = s.Support_Split__c ?? 0;
             w.contractType    = s.Contract_Type__c;
             result.add(w);
         }
@@ -91,6 +93,7 @@ public with sharing class TeamCapacityController {
         @AuraEnabled public String  endDate;
         @AuraEnabled public String  paceStatus;
         @AuraEnabled public Decimal remainingWeeks;
+        @AuraEnabled public Decimal supportSplit;
         @AuraEnabled public String  contractType;
     }
 

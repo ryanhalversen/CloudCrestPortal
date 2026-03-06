@@ -70,10 +70,31 @@ export default class TeamCapacity extends LightningElement {
             person.projectCount += 1;
         });
 
+        // Support lead demand
+        (this._data.projects || []).forEach(p => {
+            if (!p.supportLeadId) return;
+            const cfg = TEAM_CONFIG.find(c => (p.supportLeadName || '').includes(c.match)) || {};
+            if (cfg.exclude) return;
+            if (!personMap.has(p.supportLeadId)) {
+                personMap.set(p.supportLeadId, {
+                    id:           p.supportLeadId,
+                    name:         p.supportLeadName,
+                    role:         cfg.role || 'FTE',
+                    weeklyTarget: cfg.weeklyTarget || DEFAULT_TARGET,
+                    demand:       0,
+                    projectCount: 0
+                });
+            }
+            const person = personMap.get(p.supportLeadId);
+            const split  = (p.supportSplit || 0) / 100;
+            person.demand       += (p.onTimeWeeklyPace || 0) * split;
+            person.projectCount += 1;
+        });
+
         return Array.from(personMap.values()).map(p => {
             const logged    = loggedMap.get(p.id) || 0;
             const target    = p.weeklyTarget;
-            const available = Math.max(0, target - logged);
+            const available = Math.round(Math.max(0, target - logged) * 10) / 10;
             const logPct    = Math.min(110, Math.round((logged  / target) * 100));
             const demandPct = Math.min(110, Math.round((p.demand / target) * 100));
             const isOver    = logged > target;
