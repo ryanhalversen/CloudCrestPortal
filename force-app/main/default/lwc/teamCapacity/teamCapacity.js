@@ -132,7 +132,14 @@ export default class TeamCapacity extends LightningElement {
                 clientName:       p.clientName,
                 ownerName:        p.ownerName,
                 supportLeadName:  p.supportLeadName,
-                weeklyPace:       p.weeklyPace > 0 ? `${p.weeklyPace}h/wk` : '—',
+                weeklyPace:       (() => {
+                    const rem = Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0));
+                    const wks = p.remainingWeeks || 0;
+                    if (p.contractedHours > 0 && wks > 0) {
+                        return `${Math.round(rem / wks * 10) / 10}h/wk`;
+                    }
+                    return p.weeklyPace > 0 ? `${p.weeklyPace}h/wk` : '—';
+                })(),
                 contractedHours:  p.contractedHours || 0,
                 hoursDelivered:   p.hoursDelivered  || 0,
                 remainingHours:   remaining,
