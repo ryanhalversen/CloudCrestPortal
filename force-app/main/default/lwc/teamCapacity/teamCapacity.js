@@ -5,7 +5,7 @@ import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacity
 // Weekly billable hour targets per person.
 // Add/remove entries here. 'match' is a substring of the Salesforce User Name.
 const TEAM_CONFIG = [
-    { match: 'Ryan',  weeklyTarget: 35, role: 'FTE' },
+    { match: 'Ryan',  weeklyTarget: 35, role: 'FTE', exclude: true },
     { match: 'Chris', weeklyTarget: 35, role: 'FTE' },
     { match: 'Terri', weeklyTarget: 35, role: 'FTE' }
     // Example contractor entries:
@@ -52,8 +52,9 @@ export default class TeamCapacity extends LightningElement {
         const personMap = new Map();
         (this._data.projects || []).forEach(p => {
             if (!p.ownerId) return;
+            const cfg = TEAM_CONFIG.find(c => (p.ownerName || '').includes(c.match)) || {};
+            if (cfg.exclude) return;
             if (!personMap.has(p.ownerId)) {
-                const cfg = TEAM_CONFIG.find(c => (p.ownerName || '').includes(c.match)) || {};
                 personMap.set(p.ownerId, {
                     id:           p.ownerId,
                     name:         p.ownerName,
@@ -64,7 +65,13 @@ export default class TeamCapacity extends LightningElement {
                 });
             }
             const person = personMap.get(p.ownerId);
-            person.demand       += (p.weeklyPace || 0);
+            // Demand = remaining hours / remaining weeks (pace needed to finish on time)
+            const remaining = Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0));
+            const weeks     = p.remainingWeeks || 0;
+            const demand    = (p.contractedHours > 0 && weeks > 0)
+                              ? remaining / weeks
+                              : (p.weeklyPace || 0);
+            person.demand       += demand;
             person.projectCount += 1;
         });
 
@@ -89,7 +96,7 @@ export default class TeamCapacity extends LightningElement {
                 initials:     this._initials(p.name),
                 role:         p.role,
                 weeklyTarget: target,
-                demand:       p.demand,
+                demand:       Math.round(p.demand * 10) / 10,
                 logged:       logged,
                 available:    available,
                 logPct,
