@@ -64,32 +64,80 @@ export default class CapacityForecastTimeline extends LightningElement {
             this._chart = null;
         }
 
-        const { labels, weeks, demandData, capacityData, projectsByWeek, todayIndex } = this._buildForecast();
+        const { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex } = this._buildForecast();
 
         // Over-capacity fill dataset: mirrors demand data but used for fill zone
         const overCapacityData = demandData.map(d => (d > TEAM_CAPACITY ? d : TEAM_CAPACITY));
 
-        // Custom plugin: vertical "Today" line
+        // Custom plugin: vertical "Today" line + project end markers
         const todayLinePlugin = {
             id: 'todayLine',
             afterDraw(chart) {
-                if (todayIndex < 0) return;
                 const { ctx, scales: { x, y } } = chart;
-                const xPos = x.getPixelForValue(todayIndex);
-                ctx.save();
-                ctx.beginPath();
-                ctx.moveTo(xPos, y.top);
-                ctx.lineTo(xPos, y.bottom);
-                ctx.strokeStyle = 'rgba(239,68,68,0.85)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 3]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.fillStyle = 'rgba(239,68,68,0.85)';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('Today', xPos, y.top - 6);
-                ctx.restore();
+
+                // Draw "Today" vertical line
+                if (todayIndex >= 0) {
+                    const xPos = x.getPixelForValue(todayIndex);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, y.top);
+                    ctx.lineTo(xPos, y.bottom);
+                    ctx.strokeStyle = 'rgba(239,68,68,0.85)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(239,68,68,0.85)';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Today', xPos, y.top - 6);
+                    ctx.restore();
+                }
+
+                // Draw project end markers on the demand line
+                const endpointsByWeek = {};
+                projectEndpoints.forEach(ep => {
+                    if (!endpointsByWeek[ep.weekIndex]) endpointsByWeek[ep.weekIndex] = [];
+                    endpointsByWeek[ep.weekIndex].push(ep.name);
+                });
+
+                Object.entries(endpointsByWeek).forEach(([weekIndexStr, names]) => {
+                    const weekIndex = parseInt(weekIndexStr, 10);
+                    const xPos = x.getPixelForValue(weekIndex);
+                    const dotY = y.getPixelForValue(demandData[weekIndex]);
+
+                    // Filled circle at the demand line point
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(xPos, dotY, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Stem and label for each project ending this week
+                    names.forEach((name, stackPos) => {
+                        const stemTop = dotY - 18 - (stackPos * 14);
+                        const truncatedName = name.length > 18 ? name.substring(0, 18) : name;
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, dotY - 4);
+                        ctx.lineTo(xPos, stemTop);
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.font = '11px sans-serif';
+                        ctx.fillStyle = '#374151';
+                        ctx.textAlign = 'left';
+                        ctx.translate(xPos + 3, stemTop);
+                        ctx.rotate(-Math.PI / 4);
+                        ctx.fillText(truncatedName, 0, 0);
+                        ctx.restore();
+                    });
+                });
             }
         };
 
@@ -150,6 +198,9 @@ export default class CapacityForecastTimeline extends LightningElement {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 20 }
+                },
                 interaction: {
                     mode: 'index',
                     intersect: false
@@ -303,6 +354,22 @@ export default class CapacityForecastTimeline extends LightningElement {
 
         const capacityData = weeks.map(() => TEAM_CAPACITY);
 
-        return { labels, weeks, demandData, capacityData, projectsByWeek, todayIndex };
+        // Build end-date markers for non-overdue projects
+        const projectEndpoints = [];
+        projects.forEach(p => {
+            if (!p.endDate) return;
+            const projectEndTime = new Date(p.endDate + 'T00:00:00').getTime();
+            if (projectEndTime < todayTime) return; // skip overdue
+            for (let i = 0; i < weeks.length; i++) {
+                const weekEnd = new Date(weeks[i]);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                if (projectEndTime >= weeks[i].getTime() && projectEndTime <= weekEnd.getTime()) {
+                    projectEndpoints.push({ weekIndex: i, name: p.name });
+                    break;
+                }
+            }
+        });
+
+        return { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex };
     }
 }
