@@ -65,12 +65,7 @@ export default class TeamCapacity extends LightningElement {
                 });
             }
             const person = personMap.get(p.ownerId);
-            // Demand = remaining hours / remaining weeks (pace needed to finish on time)
-            const remaining = Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0));
-            const weeks     = p.remainingWeeks || 0;
-            const demand    = (p.contractedHours > 0 && weeks > 0)
-                              ? remaining / weeks
-                              : (p.weeklyPace || 0);
+            const demand = p.onTimeWeeklyPace || 0;
             person.demand       += demand;
             person.projectCount += 1;
         });
@@ -132,14 +127,8 @@ export default class TeamCapacity extends LightningElement {
                 clientName:       p.clientName,
                 ownerName:        p.ownerName,
                 supportLeadName:  p.supportLeadName,
-                weeklyPace:       (() => {
-                    const rem = Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0));
-                    const wks = p.remainingWeeks || 0;
-                    if (p.contractedHours > 0 && wks > 0) {
-                        return `${Math.round(rem / wks * 10) / 10}h/wk`;
-                    }
-                    return p.weeklyPace > 0 ? `${p.weeklyPace}h/wk` : '—';
-                })(),
+                weeklyPace:       p.onTimeWeeklyPace > 0
+                                  ? `${Math.round(p.onTimeWeeklyPace * 10) / 10}h/wk` : '—',
                 contractedHours:  p.contractedHours || 0,
                 hoursDelivered:   p.hoursDelivered  || 0,
                 remainingHours:   remaining,

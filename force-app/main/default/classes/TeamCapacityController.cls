@@ -18,6 +18,7 @@ public with sharing class TeamCapacityController {
                    Project_End_Date__c,
                    Pace_Status__c,
                    Remaining_Weeks__c,
+                   On_Time_Weekly_Pace__c,
                    Contract_Type__c,
                    Accountlu__r.Name
             FROM Sprint__c
@@ -33,6 +34,7 @@ public with sharing class TeamCapacityController {
             w.supportLeadId   = s.Support_Lead__c;
             w.supportLeadName = s.Support_Lead__r?.Name;
             w.weeklyPace      = s.Weekly_Pace_Estimate__c ?? 0;
+            w.onTimeWeeklyPace = s.On_Time_Weekly_Pace__c ?? 0;
             w.contractedHours = s.Contracted_Hours_Sprint__c ?? 0;
             w.hoursDelivered  = s.Hours_Delivered__c ?? 0;
             w.endDate         = s.Project_End_Date__c != null
@@ -83,6 +85,7 @@ public with sharing class TeamCapacityController {
         @AuraEnabled public Id      supportLeadId;
         @AuraEnabled public String  supportLeadName;
         @AuraEnabled public Decimal weeklyPace;
+        @AuraEnabled public Decimal onTimeWeeklyPace;
         @AuraEnabled public Decimal contractedHours;
         @AuraEnabled public Decimal hoursDelivered;
         @AuraEnabled public String  endDate;
