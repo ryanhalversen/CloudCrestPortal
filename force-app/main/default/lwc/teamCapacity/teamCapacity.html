@@ -27,10 +27,22 @@
                             <span class="cs-lbl">Total weekly demand</span>
                         </div>
                         <div class="cs-divider"></div>
-                        <div class="cs-stat">
-                            <span class="cs-val">{companySummary.totalCapacity}h</span>
-                            <span class="cs-lbl">Team capacity</span>
+                        <div class="cs-capacity-group">
+                            <div class="cs-group-label">Internal</div>
+                            <div class="cs-stat">
+                                <span class="cs-val">{companySummary.fteCapacity}h</span>
+                                <span class="cs-lbl">FTE capacity</span>
+                            </div>
                         </div>
+                        <template if:true={companySummary.hasContractors}>
+                        <div class="cs-capacity-group cs-capacity-group-ext">
+                            <div class="cs-group-label cs-group-label-ext">External</div>
+                            <div class="cs-stat">
+                                <span class="cs-val">{companySummary.contractorCapacity}h</span>
+                                <span class="cs-lbl">Contractor capacity</span>
+                            </div>
+                        </div>
+                        </template>
                         <div class="cs-divider"></div>
                         <div class="cs-stat">
                             <span class="cs-val">{companySummary.utilizationLabel}</span>
@@ -42,6 +54,7 @@
                     </div>
                 </div>
             </template>
+            <div class="person-section-header">Internal Team</div>
             <div class="person-row">
                 <template for:each={personCards} for:item="p">
                     <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
@@ -100,6 +113,9 @@
                         </div>
 
                     </div>
+                </template>
+                <template if:true={hasContractors}>
+                    <div class="person-section-header person-section-header-ext">Contractors</div>
                 </template>
                 <template for:each={contractorCards} for:item="c">
                     <div key={c.id} class="person-card">

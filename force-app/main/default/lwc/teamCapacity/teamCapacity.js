@@ -142,9 +142,10 @@ export default class TeamCapacity extends LightningElement {
         const cards = this.personCards;
         if (!cards.length) return null;
 
+        const fteCapacity        = cards.reduce((s, p) => s + p.weeklyTarget, 0);
         const contractorCapacity = (this._data.contractors || [])
             .reduce((s, c) => s + (c.weeklyHours || 0), 0);
-        const totalCapacity = cards.reduce((s, p) => s + p.weeklyTarget, 0) + contractorCapacity;
+        const totalCapacity = fteCapacity + contractorCapacity;
         const totalDemand   = cards.reduce((s, p) => s + p.demand, 0);
         const utilization   = totalCapacity > 0
                               ? Math.round((totalDemand / totalCapacity) * 100) : 0;
@@ -154,12 +155,15 @@ export default class TeamCapacity extends LightningElement {
 
         return {
             totalCapacity,
-            totalDemand:   Math.round(totalDemand * 10) / 10,
+            fteCapacity,
+            contractorCapacity,
+            hasContractors:  contractorCapacity > 0,
+            totalDemand:     Math.round(totalDemand * 10) / 10,
             utilization,
-            barStyle:      `width:${barPct}%`,
-            barClass:      isOver ? 'util-bar util-bar-over'
-                          : isHigh ? 'util-bar util-bar-high'
-                          : 'util-bar util-bar-ok',
+            barStyle:        `width:${barPct}%`,
+            barClass:        isOver ? 'util-bar util-bar-over'
+                            : isHigh ? 'util-bar util-bar-high'
+                            : 'util-bar util-bar-ok',
             utilizationLabel: `${utilization}%`
         };
     }
@@ -210,6 +214,7 @@ export default class TeamCapacity extends LightningElement {
         });
     }
 
+    get hasContractors()  { return (this._data?.contractors || []).length > 0; }
     get hasProjects()     { return this.projectRows.length > 0; }
     get noProjects()      { return !this.isLoading && !this.hasProjects; }
     get showEmpty()       { return !this.isLoading && !this.error && this.noProjects; }

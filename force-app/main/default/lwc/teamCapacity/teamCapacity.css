@@ -158,6 +158,21 @@
 .muted      { color: #d1d5db; }
 .empty-state { padding: 24px; text-align: center; color: #9ca3af; font-size: 0.85rem; }
 
+/* ── Person row section headers ─────────────────────────────────────── */
+.person-section-header {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    padding-left: 2px;
+}
+.person-section-header-ext {
+    margin-top: 16px;
+    color: #7c3aed;
+}
+
 /* ── Company summary banner ─────────────────────────────────────────── */
 .company-summary {
     background: #f8f9fa;
@@ -201,6 +216,28 @@
     width: 1px;
     height: 36px;
     background: #e5e7eb;
+}
+
+/* capacity group (internal / external) */
+.cs-capacity-group {
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    border-left: 2px solid #e5e7eb;
+}
+.cs-capacity-group-ext {
+    border-left-color: #ddd6fe;
+}
+.cs-group-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+.cs-group-label-ext {
+    color: #7c3aed;
 }
 
 /* utilization bar */
