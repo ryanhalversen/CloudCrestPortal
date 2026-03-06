@@ -1,0 +1,56 @@
+/* capacityForecastTimeline.css */
+
+.chart-container {
+    position: relative;
+    height: 280px;
+}
+
+.forecast-canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.legend-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #555;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.legend-demand {
+    background: #f59e0b;
+}
+
+.legend-dash {
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    border-top: 2px dashed #0e7490;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.legend-over {
+    background: rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+}

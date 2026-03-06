@@ -1,0 +1,38 @@
+<!-- capacityForecastTimeline.html -->
+<template>
+<lightning-card title="Capacity Forecast — Weekly Through End of Year" icon-name="utility:chart">
+
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="slds-p-around_large slds-text-align_center">
+            <lightning-spinner alternative-text="Loading forecast" size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <!-- Error -->
+    <template if:true={error}>
+        <div class="slds-p-around_medium slds-text-color_error">{error}</div>
+    </template>
+
+    <!-- Chart -->
+    <template if:false={isLoading}>
+    <template if:false={error}>
+        <div class="chart-container slds-p-horizontal_medium slds-p-bottom_medium">
+            <canvas class="forecast-canvas" lwc:ref="canvas"></canvas>
+        </div>
+        <div class="legend-row slds-p-horizontal_medium slds-p-bottom_small">
+            <span class="legend-item">
+                <span class="legend-dot legend-demand"></span>Projected Demand
+            </span>
+            <span class="legend-item">
+                <span class="legend-dash legend-capacity"></span>Team Capacity (70h/wk)
+            </span>
+            <span class="legend-item">
+                <span class="legend-swatch legend-over"></span>Over Capacity
+            </span>
+        </div>
+    </template>
+    </template>
+
+</lightning-card>
+</template>
