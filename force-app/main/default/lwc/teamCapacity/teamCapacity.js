@@ -65,8 +65,8 @@ export default class TeamCapacity extends LightningElement {
                 });
             }
             const person = personMap.get(p.ownerId);
-            const demand = p.onTimeWeeklyPace || 0;
-            person.demand       += demand;
+            const ownerSplit = 1 - ((p.supportSplit || 0) / 100);
+            person.demand       += (p.onTimeWeeklyPace || 0) * ownerSplit;
             person.projectCount += 1;
         });
 
@@ -142,10 +142,13 @@ export default class TeamCapacity extends LightningElement {
             const endDate  = p.endDate
                              ? new Date(p.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
                              : '—';
-            // When filtering by a support lead, show their split portion of the pace
+            // When filtering by person, show their split-adjusted portion of the pace
             const isSupportLeadView = this._selectedId && p.supportLeadId === this._selectedId && p.ownerId !== this._selectedId;
+            const isOwnerSplitView  = this._selectedId && p.ownerId === this._selectedId && p.supportSplit;
             const effectivePace = isSupportLeadView
                                   ? (p.onTimeWeeklyPace || 0) * ((p.supportSplit || 0) / 100)
+                                  : isOwnerSplitView
+                                  ? (p.onTimeWeeklyPace || 0) * (1 - (p.supportSplit || 0) / 100)
                                   : (p.onTimeWeeklyPace || 0);
             return {
                 id:               p.id,
