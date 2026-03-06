@@ -142,14 +142,19 @@ export default class TeamCapacity extends LightningElement {
             const endDate  = p.endDate
                              ? new Date(p.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
                              : '—';
+            // When filtering by a support lead, show their split portion of the pace
+            const isSupportLeadView = this._selectedId && p.supportLeadId === this._selectedId && p.ownerId !== this._selectedId;
+            const effectivePace = isSupportLeadView
+                                  ? (p.onTimeWeeklyPace || 0) * ((p.supportSplit || 0) / 100)
+                                  : (p.onTimeWeeklyPace || 0);
             return {
                 id:               p.id,
                 name:             p.name,
                 clientName:       p.clientName,
                 ownerName:        p.ownerName,
                 supportLeadName:  p.supportLeadName,
-                weeklyPace:       p.onTimeWeeklyPace > 0
-                                  ? `${Math.round(p.onTimeWeeklyPace * 10) / 10}h/wk` : '—',
+                weeklyPace:       effectivePace > 0
+                                  ? `${Math.round(effectivePace * 10) / 10}h/wk` : '—',
                 contractedHours:  p.contractedHours || 0,
                 hoursDelivered:   p.hoursDelivered  || 0,
                 remainingHours:   remaining,
