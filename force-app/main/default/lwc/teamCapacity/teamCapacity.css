@@ -158,19 +158,82 @@
 .muted      { color: #d1d5db; }
 .empty-state { padding: 24px; text-align: center; color: #9ca3af; font-size: 0.85rem; }
 
-/* ── Person row section headers ─────────────────────────────────────── */
-.person-section-header {
-    font-size: 0.7rem;
+/* ── Tab navigation ──────────────────────────────────────────────────── */
+.cap-tab-nav {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+.cap-tab-btn {
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #6b7280;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: color 0.15s;
+}
+.cap-tab-btn:hover           { color: #374151; }
+.cap-tab-btn-active          { color: #0e7490; border-bottom-color: #0e7490; }
+.cap-tab-btn-ext:hover       { color: #5b21b6; }
+.cap-tab-btn-ext.cap-tab-btn-active { color: #7c3aed; border-bottom-color: #7c3aed; }
+.cap-tab-count {
+    font-size: 0.68rem;
     font-weight: 700;
+    background: #f1f5f9;
+    color: #6b7280;
+    padding: 1px 7px;
+    border-radius: 10px;
+}
+.cap-tab-count-ext { background: #ede9fe; color: #7c3aed; }
+
+/* ── Tab summary cards ───────────────────────────────────────────────── */
+.tab-card {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+}
+.tab-card-contractor {
+    background: #faf5ff;
+    border-color: #ddd6fe;
+}
+.tc-stats {
+    display: flex;
+    align-items: center;
+}
+.tc-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+}
+.tc-stat:first-child { padding-left: 0; }
+.tc-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.2;
+}
+.tc-lbl {
+    font-size: 0.72rem;
     color: #6b7280;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 8px;
-    padding-left: 2px;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
 }
-.person-section-header-ext {
-    margin-top: 16px;
-    color: #7c3aed;
+.tc-divider {
+    width: 1px;
+    height: 36px;
+    background: #e5e7eb;
+    flex-shrink: 0;
 }
 
 /* ── Company summary banner ─────────────────────────────────────────── */

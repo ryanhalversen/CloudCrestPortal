@@ -22,6 +22,7 @@ const PACE_CLASSES = {
 export default class TeamCapacity extends LightningElement {
     @track _data        = null;
     @track _selectedId  = null;
+    @track _activeTab   = 'internal';
     @track isLoading    = true;
     @track error        = null;
 
@@ -214,7 +215,47 @@ export default class TeamCapacity extends LightningElement {
         });
     }
 
-    get hasContractors()  { return (this._data?.contractors || []).length > 0; }
+    get hasContractors()      { return (this._data?.contractors || []).length > 0; }
+    get isInternalTab()       { return this._activeTab === 'internal'; }
+    get isContractorsTab()    { return this._activeTab === 'contractors'; }
+    get personCardCount()     { return this.personCards.length; }
+    get contractorCardCount() { return this.contractorCards.length; }
+
+    get internalTabClass() {
+        return `cap-tab-btn${this._activeTab === 'internal' ? ' cap-tab-btn-active' : ''}`;
+    }
+    get contractorsTabClass() {
+        return `cap-tab-btn cap-tab-btn-ext${this._activeTab === 'contractors' ? ' cap-tab-btn-active' : ''}`;
+    }
+
+    get internalSummary() {
+        const cards = this.personCards;
+        if (!cards.length) return null;
+        const capacity    = cards.reduce((s, p) => s + p.weeklyTarget, 0);
+        const demand      = cards.reduce((s, p) => s + p.demand, 0);
+        const utilization = capacity > 0 ? Math.round((demand / capacity) * 100) : 0;
+        const atCapCount  = cards.filter(p => p.isOver).length;
+        const isOver      = utilization > 100;
+        const isHigh      = !isOver && utilization >= 85;
+        return {
+            capacity,
+            demand:           Math.round(demand * 10) / 10,
+            utilizationLabel: `${utilization}%`,
+            memberCount:      cards.length,
+            atCapCount,
+            barStyle:  `width:${Math.min(100, utilization)}%`,
+            barClass:  isOver ? 'util-bar util-bar-over' : isHigh ? 'util-bar util-bar-high' : 'util-bar util-bar-ok'
+        };
+    }
+
+    get contractorSummary() {
+        const contractors = this._data?.contractors || [];
+        return {
+            totalHours: contractors.reduce((s, c) => s + (c.weeklyHours || 0), 0),
+            count:      contractors.length
+        };
+    }
+
     get hasProjects()     { return this.projectRows.length > 0; }
     get noProjects()      { return !this.isLoading && !this.hasProjects; }
     get showEmpty()       { return !this.isLoading && !this.error && this.noProjects; }
@@ -231,6 +272,11 @@ export default class TeamCapacity extends LightningElement {
     }
 
     handleClearFilter() { this._selectedId = null; }
+
+    handleTabClick(e) {
+        this._activeTab  = e.currentTarget.dataset.tab;
+        this._selectedId = null;
+    }
 
     handleProjectClick(e) {
         const id = e.currentTarget.dataset.id;
