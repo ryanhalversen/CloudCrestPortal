@@ -94,7 +94,7 @@ export default class TeamCapacity extends LightningElement {
         return Array.from(personMap.values()).map(p => {
             const logged    = loggedMap.get(p.id) || 0;
             const target    = p.weeklyTarget;
-            const available = Math.round(Math.max(0, target - logged) * 10) / 10;
+            const available = p.demand > 30 ? null : Math.round(Math.max(0, target - p.demand) * 10) / 10;
             const logPct    = Math.min(110, Math.round((logged  / target) * 100));
             const demandPct = Math.min(110, Math.round((p.demand / target) * 100));
             const isAtCap   = p.demand > 30;

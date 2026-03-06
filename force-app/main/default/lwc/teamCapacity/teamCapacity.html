@@ -44,11 +44,13 @@
                                 <div class="cap-stat-val">{p.demand}h</div>
                                 <div class="cap-stat-lbl">Weekly demand</div>
                             </div>
+                            <template if:true={p.available}>
                             <div class="cap-stat-divider"></div>
                             <div class="cap-stat">
                                 <div class="cap-stat-val">{p.available}h</div>
                                 <div class="cap-stat-lbl">Available</div>
                             </div>
+                            </template>
                             <div class="cap-stat-divider"></div>
                             <div class="cap-stat">
                                 <div class="cap-stat-val">{p.projectCount}</div>
