@@ -64,7 +64,7 @@ export default class CapacityForecastTimeline extends LightningElement {
             this._chart = null;
         }
 
-        const { labels, demandData, capacityData, projectsByWeek, todayIndex } = this._buildForecast();
+        const { labels, weeks, demandData, capacityData, projectsByWeek, todayIndex } = this._buildForecast();
 
         // Over-capacity fill dataset: mirrors demand data but used for fill zone
         const overCapacityData = demandData.map(d => (d > TEAM_CAPACITY ? d : TEAM_CAPACITY));
@@ -194,9 +194,22 @@ export default class CapacityForecastTimeline extends LightningElement {
                 scales: {
                     x: {
                         ticks: {
-                            maxTicksLimit: 22, // ~every 2 weeks for 43 week range
+                            autoSkip: false,
                             maxRotation: 45,
-                            font: { size: 11 }
+                            font: { size: 11 },
+                            callback: (value, index) => {
+                                const week = weeks[index];
+                                if (!week) return null;
+                                // Show a label only when the 1st of a month falls within this week (Mon–Sun)
+                                for (let d = 0; d < 7; d++) {
+                                    const day = new Date(week);
+                                    day.setDate(week.getDate() + d);
+                                    if (day.getDate() === 1) {
+                                        return day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                    }
+                                }
+                                return null;
+                            }
                         },
                         grid: {
                             color: 'rgba(0,0,0,0.06)'
@@ -290,6 +303,6 @@ export default class CapacityForecastTimeline extends LightningElement {
 
         const capacityData = weeks.map(() => TEAM_CAPACITY);
 
-        return { labels, demandData, capacityData, projectsByWeek, todayIndex };
+        return { labels, weeks, demandData, capacityData, projectsByWeek, todayIndex };
     }
 }
