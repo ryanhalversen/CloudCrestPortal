@@ -3,8 +3,9 @@ import { loadScript } from 'lightning/platformResourceLoader';
 import CHARTJS from '@salesforce/resourceUrl/chartjs';
 import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacityData';
 
-const TEAM_CAPACITY = 70; // h/week — Chris 35 + Terri 35
-const YEAR_END = new Date(2026, 11, 28); // Dec 28, 2026 (last Monday in Dec)
+const TEAM_CAPACITY = 35; // h/week — team billable target
+const YEAR_START = new Date(2026, 0, 5);  // Jan 5, 2026 (first Monday of 2026)
+const YEAR_END   = new Date(2026, 11, 28); // Dec 28, 2026 (last Monday in Dec)
 
 export default class CapacityForecastTimeline extends LightningElement {
     _chart = null;
@@ -63,13 +64,38 @@ export default class CapacityForecastTimeline extends LightningElement {
             this._chart = null;
         }
 
-        const { labels, demandData, capacityData, projectsByWeek } = this._buildForecast();
+        const { labels, demandData, capacityData, projectsByWeek, todayIndex } = this._buildForecast();
 
         // Over-capacity fill dataset: mirrors demand data but used for fill zone
         const overCapacityData = demandData.map(d => (d > TEAM_CAPACITY ? d : TEAM_CAPACITY));
 
+        // Custom plugin: vertical "Today" line
+        const todayLinePlugin = {
+            id: 'todayLine',
+            afterDraw(chart) {
+                if (todayIndex < 0) return;
+                const { ctx, scales: { x, y } } = chart;
+                const xPos = x.getPixelForValue(todayIndex);
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(xPos, y.top);
+                ctx.lineTo(xPos, y.bottom);
+                ctx.strokeStyle = 'rgba(239,68,68,0.85)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(239,68,68,0.85)';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Today', xPos, y.top - 6);
+                ctx.restore();
+            }
+        };
+
         /* global Chart */
         this._chart = new Chart(canvas, {
+            plugins: [todayLinePlugin],
             type: 'line',
             data: {
                 labels,
@@ -198,20 +224,27 @@ export default class CapacityForecastTimeline extends LightningElement {
 
     // ── Forecast computation ──────────────────────────────────────────────
     _buildForecast() {
-        // Find this week's Monday
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon ... 6=Sat
-        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        const firstMonday = new Date(today);
-        firstMonday.setDate(today.getDate() + daysToMonday);
+        const todayTime = today.getTime();
 
-        // Generate all Monday week slots through Dec 28 2026
+        // Generate all Monday week slots for the full calendar year
         const weeks = [];
-        const cur = new Date(firstMonday);
+        const cur = new Date(YEAR_START);
         while (cur <= YEAR_END) {
             weeks.push(new Date(cur));
             cur.setDate(cur.getDate() + 7);
+        }
+
+        // Find the index of the week containing today
+        let todayIndex = -1;
+        for (let i = 0; i < weeks.length; i++) {
+            const weekEnd = new Date(weeks[i]);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            if (todayTime >= weeks[i].getTime() && todayTime <= weekEnd.getTime()) {
+                todayIndex = i;
+                break;
+            }
         }
 
         const labels = weeks.map(w =>
@@ -219,7 +252,6 @@ export default class CapacityForecastTimeline extends LightningElement {
         );
 
         const projects = this._data.projects || [];
-        const todayTime = today.getTime();
 
         const demandData = [];
         const projectsByWeek = [];
@@ -258,6 +290,6 @@ export default class CapacityForecastTimeline extends LightningElement {
 
         const capacityData = weeks.map(() => TEAM_CAPACITY);
 
-        return { labels, demandData, capacityData, projectsByWeek };
+        return { labels, demandData, capacityData, projectsByWeek, todayIndex };
     }
 }
