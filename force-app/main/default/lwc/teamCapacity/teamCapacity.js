@@ -65,8 +65,8 @@ export default class TeamCapacity extends LightningElement {
                 });
             }
             const person = personMap.get(p.ownerId);
-            const ownerSplit = 1 - ((p.supportSplit || 0) / 100);
-            person.demand       += (p.onTimeWeeklyPace || 0) * ownerSplit;
+            const ownerSplit = 1 - (p.supportSplit || 0);
+            person.demand       += Math.max(0, p.onTimeWeeklyPace || 0) * ownerSplit;
             person.projectCount += 1;
         });
 
@@ -86,8 +86,8 @@ export default class TeamCapacity extends LightningElement {
                 });
             }
             const person = personMap.get(p.supportLeadId);
-            const split  = (p.supportSplit || 0) / 100;
-            person.demand       += (p.onTimeWeeklyPace || 0) * split;
+            const split  = p.supportSplit || 0;
+            person.demand       += Math.max(0, p.onTimeWeeklyPace || 0) * split;
             person.projectCount += 1;
         });
 
@@ -146,9 +146,9 @@ export default class TeamCapacity extends LightningElement {
             const isSupportLeadView = this._selectedId && p.supportLeadId === this._selectedId && p.ownerId !== this._selectedId;
             const isOwnerSplitView  = this._selectedId && p.ownerId === this._selectedId && p.supportSplit;
             const effectivePace = isSupportLeadView
-                                  ? (p.onTimeWeeklyPace || 0) * ((p.supportSplit || 0) / 100)
+                                  ? (p.onTimeWeeklyPace || 0) * (p.supportSplit || 0)
                                   : isOwnerSplitView
-                                  ? (p.onTimeWeeklyPace || 0) * (1 - (p.supportSplit || 0) / 100)
+                                  ? (p.onTimeWeeklyPace || 0) * (1 - (p.supportSplit || 0))
                                   : (p.onTimeWeeklyPace || 0);
             return {
                 id:               p.id,
