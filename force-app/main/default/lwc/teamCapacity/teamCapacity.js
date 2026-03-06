@@ -97,14 +97,12 @@ export default class TeamCapacity extends LightningElement {
             const available = Math.round(Math.max(0, target - logged) * 10) / 10;
             const logPct    = Math.min(110, Math.round((logged  / target) * 100));
             const demandPct = Math.min(110, Math.round((p.demand / target) * 100));
-            const isOver    = logged > target;
-            const isNearCap = !isOver && logPct >= 80;
+            const isAtCap   = logged > 30;
             const isSelected = p.id === this._selectedId;
 
             let statusLabel, statusClass;
-            if (isOver)    { statusLabel = 'Over Capacity'; statusClass = 'cap-status cap-over'; }
-            else if (isNearCap) { statusLabel = 'Near Capacity'; statusClass = 'cap-status cap-near'; }
-            else            { statusLabel = 'Available';     statusClass = 'cap-status cap-ok'; }
+            if (isAtCap) { statusLabel = 'At Capacity'; statusClass = 'cap-status cap-over'; }
+            else         { statusLabel = 'Available';   statusClass = 'cap-status cap-ok'; }
 
             return {
                 id:           p.id,
@@ -117,7 +115,7 @@ export default class TeamCapacity extends LightningElement {
                 available:    available,
                 logPct,
                 demandPct,
-                isOver,
+                isOver: isAtCap,
                 statusLabel,
                 statusClass,
                 projectCount: p.projectCount,
