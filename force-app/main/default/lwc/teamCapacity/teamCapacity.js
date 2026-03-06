@@ -97,7 +97,7 @@ export default class TeamCapacity extends LightningElement {
             const available = Math.round(Math.max(0, target - logged) * 10) / 10;
             const logPct    = Math.min(110, Math.round((logged  / target) * 100));
             const demandPct = Math.min(110, Math.round((p.demand / target) * 100));
-            const isAtCap   = logged > 30;
+            const isAtCap   = p.demand > 30;
             const isSelected = p.id === this._selectedId;
 
             let statusLabel, statusClass;
