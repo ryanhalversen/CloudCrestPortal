@@ -1,0 +1,151 @@
+<!-- teamCapacity.html -->
+<template>
+<lightning-card title="Team Capacity" icon-name="standard:groups">
+
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="slds-p-around_large slds-text-align_center">
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <!-- Error -->
+    <template if:true={error}>
+        <div class="slds-p-around_medium slds-text-color_error">{error}</div>
+    </template>
+
+    <template if:false={isLoading}>
+    <template if:false={error}>
+
+        <!-- ── PERSON CAPACITY CARDS ───────────────────────────────────── -->
+        <div class="slds-p-horizontal_medium slds-m-bottom_medium">
+            <div class="person-row">
+                <template for:each={personCards} for:item="p">
+                    <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
+
+                        <!-- Avatar + name -->
+                        <div class="person-header">
+                            <div class="person-avatar">{p.initials}</div>
+                            <div class="person-info">
+                                <div class="person-name">{p.name}</div>
+                                <div class="person-meta">{p.role} &middot; {p.weeklyTarget}h/wk target</div>
+                            </div>
+                            <div class={p.statusClass}>{p.statusLabel}</div>
+                        </div>
+
+                        <!-- Stats row -->
+                        <div class="cap-stats">
+                            <div class="cap-stat">
+                                <div class="cap-stat-val">{p.logged}h</div>
+                                <div class="cap-stat-lbl">Logged this week</div>
+                            </div>
+                            <div class="cap-stat-divider"></div>
+                            <div class="cap-stat">
+                                <div class="cap-stat-val">{p.demand}h</div>
+                                <div class="cap-stat-lbl">Weekly demand</div>
+                            </div>
+                            <div class="cap-stat-divider"></div>
+                            <div class="cap-stat">
+                                <div class="cap-stat-val">{p.available}h</div>
+                                <div class="cap-stat-lbl">Available</div>
+                            </div>
+                            <div class="cap-stat-divider"></div>
+                            <div class="cap-stat">
+                                <div class="cap-stat-val">{p.projectCount}</div>
+                                <div class="cap-stat-lbl">Projects</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress bars -->
+                        <div class="cap-bars">
+                            <div class="cap-bar-row">
+                                <span class="cap-bar-lbl">Logged</span>
+                                <div class="cap-track">
+                                    <div class="cap-fill cap-fill-logged" style={p.logBarStyle}></div>
+                                </div>
+                                <span class="cap-bar-pct">{p.logPct}%</span>
+                            </div>
+                            <div class="cap-bar-row">
+                                <span class="cap-bar-lbl">Demand</span>
+                                <div class="cap-track">
+                                    <div class="cap-fill cap-fill-demand" style={p.demandBarStyle}></div>
+                                </div>
+                                <span class="cap-bar-pct">{p.demandPct}%</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ── PROJECT TABLE ───────────────────────────────────────────── -->
+        <div class="slds-p-horizontal_medium">
+
+            <!-- Table header row -->
+            <div class="table-header-row">
+                <span class="table-title">{filterLabel}</span>
+                <template if:true={_selectedId}>
+                    <button class="clear-filter-btn" onclick={handleClearFilter}>✕ Show all</button>
+                </template>
+            </div>
+
+            <!-- Table -->
+            <template if:true={hasProjects}>
+            <div class="table-wrap">
+                <table class="cap-table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Client</th>
+                            <th>Owner</th>
+                            <th>Support</th>
+                            <th>Pace / wk</th>
+                            <th>Progress</th>
+                            <th>Remaining</th>
+                            <th>End Date</th>
+                            <th>Weeks Left</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={projectRows} for:item="p">
+                            <tr key={p.id} class="cap-row" data-id={p.id} onclick={handleProjectClick}>
+                                <td class="col-project">{p.name}</td>
+                                <td class="col-client">{p.clientName}</td>
+                                <td class="col-owner">{p.ownerName}</td>
+                                <td class="col-support">
+                                    <template if:true={p.supportLeadName}>{p.supportLeadName}</template>
+                                    <template if:false={p.supportLeadName}><span class="muted">—</span></template>
+                                </td>
+                                <td class="col-pace">{p.weeklyPace}</td>
+                                <td class="col-progress">
+                                    <div class="prog-track">
+                                        <div class={p.progressClass} style={p.progressStyle}></div>
+                                    </div>
+                                    <span class="prog-label">{p.hoursDelivered}h / {p.contractedHours}h</span>
+                                </td>
+                                <td class="col-remaining">{p.remainingHours}h</td>
+                                <td class="col-date">{p.endDate}</td>
+                                <td class="col-weeks">{p.remainingWeeks}</td>
+                                <td class="col-pace-status">
+                                    <span class={p.paceClass}>{p.paceStatus}</span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            </template>
+
+            <template if:true={showEmpty}>
+                <div class="empty-state">No active projects found.</div>
+            </template>
+
+        </div>
+
+    </template>
+    </template>
+
+</lightning-card>
+</template>
