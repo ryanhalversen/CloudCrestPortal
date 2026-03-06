@@ -155,3 +155,66 @@
 
 .muted      { color: #d1d5db; }
 .empty-state { padding: 24px; text-align: center; color: #9ca3af; font-size: 0.85rem; }
+
+/* ── Company summary banner ─────────────────────────────────────────── */
+.company-summary {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+}
+
+.cs-stats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 10px;
+}
+
+.cs-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+}
+
+.cs-stat:first-child { padding-left: 0; }
+
+.cs-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.2;
+}
+
+.cs-lbl {
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+.cs-divider {
+    width: 1px;
+    height: 36px;
+    background: #e5e7eb;
+}
+
+/* utilization bar */
+.util-track {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.util-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.util-bar-ok   { background: #22c55e; }
+.util-bar-high { background: #f59e0b; }
+.util-bar-over { background: #ef4444; }

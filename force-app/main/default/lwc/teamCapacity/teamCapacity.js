@@ -126,6 +126,31 @@ export default class TeamCapacity extends LightningElement {
         });
     }
 
+    // ── Company summary ───────────────────────────────────────────────────
+    get companySummary() {
+        const cards = this.personCards;
+        if (!cards.length) return null;
+
+        const totalCapacity = cards.reduce((s, p) => s + p.weeklyTarget, 0);
+        const totalDemand   = cards.reduce((s, p) => s + p.demand, 0);
+        const utilization   = totalCapacity > 0
+                              ? Math.round((totalDemand / totalCapacity) * 100) : 0;
+        const barPct        = Math.min(100, utilization);
+        const isOver        = utilization > 100;
+        const isHigh        = !isOver && utilization >= 85;
+
+        return {
+            totalCapacity,
+            totalDemand:   Math.round(totalDemand * 10) / 10,
+            utilization,
+            barStyle:      `width:${barPct}%`,
+            barClass:      isOver ? 'util-bar util-bar-over'
+                          : isHigh ? 'util-bar util-bar-high'
+                          : 'util-bar util-bar-ok',
+            utilizationLabel: `${utilization}%`
+        };
+    }
+
     // ── Project rows ──────────────────────────────────────────────────────
     get projectRows() {
         const projects = this._data?.projects || [];

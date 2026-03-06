@@ -19,6 +19,29 @@
 
         <!-- ── PERSON CAPACITY CARDS ───────────────────────────────────── -->
         <div class="slds-p-horizontal_medium slds-m-bottom_medium">
+            <template if:true={companySummary}>
+                <div class="company-summary">
+                    <div class="cs-stats">
+                        <div class="cs-stat">
+                            <span class="cs-val">{companySummary.totalDemand}h</span>
+                            <span class="cs-lbl">Total weekly demand</span>
+                        </div>
+                        <div class="cs-divider"></div>
+                        <div class="cs-stat">
+                            <span class="cs-val">{companySummary.totalCapacity}h</span>
+                            <span class="cs-lbl">Team capacity</span>
+                        </div>
+                        <div class="cs-divider"></div>
+                        <div class="cs-stat">
+                            <span class="cs-val">{companySummary.utilizationLabel}</span>
+                            <span class="cs-lbl">Utilization</span>
+                        </div>
+                    </div>
+                    <div class="util-track">
+                        <div class={companySummary.barClass} style={companySummary.barStyle}></div>
+                    </div>
+                </div>
+            </template>
             <div class="person-row">
                 <template for:each={personCards} for:item="p">
                     <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
