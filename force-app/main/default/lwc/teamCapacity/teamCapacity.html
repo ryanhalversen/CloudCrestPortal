@@ -101,6 +101,24 @@
 
                     </div>
                 </template>
+                <template for:each={contractorCards} for:item="c">
+                    <div key={c.id} class="person-card">
+                        <div class="person-header">
+                            <div class="person-avatar contractor-avatar">{c.initials}</div>
+                            <div class="person-info">
+                                <div class="person-name">{c.name}</div>
+                                <div class="person-meta">Contractor &middot; {c.weeklyHours}h/wk available</div>
+                            </div>
+                            <div class="cap-status cap-contractor">Contractor</div>
+                        </div>
+                        <div class="cap-stats">
+                            <div class="cap-stat">
+                                <div class="cap-stat-val">{c.weeklyHours}h</div>
+                                <div class="cap-stat-lbl">Available / week</div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
 

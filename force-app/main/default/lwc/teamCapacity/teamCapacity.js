@@ -126,12 +126,25 @@ export default class TeamCapacity extends LightningElement {
         });
     }
 
+    // ── Contractor cards ──────────────────────────────────────────────────
+    get contractorCards() {
+        if (!this._data?.contractors) return [];
+        return (this._data.contractors || []).map(c => ({
+            id:          c.id,
+            name:        c.name,
+            initials:    this._initials(c.name),
+            weeklyHours: c.weeklyHours
+        }));
+    }
+
     // ── Company summary ───────────────────────────────────────────────────
     get companySummary() {
         const cards = this.personCards;
         if (!cards.length) return null;
 
-        const totalCapacity = cards.reduce((s, p) => s + p.weeklyTarget, 0);
+        const contractorCapacity = (this._data.contractors || [])
+            .reduce((s, c) => s + (c.weeklyHours || 0), 0);
+        const totalCapacity = cards.reduce((s, p) => s + p.weeklyTarget, 0) + contractorCapacity;
         const totalDemand   = cards.reduce((s, p) => s + p.demand, 0);
         const utilization   = totalCapacity > 0
                               ? Math.round((totalDemand / totalCapacity) * 100) : 0;

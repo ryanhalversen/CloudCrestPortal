@@ -2,7 +2,7 @@ public with sharing class TeamCapacityController {
 
     @AuraEnabled(cacheable=true)
     public static CapacityData getCapacityData() {
-        return new CapacityData(buildProjects(), buildWeeklyHours());
+        return new CapacityData(buildProjects(), buildWeeklyHours(), buildContractors());
     }
 
     // ── Active projects ────────────────────────────────────────────────────
@@ -68,14 +68,42 @@ public with sharing class TeamCapacityController {
         return result;
     }
 
+    // ── Contractors ────────────────────────────────────────────────────────
+    private static List<ContractorWrapper> buildContractors() {
+        List<ContractorWrapper> result = new List<ContractorWrapper>();
+        for (Contact c : [
+            SELECT Id, Name, Available_Hours__c
+            FROM Contact
+            WHERE Account.Name = 'CloudCrest Contractors'
+              AND Available_Hours__c != null
+              AND Available_Hours__c > 0
+            ORDER BY Name ASC
+        ]) {
+            ContractorWrapper w = new ContractorWrapper();
+            w.id          = c.Id;
+            w.name        = c.Name;
+            w.weeklyHours = c.Available_Hours__c;
+            result.add(w);
+        }
+        return result;
+    }
+
     // ── Wrappers ───────────────────────────────────────────────────────────
     public class CapacityData {
-        @AuraEnabled public List<ProjectWrapper>   projects;
-        @AuraEnabled public List<UserHoursWrapper> weeklyHours;
-        public CapacityData(List<ProjectWrapper> p, List<UserHoursWrapper> h) {
+        @AuraEnabled public List<ProjectWrapper>    projects;
+        @AuraEnabled public List<UserHoursWrapper>  weeklyHours;
+        @AuraEnabled public List<ContractorWrapper> contractors;
+        public CapacityData(List<ProjectWrapper> p, List<UserHoursWrapper> h, List<ContractorWrapper> c) {
             projects    = p;
             weeklyHours = h;
+            contractors = c;
         }
+    }
+
+    public class ContractorWrapper {
+        @AuraEnabled public Id      id;
+        @AuraEnabled public String  name;
+        @AuraEnabled public Decimal weeklyHours;
     }
 
     public class ProjectWrapper {

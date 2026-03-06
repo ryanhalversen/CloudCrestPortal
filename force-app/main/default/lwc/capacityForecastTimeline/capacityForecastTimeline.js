@@ -3,7 +3,7 @@ import { loadScript } from 'lightning/platformResourceLoader';
 import CHARTJS from '@salesforce/resourceUrl/chartjs';
 import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacityData';
 
-const TEAM_CAPACITY = 105; // h/week — 3 FTEs × 35h each
+const FTE_CAPACITY = 105; // h/week — 3 FTEs × 35h each
 const YEAR_START = new Date(2026, 0, 5);  // Jan 5, 2026 (first Monday of 2026)
 const YEAR_END   = new Date(2026, 11, 28); // Dec 28, 2026 (last Monday in Dec)
 
@@ -64,10 +64,10 @@ export default class CapacityForecastTimeline extends LightningElement {
             this._chart = null;
         }
 
-        const { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex } = this._buildForecast();
+        const { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex, totalCapacity } = this._buildForecast();
 
         // Over-capacity fill dataset: mirrors demand data but used for fill zone
-        const overCapacityData = demandData.map(d => (d > TEAM_CAPACITY ? d : TEAM_CAPACITY));
+        const overCapacityData = demandData.map(d => (d > totalCapacity ? d : totalCapacity));
 
         // Custom plugin: vertical "Today" line + project end markers
         const todayLinePlugin = {
@@ -217,13 +217,13 @@ export default class CapacityForecastTimeline extends LightningElement {
                             beforeBody: (items) => {
                                 const idx = items[0].dataIndex;
                                 const demand = demandData[idx];
-                                const delta = demand - TEAM_CAPACITY;
+                                const delta = demand - totalCapacity;
                                 const deltaStr = delta >= 0
                                     ? `+${Math.round(delta * 10) / 10}h over`
                                     : `${Math.round(Math.abs(delta) * 10) / 10}h under`;
                                 return [
                                     `Demand:   ${Math.round(demand * 10) / 10}h`,
-                                    `Capacity: ${TEAM_CAPACITY}h`,
+                                    `Capacity: ${totalCapacity}h`,
                                     `Delta:    ${deltaStr}`
                                 ];
                             },
@@ -268,7 +268,7 @@ export default class CapacityForecastTimeline extends LightningElement {
                     },
                     y: {
                         beginAtZero: true,
-                        suggestedMax: Math.max(...demandData, TEAM_CAPACITY) + 10,
+                        suggestedMax: Math.max(...demandData, totalCapacity) + 10,
                         title: {
                             display: true,
                             text: 'Hours / week',
@@ -352,7 +352,11 @@ export default class CapacityForecastTimeline extends LightningElement {
             projectsByWeek.push(weekProjects);
         });
 
-        const capacityData = weeks.map(() => TEAM_CAPACITY);
+        const contractorCapacity = (this._data.contractors || [])
+            .reduce((s, c) => s + (c.weeklyHours || 0), 0);
+        const totalCapacity = FTE_CAPACITY + contractorCapacity;
+
+        const capacityData = weeks.map(() => totalCapacity);
 
         // Build end-date markers for non-overdue projects
         const projectEndpoints = [];
@@ -370,6 +374,6 @@ export default class CapacityForecastTimeline extends LightningElement {
             }
         });
 
-        return { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex };
+        return { labels, weeks, demandData, capacityData, projectsByWeek, projectEndpoints, todayIndex, totalCapacity };
     }
 }

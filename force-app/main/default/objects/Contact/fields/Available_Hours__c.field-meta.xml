@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Available_Hours__c</fullName>
+    <label>Available Hours</label>
+    <precision>5</precision>
+    <scale>1</scale>
+    <type>Number</type>
+    <description>Weekly hours this contractor is available to the team</description>
+</CustomField>

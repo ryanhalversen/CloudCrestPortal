@@ -69,6 +69,32 @@ public class TeamCapacityControllerTest {
     }
 
     @isTest
+    static void testGetCapacityData_contractors() {
+        Account acct = new Account(Name = 'CloudCrest Contractors');
+        insert acct;
+        insert new Contact(
+            FirstName          = 'Test',
+            LastName           = 'Contractor',
+            AccountId          = acct.Id,
+            Available_Hours__c = 20
+        );
+
+        Test.startTest();
+        TeamCapacityController.CapacityData result = TeamCapacityController.getCapacityData();
+        Test.stopTest();
+
+        System.assertNotEquals(null, result.contractors, 'Contractors list should not be null');
+        Boolean found = false;
+        for (TeamCapacityController.ContractorWrapper w : result.contractors) {
+            if (w.name == 'Test Contractor') {
+                found = true;
+                System.assertEquals(20, w.weeklyHours, 'Weekly hours should be 20');
+            }
+        }
+        System.assert(found, 'Should return the CloudCrest Contractors contact');
+    }
+
+    @isTest
     static void testGetCapacityData_projectFields() {
         Test.startTest();
         TeamCapacityController.CapacityData result = TeamCapacityController.getCapacityData();
