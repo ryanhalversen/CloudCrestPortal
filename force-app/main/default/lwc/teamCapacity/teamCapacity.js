@@ -51,11 +51,25 @@ export default class TeamCapacity extends LightningElement {
         }
     }
 
-    // ── Wire: billing history ──────────────────────────────────────────────
-    @wire(getBillingHistory, { userId: '$_billingUserId', weeks: '$_billingWeeks' })
-    wiredBilling({ data, error }) {
-        this._billingLoading = false;
-        this._billingData = data || [];
+    // ── Billing history — imperative call (bypasses LWC wire cache) ───────
+    async _fetchBillingHistory() {
+        if (!this._billingUserId || !this._billingWeeks) {
+            this._billingData    = [];
+            this._billingLoading = false;
+            return;
+        }
+        this._billingLoading = true;
+        try {
+            const data = await getBillingHistory({
+                userId: this._billingUserId,
+                weeks:  this._billingWeeks
+            });
+            this._billingData = data || [];
+        } catch (e) {
+            this._billingData = [];
+        } finally {
+            this._billingLoading = false;
+        }
     }
 
     // ── Person cards ──────────────────────────────────────────────────────
@@ -418,10 +432,10 @@ export default class TeamCapacity extends LightningElement {
         const isFte = this.personCards.some(p => p.id === id);
         this._billingUserId = (!same && isFte) ? id : null;
         if (!same && isFte) {
-            this._billingLoading          = true;
             this._billingView             = 'week';
             this._billingWeeks            = 8;
             this._billingSelectedProjects = null;
+            this._fetchBillingHistory();
         }
     }
 
@@ -444,12 +458,12 @@ export default class TeamCapacity extends LightningElement {
     handleBillingView(e) {
         this._billingView  = e.currentTarget.dataset.view;
         this._billingWeeks = this._billingView === 'week' ? 8 : 26;
-        this._billingLoading = true;
+        this._fetchBillingHistory();
     }
 
     handleBillingRange(e) {
-        this._billingWeeks   = Number(e.currentTarget.dataset.weeks);
-        this._billingLoading = true;
+        this._billingWeeks = Number(e.currentTarget.dataset.weeks);
+        this._fetchBillingHistory();
     }
 
     handleProjectChipClick(e) {
