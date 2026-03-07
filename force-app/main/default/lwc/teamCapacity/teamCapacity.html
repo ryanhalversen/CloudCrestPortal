@@ -159,7 +159,7 @@
                         </div>
                     </template>
                     <template for:each={contractorCards} for:item="c">
-                        <div key={c.id} class="person-card">
+                        <div key={c.id} class="person-card" data-id={c.id} onclick={handlePersonClick}>
                             <div class="person-header">
                                 <div class="person-avatar contractor-avatar">{c.initials}</div>
                                 <div class="person-info">
@@ -287,7 +287,7 @@
                 <template if:true={hasContractors}>
                     <div class="person-row">
                         <template for:each={contractorCards} for:item="c">
-                            <div key={c.id} class="person-card">
+                            <div key={c.id} class="person-card" data-id={c.id} onclick={handlePersonClick}>
                                 <div class="person-header">
                                     <div class="person-avatar contractor-avatar">{c.initials}</div>
                                     <div class="person-info">
@@ -309,6 +309,94 @@
                 <template if:false={hasContractors}>
                     <div class="empty-state">No contractors found. Add contacts to the &apos;CloudCrest Contractors&apos; account with Available Hours set.</div>
                 </template>
+            </template>
+        </div>
+
+        <!-- ── Billing History Panel ─────────────────────────────────── -->
+        <div class="slds-p-horizontal_medium">
+            <template if:true={showBillingPanel}>
+                <div class="bh-panel">
+                    <!-- Header -->
+                    <div class="bh-header">
+                        <span class="bh-title">{billingPersonName} — Billing History</span>
+                        <div class="bh-controls">
+                            <!-- View toggle -->
+                            <template if:false={isContractorSelected}>
+                                <div class="bh-view-group">
+                                    <button class={billingViewWeekClass}  data-view="week"  onclick={handleBillingView}>Week</button>
+                                    <button class={billingViewMonthClass} data-view="month" onclick={handleBillingView}>Month</button>
+                                </div>
+                                <!-- Range selector -->
+                                <template if:true={billingIsWeekView}>
+                                    <div class="bh-range-group">
+                                        <button class={bhRange1Class} data-weeks="4"  onclick={handleBillingRange}>4 wks</button>
+                                        <button class={bhRange2Class} data-weeks="8"  onclick={handleBillingRange}>8 wks</button>
+                                        <button class={bhRange3Class} data-weeks="12" onclick={handleBillingRange}>12 wks</button>
+                                    </div>
+                                </template>
+                                <template if:true={billingIsMonthView}>
+                                    <div class="bh-range-group">
+                                        <button class={bhRange1Class} data-weeks="13" onclick={handleBillingRange}>3 mo</button>
+                                        <button class={bhRange2Class} data-weeks="26" onclick={handleBillingRange}>6 mo</button>
+                                        <button class={bhRange3Class} data-weeks="52" onclick={handleBillingRange}>12 mo</button>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Contractor empty state -->
+                    <template if:true={isContractorSelected}>
+                        <div class="bh-empty">No billing history — contractors log time externally.</div>
+                    </template>
+
+                    <!-- FTE history table -->
+                    <template if:false={isContractorSelected}>
+                        <template if:true={billingRows.isEmpty}>
+                            <div class="bh-empty">No time entries found for this period.</div>
+                        </template>
+                        <template if:false={billingRows.isEmpty}>
+                            <div class="bh-table-wrap">
+                                <table class="bh-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="bh-th-period">Period</th>
+                                            <th class="bh-th-total">Total</th>
+                                            <template for:each={billingRows.projectCols} for:item="col">
+                                                <th key={col} class="bh-th-proj">{col}</th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={billingRows.rows} for:item="row">
+                                            <tr key={row.label} class="bh-row">
+                                                <td class="bh-td-period">{row.label}</td>
+                                                <td class="bh-td-total">{row.totalHours}h</td>
+                                                <template for:each={row.cells} for:item="cell">
+                                                    <td key={cell.key} class="bh-td-proj">
+                                                        <template if:true={cell.hours}>{cell.hours}h</template>
+                                                        <template if:false={cell.hours}><span class="bh-zero">—</span></template>
+                                                    </td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                        <!-- Average row -->
+                                        <tr class="bh-row bh-row-avg">
+                                            <td class="bh-td-period">Avg / period</td>
+                                            <td class="bh-td-total">{billingRows.avgTotalHours}h</td>
+                                            <template for:each={billingRows.avgCells} for:item="cell">
+                                                <td key={cell.key} class="bh-td-proj">
+                                                    <template if:true={cell.hours}>{cell.hours}h</template>
+                                                    <template if:false={cell.hours}><span class="bh-zero">—</span></template>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                    </template>
+                </div>
             </template>
         </div>
 

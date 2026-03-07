@@ -324,3 +324,82 @@
 .util-bar-ok   { background: #22c55e; }
 .util-bar-high { background: #f59e0b; }
 .util-bar-over { background: #ef4444; }
+
+/* ── Billing History Panel ────────────────────────────────────────────────── */
+.bh-panel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.bh-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bh-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.bh-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bh-view-group, .bh-range-group {
+    display: flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.bh-view-btn, .bh-range-btn {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    background: #fff;
+    border: none;
+    border-right: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+}
+.bh-view-btn:last-child, .bh-range-btn:last-child { border-right: none; }
+.bh-view-btn:hover, .bh-range-btn:hover { background: #f1f5f9; color: #374151; }
+.bh-view-btn-active  { background: #0e7490; color: #fff; }
+.bh-view-btn-active:hover { background: #0c6478; color: #fff; }
+.bh-range-btn-active { background: #f0f9ff; color: #0e7490; }
+
+.bh-empty {
+    padding: 20px 0;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.82rem;
+}
+
+/* Table */
+.bh-table-wrap { overflow-x: auto; }
+.bh-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.bh-table thead tr { border-bottom: 2px solid #e5e7eb; }
+.bh-th-period { padding: 6px 12px 6px 0; text-align: left; font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; min-width: 90px; }
+.bh-th-total  { padding: 6px 12px; text-align: right; font-size: 0.7rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.bh-th-proj   { padding: 6px 12px; text-align: right; font-size: 0.7rem; font-weight: 600; color: #6b7280; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.bh-row { border-bottom: 1px solid #f1f5f9; }
+.bh-row-avg { border-top: 2px solid #e5e7eb; font-weight: 700; background: #f8fafc; }
+.bh-td-period { padding: 8px 12px 8px 0; color: #374151; font-weight: 600; white-space: nowrap; }
+.bh-td-total  { padding: 8px 12px; text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap; }
+.bh-td-proj   { padding: 8px 12px; text-align: right; color: #4b5563; white-space: nowrap; }
+.bh-zero      { color: #d1d5db; }

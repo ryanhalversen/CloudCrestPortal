@@ -1,5 +1,6 @@
 import { LightningElement, wire, track } from 'lwc';
 import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacityData';
+import getBillingHistory from '@salesforce/apex/TeamCapacityController.getBillingHistory';
 
 // ── Team configuration ─────────────────────────────────────────────────────
 // Weekly billable hour targets per person.
@@ -26,7 +27,14 @@ export default class TeamCapacity extends LightningElement {
     @track isLoading    = true;
     @track error        = null;
 
-    // ── Wire ──────────────────────────────────────────────────────────────
+    // ── Billing history state ──────────────────────────────────────────────
+    @track _billingUserId  = null;
+    @track _billingWeeks   = 8;
+    @track _billingView    = 'week';   // 'week' | 'month'
+    @track _billingData    = [];
+    @track _billingLoading = false;
+
+    // ── Wire: capacity data ────────────────────────────────────────────────
     @wire(getCapacityData)
     wiredData({ data, error }) {
         this.isLoading = false;
@@ -37,6 +45,13 @@ export default class TeamCapacity extends LightningElement {
             this.error  = error?.body?.message || 'Failed to load capacity data.';
             this._data  = null;
         }
+    }
+
+    // ── Wire: billing history ──────────────────────────────────────────────
+    @wire(getBillingHistory, { userId: '$_billingUserId', weeks: '$_billingWeeks' })
+    wiredBilling({ data, error }) {
+        this._billingLoading = false;
+        this._billingData = data || [];
     }
 
     // ── Person cards ──────────────────────────────────────────────────────
@@ -295,22 +310,141 @@ export default class TeamCapacity extends LightningElement {
         return person ? `${person.name}'s projects` : 'Filtered projects';
     }
 
-    // ── Handlers ──────────────────────────────────────────────────────────
-    handlePersonClick(e) {
-        const id = e.currentTarget.dataset.id;
-        this._selectedId = this._selectedId === id ? null : id;
+    // ── Billing panel getters ──────────────────────────────────────────────
+    get showBillingPanel()  { return !!this._selectedId; }
+    get billingPersonName() {
+        const p = this.personCards.find(x => x.id === this._selectedId);
+        if (p) return p.name;
+        const c = this.contractorCards.find(x => x.id === this._selectedId);
+        return c ? c.name : '';
+    }
+    get isContractorSelected() {
+        return this._selectedId && this.contractorCards.some(c => c.id === this._selectedId);
     }
 
-    handleClearFilter() { this._selectedId = null; }
+    get billingViewWeekClass()  { return `bh-view-btn${this._billingView === 'week'  ? ' bh-view-btn-active' : ''}`; }
+    get billingViewMonthClass() { return `bh-view-btn${this._billingView === 'month' ? ' bh-view-btn-active' : ''}`; }
+    get billingIsWeekView()     { return this._billingView === 'week'; }
+    get billingIsMonthView()    { return this._billingView === 'month'; }
+
+    get bhRange1Active() { return this._billingView === 'week' ? this._billingWeeks === 4  : this._billingWeeks === 13; }
+    get bhRange2Active() { return this._billingView === 'week' ? this._billingWeeks === 8  : this._billingWeeks === 26; }
+    get bhRange3Active() { return this._billingView === 'week' ? this._billingWeeks === 12 : this._billingWeeks === 52; }
+    get bhRange1Class()  { return `bh-range-btn${this.bhRange1Active ? ' bh-range-btn-active' : ''}`; }
+    get bhRange2Class()  { return `bh-range-btn${this.bhRange2Active ? ' bh-range-btn-active' : ''}`; }
+    get bhRange3Class()  { return `bh-range-btn${this.bhRange3Active ? ' bh-range-btn-active' : ''}`; }
+
+    // ── Billing aggregation helpers ────────────────────────────────────────
+    _weekStartOf(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const day = d.getDay(); // 0=Sun
+        const diff = (day === 0 ? -6 : 1 - day);
+        d.setDate(d.getDate() + diff);
+        return d.toISOString().slice(0, 10);
+    }
+
+    _weekLabel(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    _monthKey(dateStr) { return dateStr.slice(0, 7); }
+
+    _monthLabel(key) {
+        const [y, m] = key.split('-');
+        return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    // ── billingRows getter ─────────────────────────────────────────────────
+    get billingRows() {
+        const entries = this._billingData || [];
+        const buckets = new Map();   // key → { label, totalMin, byProject: Map }
+        const projSet  = new Map();  // projectName → display order
+
+        entries.forEach(e => {
+            const key   = this._billingView === 'week'
+                          ? this._weekStartOf(e.loggedDate)
+                          : this._monthKey(e.loggedDate);
+            const label = this._billingView === 'week'
+                          ? `Wk of ${this._weekLabel(key)}`
+                          : this._monthLabel(key);
+            const proj  = e.projectName || 'No Project';
+            if (!projSet.has(proj)) projSet.set(proj, projSet.size);
+            if (!buckets.has(key))  buckets.set(key, { label, totalMin: 0, byProject: new Map() });
+            const b = buckets.get(key);
+            b.totalMin += e.minutes || 0;
+            b.byProject.set(proj, (b.byProject.get(proj) || 0) + (e.minutes || 0));
+        });
+
+        const projectCols = [...projSet.keys()];
+        // Sort rows newest-first
+        const sortedKeys = [...buckets.keys()].sort((a, b) => b.localeCompare(a));
+        const rows = sortedKeys.map(k => {
+            const b = buckets.get(k);
+            return {
+                label:      b.label,
+                totalHours: Math.round((b.totalMin / 60) * 10) / 10,
+                cells:      projectCols.map(p => ({
+                    key:   p,
+                    hours: b.byProject.has(p)
+                           ? Math.round((b.byProject.get(p) / 60) * 10) / 10
+                           : null
+                }))
+            };
+        });
+
+        // Average row
+        const avgTotalHours = rows.length
+            ? Math.round((rows.reduce((s, r) => s + r.totalHours, 0) / rows.length) * 10) / 10
+            : 0;
+        const avgCells = projectCols.map((p, i) => {
+            const sum = rows.reduce((s, r) => s + (r.cells[i].hours || 0), 0);
+            return { key: p, hours: rows.length ? Math.round((sum / rows.length) * 10) / 10 : null };
+        });
+
+        return { projectCols, rows, avgTotalHours, avgCells, isEmpty: rows.length === 0 };
+    }
+
+    // ── Handlers ──────────────────────────────────────────────────────────
+    handlePersonClick(e) {
+        const id   = e.currentTarget.dataset.id;
+        const same = this._selectedId === id;
+        this._selectedId = same ? null : id;
+        // Set billing userId only for FTEs (contractors are Contacts, not Users)
+        const isFte = this.personCards.some(p => p.id === id);
+        this._billingUserId = (!same && isFte) ? id : null;
+        if (!same && isFte) {
+            this._billingLoading = true;
+            this._billingView  = 'week';
+            this._billingWeeks = 8;
+        }
+    }
+
+    handleClearFilter() {
+        this._selectedId    = null;
+        this._billingUserId = null;
+    }
 
     handleTabClick(e) {
-        this._activeTab  = e.currentTarget.dataset.tab;
-        this._selectedId = null;
+        this._activeTab     = e.currentTarget.dataset.tab;
+        this._selectedId    = null;
+        this._billingUserId = null;
     }
 
     handleProjectClick(e) {
         const id = e.currentTarget.dataset.id;
         window.open(`/lightning/r/Sprint__c/${id}/view`, '_blank');
+    }
+
+    handleBillingView(e) {
+        this._billingView  = e.currentTarget.dataset.view;
+        this._billingWeeks = this._billingView === 'week' ? 8 : 26;
+        this._billingLoading = true;
+    }
+
+    handleBillingRange(e) {
+        this._billingWeeks   = Number(e.currentTarget.dataset.weeks);
+        this._billingLoading = true;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

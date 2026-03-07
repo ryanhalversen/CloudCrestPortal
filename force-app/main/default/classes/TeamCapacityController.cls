@@ -129,4 +129,37 @@ public with sharing class TeamCapacityController {
         @AuraEnabled public Id      userId;
         @AuraEnabled public Decimal hours;
     }
+
+    // ── Billing history ────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=true)
+    public static List<BillingEntry> getBillingHistory(String userId, Integer weeks) {
+        if (String.isBlank(userId) || weeks == null || weeks <= 0) return new List<BillingEntry>();
+        Date startDate = Date.today().addDays(-weeks * 7);
+        List<Time__c> rows = [
+            SELECT Minutes_Logged__c, Logged_Date__c,
+                   Case__r.Projects__c, Case__r.Projects__r.Name
+            FROM Time__c
+            WHERE CreatedById = :userId
+              AND Logged_Date__c >= :startDate
+            ORDER BY Logged_Date__c DESC
+            LIMIT 2000
+        ];
+        List<BillingEntry> result = new List<BillingEntry>();
+        for (Time__c t : rows) {
+            BillingEntry e = new BillingEntry();
+            e.loggedDate   = t.Logged_Date__c;
+            e.minutes      = t.Minutes_Logged__c != null ? (Integer)t.Minutes_Logged__c : 0;
+            e.projectId    = t.Case__r?.Projects__c;
+            e.projectName  = t.Case__r?.Projects__r?.Name;
+            result.add(e);
+        }
+        return result;
+    }
+
+    public class BillingEntry {
+        @AuraEnabled public Date    loggedDate;
+        @AuraEnabled public Integer minutes;
+        @AuraEnabled public String  projectId;
+        @AuraEnabled public String  projectName;
+    }
 }
