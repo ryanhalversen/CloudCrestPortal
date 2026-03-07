@@ -22,7 +22,7 @@ const PACE_CLASSES = {
 export default class TeamCapacity extends LightningElement {
     @track _data        = null;
     @track _selectedId  = null;
-    @track _activeTab   = 'internal';
+    @track _activeTab   = 'total';
     @track isLoading    = true;
     @track error        = null;
 
@@ -216,16 +216,46 @@ export default class TeamCapacity extends LightningElement {
     }
 
     get hasContractors()      { return (this._data?.contractors || []).length > 0; }
+    get isTotalTab()          { return this._activeTab === 'total'; }
     get isInternalTab()       { return this._activeTab === 'internal'; }
     get isContractorsTab()    { return this._activeTab === 'contractors'; }
     get personCardCount()     { return this.personCards.length; }
     get contractorCardCount() { return this.contractorCards.length; }
+    get totalPeopleCount()    { return this.personCardCount + this.contractorCardCount; }
 
+    get totalTabClass() {
+        return `cap-tab-btn${this._activeTab === 'total' ? ' cap-tab-btn-active' : ''}`;
+    }
     get internalTabClass() {
         return `cap-tab-btn${this._activeTab === 'internal' ? ' cap-tab-btn-active' : ''}`;
     }
     get contractorsTabClass() {
         return `cap-tab-btn cap-tab-btn-ext${this._activeTab === 'contractors' ? ' cap-tab-btn-active' : ''}`;
+    }
+
+    get totalSummary() {
+        const cards = this.personCards;
+        const contractors = this._data?.contractors || [];
+        if (!cards.length) return null;
+        const fteCapacity        = cards.reduce((s, p) => s + p.weeklyTarget, 0);
+        const contractorCapacity = contractors.reduce((s, c) => s + (c.weeklyHours || 0), 0);
+        const totalCapacity      = fteCapacity + contractorCapacity;
+        const demand             = cards.reduce((s, p) => s + p.demand, 0);
+        const available          = Math.max(0, totalCapacity - demand);
+        const utilization        = totalCapacity > 0 ? Math.round((demand / totalCapacity) * 100) : 0;
+        const isOver             = utilization > 100;
+        const isHigh             = !isOver && utilization >= 85;
+        return {
+            totalCapacity,
+            demand:           Math.round(demand * 10) / 10,
+            available:        Math.round(available * 10) / 10,
+            utilizationLabel: `${utilization}%`,
+            totalPeople:      cards.length + contractors.length,
+            barStyle:  `width:${Math.min(100, utilization)}%`,
+            barClass:  isOver ? 'util-bar util-bar-over'
+                     : isHigh ? 'util-bar util-bar-high'
+                     : 'util-bar util-bar-ok'
+        };
     }
 
     get internalSummary() {

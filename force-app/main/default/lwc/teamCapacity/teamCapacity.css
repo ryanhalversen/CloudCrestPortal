@@ -206,6 +206,10 @@
     background: #faf5ff;
     border-color: #ddd6fe;
 }
+.tab-card-total {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
 .tc-stats {
     display: flex;
     align-items: center;

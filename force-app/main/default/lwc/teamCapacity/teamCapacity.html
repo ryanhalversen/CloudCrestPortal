@@ -56,6 +56,10 @@
             </template>
             <!-- ── Tab navigation ──────────────────────────────────── -->
             <div class="cap-tab-nav">
+                <button class={totalTabClass} data-tab="total" onclick={handleTabClick}>
+                    Total Capacity
+                    <span class="cap-tab-count">{totalPeopleCount}</span>
+                </button>
                 <button class={internalTabClass} data-tab="internal" onclick={handleTabClick}>
                     Internal Team
                     <span class="cap-tab-count">{personCardCount}</span>
@@ -65,6 +69,115 @@
                     <span class="cap-tab-count cap-tab-count-ext">{contractorCardCount}</span>
                 </button>
             </div>
+
+            <!-- ── Total Capacity tab ──────────────────────────────── -->
+            <template if:true={isTotalTab}>
+                <template if:true={totalSummary}>
+                    <div class="tab-card tab-card-total">
+                        <div class="tc-stats">
+                            <div class="tc-stat">
+                                <div class="tc-val">{totalSummary.totalCapacity}h</div>
+                                <div class="tc-lbl">Total capacity / wk</div>
+                            </div>
+                            <div class="tc-divider"></div>
+                            <div class="tc-stat">
+                                <div class="tc-val">{totalSummary.demand}h</div>
+                                <div class="tc-lbl">FTE demand</div>
+                            </div>
+                            <div class="tc-divider"></div>
+                            <div class="tc-stat">
+                                <div class="tc-val">{totalSummary.available}h</div>
+                                <div class="tc-lbl">Available</div>
+                            </div>
+                            <div class="tc-divider"></div>
+                            <div class="tc-stat">
+                                <div class="tc-val">{totalSummary.utilizationLabel}</div>
+                                <div class="tc-lbl">Utilization</div>
+                            </div>
+                            <div class="tc-divider"></div>
+                            <div class="tc-stat">
+                                <div class="tc-val">{totalSummary.totalPeople}</div>
+                                <div class="tc-lbl">Total people</div>
+                            </div>
+                        </div>
+                        <div class="util-track" style="margin-top:12px">
+                            <div class={totalSummary.barClass} style={totalSummary.barStyle}></div>
+                        </div>
+                    </div>
+                </template>
+                <!-- FTEs first, then contractors -->
+                <div class="person-row">
+                    <template for:each={personCards} for:item="p">
+                        <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
+                            <div class="person-header">
+                                <div class="person-avatar">{p.initials}</div>
+                                <div class="person-info">
+                                    <div class="person-name">{p.name}</div>
+                                    <div class="person-meta">{p.role} &middot; {p.weeklyTarget}h/wk target</div>
+                                </div>
+                                <div class={p.statusClass}>{p.statusLabel}</div>
+                            </div>
+                            <div class="cap-stats">
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{p.logged}h</div>
+                                    <div class="cap-stat-lbl">Logged this week</div>
+                                </div>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{p.demand}h</div>
+                                    <div class="cap-stat-lbl">Weekly demand</div>
+                                </div>
+                                <template if:true={p.available}>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{p.available}h</div>
+                                    <div class="cap-stat-lbl">Available</div>
+                                </div>
+                                </template>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{p.projectCount}</div>
+                                    <div class="cap-stat-lbl">Projects</div>
+                                </div>
+                            </div>
+                            <div class="cap-bars">
+                                <div class="cap-bar-row">
+                                    <span class="cap-bar-lbl">Logged</span>
+                                    <div class="cap-track">
+                                        <div class="cap-fill cap-fill-logged" style={p.logBarStyle}></div>
+                                    </div>
+                                    <span class="cap-bar-pct">{p.logPct}%</span>
+                                </div>
+                                <div class="cap-bar-row">
+                                    <span class="cap-bar-lbl">Demand</span>
+                                    <div class="cap-track">
+                                        <div class="cap-fill cap-fill-demand" style={p.demandBarStyle}></div>
+                                    </div>
+                                    <span class="cap-bar-pct">{p.demandPct}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template for:each={contractorCards} for:item="c">
+                        <div key={c.id} class="person-card">
+                            <div class="person-header">
+                                <div class="person-avatar contractor-avatar">{c.initials}</div>
+                                <div class="person-info">
+                                    <div class="person-name">{c.name}</div>
+                                    <div class="person-meta">Contractor &middot; {c.weeklyHours}h/wk available</div>
+                                </div>
+                                <div class="cap-status cap-contractor">Contractor</div>
+                            </div>
+                            <div class="cap-stats">
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{c.weeklyHours}h</div>
+                                    <div class="cap-stat-lbl">Available / week</div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
 
             <!-- ── Internal Team tab ───────────────────────────────── -->
             <template if:true={isInternalTab}>
