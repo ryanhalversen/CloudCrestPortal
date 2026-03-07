@@ -387,6 +387,10 @@
                         <div class="bh-controls">
                             <template if:false={isContractorSelected}>
                                 <div class="bh-view-group">
+                                    <button class={billingGroupTotalClass}   data-group="total"   onclick={handleBillingGrouping}>All</button>
+                                    <button class={billingGroupProjectClass} data-group="project" onclick={handleBillingGrouping}>By Project</button>
+                                </div>
+                                <div class="bh-view-group">
                                     <button class={billingViewWeekClass}  data-view="week"  onclick={handleBillingView}>Week</button>
                                     <button class={billingViewMonthClass} data-view="month" onclick={handleBillingView}>Month</button>
                                 </div>
@@ -433,12 +437,14 @@
                                     </div>
                                 </div>
                             </template>
-                            <!-- Project filter chips -->
-                            <div class="bh-chips-row">
-                                <template for:each={billingProjectChips} for:item="chip">
-                                    <button key={chip.col} class={chip.chipClass} data-col={chip.col} onclick={handleProjectChipClick} style={chip.chipStyle}>{chip.col}</button>
-                                </template>
-                            </div>
+                            <!-- Project filter chips (hidden in total view) -->
+                            <template if:true={billingIsProjectView}>
+                                <div class="bh-chips-row">
+                                    <template for:each={billingProjectChips} for:item="chip">
+                                        <button key={chip.col} class={chip.chipClass} data-col={chip.col} onclick={handleProjectChipClick} style={chip.chipStyle}>{chip.col}</button>
+                                    </template>
+                                </div>
+                            </template>
                             <!-- Chart -->
                             <template if:false={billingChartEmpty}>
                                 <div class="bh-chart-wrap">
@@ -455,7 +461,7 @@
                                 </div>
                             </template>
                             <template if:true={billingChartEmpty}>
-                                <div class="bh-empty">Select a project above to view billing history.</div>
+                                <div class="bh-empty">{billingEmptyMessage}</div>
                             </template>
                         </template>
                     </template>

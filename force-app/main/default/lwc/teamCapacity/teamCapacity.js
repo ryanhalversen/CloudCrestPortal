@@ -33,7 +33,8 @@ export default class TeamCapacity extends LightningElement {
     // ── Billing history state ──────────────────────────────────────────────
     @track _billingUserId           = null;
     @track _billingWeeks            = 8;
-    @track _billingView             = 'week';   // 'week' | 'month'
+    @track _billingView             = 'week';     // 'week' | 'month'
+    @track _billingGrouping         = 'project';  // 'project' | 'total'
     @track _billingData             = [];
     @track _billingLoading          = false;
     @track _billingSelectedProjects = null;   // null = all; Set<string> = specific subset
@@ -352,6 +353,16 @@ export default class TeamCapacity extends LightningElement {
     get bhRange2Class()  { return `bh-range-btn${this.bhRange2Active ? ' bh-range-btn-active' : ''}`; }
     get bhRange3Class()  { return `bh-range-btn${this.bhRange3Active ? ' bh-range-btn-active' : ''}`; }
 
+    get billingIsProjectView()      { return this._billingGrouping === 'project'; }
+    get billingIsTotalView()        { return this._billingGrouping === 'total'; }
+    get billingGroupTotalClass()    { return `bh-view-btn${this._billingGrouping === 'total'   ? ' bh-view-btn-active' : ''}`; }
+    get billingGroupProjectClass()  { return `bh-view-btn${this._billingGrouping === 'project' ? ' bh-view-btn-active' : ''}`; }
+    get billingEmptyMessage()       {
+        return this._billingGrouping === 'total'
+            ? 'No time entries found for this period.'
+            : 'Select a project above to view billing history.';
+    }
+
     // ── Billing aggregation helpers ────────────────────────────────────────
     _weekStartOf(dateStr) {
         const d = new Date(dateStr + 'T00:00:00');
@@ -434,6 +445,7 @@ export default class TeamCapacity extends LightningElement {
         if (!same && isFte) {
             this._billingView             = 'week';
             this._billingWeeks            = 8;
+            this._billingGrouping         = 'project';
             this._billingSelectedProjects = null;
             this._fetchBillingHistory();
         }
@@ -466,6 +478,10 @@ export default class TeamCapacity extends LightningElement {
         this._fetchBillingHistory();
     }
 
+    handleBillingGrouping(e) {
+        this._billingGrouping = e.currentTarget.dataset.group;
+    }
+
     handleProjectChipClick(e) {
         const col  = e.currentTarget.dataset.col;
         const { projectCols } = this.billingRows;
@@ -489,67 +505,90 @@ export default class TeamCapacity extends LightningElement {
         const { projectCols, rows } = this.billingRows;
         if (!rows || rows.length === 0 || !projectCols.length) return null;
 
-        // Apply project filter (null = all selected)
-        const sel        = this._billingSelectedProjects;
-        const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
-        if (activeCols.length === 0) return null;
-
         const W = 900, H = 240;
         const padLeft = 48, padRight = 24, padTop = 18, padBottom = 58;
         const plotW = W - padLeft - padRight;
         const plotH = H - padTop - padBottom;
 
-        // Oldest-first for left-to-right display (rows are newest-first)
-        const periods = [...rows].reverse();
-        const n = periods.length;
+        const periods = [...rows].reverse();   // oldest → newest
+        const n       = periods.length;
+        const xOf = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
 
-        // Max hours across active cols only
+        // ── Total view: single line ─────────────────────────────────────
+        if (this._billingGrouping === 'total') {
+            const maxHours = Math.max(...periods.map(r => r.totalHours), 1);
+            const yMax     = Math.ceil(maxHours / 5) * 5 || 10;
+            const yOf      = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
+
+            const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({
+                y: Math.round(yOf(f * yMax)), label: Math.round(f * yMax) + 'h',
+                x1: padLeft, x2: padLeft + plotW
+            }));
+
+            const color  = '#0e7490';
+            const series = [{
+                col:      'Total Hours',
+                color,
+                dotStyle: `background:${color}`,
+                points:   periods.map((row, i) => ({
+                    key:    `total-${i}`,
+                    x:      Math.round(xOf(i) * 10) / 10,
+                    y:      Math.round(yOf(row.totalHours) * 10) / 10,
+                    hours:  row.totalHours,
+                    period: row.label
+                }))
+            }];
+
+            const xLabels = periods.map((row, i) => ({
+                x: Math.round(xOf(i) * 10) / 10, y: padTop + plotH + 20,
+                label: row.label, totalHours: row.totalHours
+            }));
+
+            return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
+        }
+
+        // ── By-project view: one line per active project ────────────────
+        const sel        = this._billingSelectedProjects;
+        const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
+        if (activeCols.length === 0) return null;
+
         let maxHours = 1;
         periods.forEach(row => {
             activeCols.forEach(col => {
-                const ci = projectCols.indexOf(col);
-                const h  = row.cells[ci]?.hours || 0;
+                const h = row.cells[projectCols.indexOf(col)]?.hours || 0;
                 if (h > maxHours) maxHours = h;
             });
         });
         const yMax = Math.ceil(maxHours / 5) * 5 || 10;
+        const yOf  = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
 
-        const xOf = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
-        const yOf = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
-
-        // Grid lines at 0%, 25%, 50%, 75%, 100%
         const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({
-            y:     Math.round(yOf(f * yMax)),
-            label: Math.round(f * yMax) + 'h',
-            x1:    padLeft,
-            x2:    padLeft + plotW
+            y: Math.round(yOf(f * yMax)), label: Math.round(f * yMax) + 'h',
+            x1: padLeft, x2: padLeft + plotW
         }));
 
-        // One series per active project — color keyed to original col index for consistency
         const series = activeCols.map(col => {
             const ci    = projectCols.indexOf(col);
             const color = CHART_COLORS[ci % CHART_COLORS.length];
-            const points = periods.map((row, i) => ({
-                key:    `${col}-${i}`,
-                x:      Math.round(xOf(i) * 10) / 10,
-                y:      Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
-                hours:  row.cells[ci]?.hours || 0,
-                period: row.label
-            }));
-            return { col, color, points, dotStyle: `background:${color}` };
+            return {
+                col, color, dotStyle: `background:${color}`,
+                points: periods.map((row, i) => ({
+                    key:    `${col}-${i}`,
+                    x:      Math.round(xOf(i) * 10) / 10,
+                    y:      Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
+                    hours:  row.cells[ci]?.hours || 0,
+                    period: row.label
+                }))
+            };
         });
 
-        // X-axis labels — include per-period total for active cols
         const xLabels = periods.map((row, i) => {
             const activeTotal = activeCols.reduce((sum, col) => {
-                const ci = projectCols.indexOf(col);
-                return sum + (row.cells[ci]?.hours || 0);
+                return sum + (row.cells[projectCols.indexOf(col)]?.hours || 0);
             }, 0);
             return {
-                x:          Math.round(xOf(i) * 10) / 10,
-                y:          padTop + plotH + 20,
-                label:      row.label,
-                totalHours: Math.round(activeTotal * 10) / 10
+                x: Math.round(xOf(i) * 10) / 10, y: padTop + plotH + 20,
+                label: row.label, totalHours: Math.round(activeTotal * 10) / 10
             };
         });
 
@@ -559,19 +598,23 @@ export default class TeamCapacity extends LightningElement {
     get hasBillingEntries() { return !this.billingRows.isEmpty; }
     get billingChartEmpty() { return !this.billingChart; }
 
-    // Weekly + monthly averages across active projects for the selected lookback
+    // Weekly + monthly averages for the selected lookback
     get billingSummaryStats() {
         const { rows, projectCols } = this.billingRows;
         if (!rows || rows.length === 0 || !projectCols.length) return null;
-        const sel        = this._billingSelectedProjects;
-        const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
-        if (activeCols.length === 0) return null;
 
-        const totalHours = rows.reduce((sum, row) =>
-            sum + activeCols.reduce((s, col) => {
-                const ci = projectCols.indexOf(col);
-                return s + (row.cells[ci]?.hours || 0);
-            }, 0), 0);
+        let totalHours;
+        if (this._billingGrouping === 'total') {
+            totalHours = rows.reduce((s, r) => s + r.totalHours, 0);
+        } else {
+            const sel        = this._billingSelectedProjects;
+            const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
+            if (activeCols.length === 0) return null;
+            totalHours = rows.reduce((sum, row) =>
+                sum + activeCols.reduce((s, col) => {
+                    return s + (row.cells[projectCols.indexOf(col)]?.hours || 0);
+                }, 0), 0);
+        }
 
         const weeklyAvg  = Math.round((totalHours / this._billingWeeks) * 10) / 10;
         const monthlyAvg = Math.round((weeklyAvg * 52 / 12) * 10) / 10;
