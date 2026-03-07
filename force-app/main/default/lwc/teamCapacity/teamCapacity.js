@@ -447,6 +447,119 @@ export default class TeamCapacity extends LightningElement {
         this._billingLoading = true;
     }
 
+    // ── Billing chart ─────────────────────────────────────────────────────
+    get billingChart() {
+        const { projectCols, rows } = this.billingRows;
+        if (!rows || rows.length === 0 || !projectCols.length) return null;
+
+        const W = 900, H = 230;
+        const padLeft = 48, padRight = 24, padTop = 18, padBottom = 44;
+        const plotW = W - padLeft - padRight;
+        const plotH = H - padTop - padBottom;
+
+        // Oldest-first for left-to-right display (rows are newest-first)
+        const periods = [...rows].reverse();
+        const n = periods.length;
+
+        // Find max for y-axis
+        let maxHours = 1;
+        periods.forEach(row => {
+            row.cells.forEach(cell => { if ((cell.hours || 0) > maxHours) maxHours = cell.hours; });
+        });
+        const yMax = Math.ceil(maxHours / 5) * 5 || 10;
+
+        const xOf = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
+        const yOf = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
+
+        const COLORS = ['#0e7490', '#7c3aed', '#16a34a', '#dc2626', '#d97706', '#2563eb', '#db2777', '#059669', '#92400e'];
+
+        // Grid lines at 0%, 25%, 50%, 75%, 100%
+        const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({
+            y:     Math.round(yOf(f * yMax)),
+            label: Math.round(f * yMax) + 'h',
+            x1:    padLeft,
+            x2:    padLeft + plotW
+        }));
+
+        // One series per project
+        const series = projectCols.map((col, ci) => {
+            const color  = COLORS[ci % COLORS.length];
+            const points = periods.map((row, i) => ({
+                key:   `${col}-${i}`,
+                x:     Math.round(xOf(i) * 10) / 10,
+                y:     Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
+                hours: row.cells[ci]?.hours || 0
+            }));
+            return { col, color, points, dotStyle: `background:${color}` };
+        });
+
+        // X-axis labels
+        const xLabels = periods.map((row, i) => ({
+            x:     Math.round(xOf(i) * 10) / 10,
+            y:     padTop + plotH + 26,
+            label: row.label
+        }));
+
+        return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
+    }
+
+    get billingChartEmpty() { return !this.billingChart; }
+
+    renderedCallback() {
+        const container = this.template.querySelector('.bh-chart-svg');
+        if (!container) return;
+        container.innerHTML = this._buildChartSVG();
+    }
+
+    _buildChartSVG() {
+        const chart = this.billingChart;
+        if (!chart) return '';
+        const { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels } = chart;
+
+        let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">`;
+
+        // Grid lines + y-axis labels
+        gridLines.forEach(gl => {
+            svg += `<line x1="${gl.x1}" y1="${gl.y}" x2="${gl.x2}" y2="${gl.y}" stroke="#f1f5f9" stroke-width="1"/>`;
+            svg += `<text x="${padLeft - 10}" y="${gl.y}" fill="#9ca3af" font-size="11" font-family="system-ui,sans-serif" text-anchor="end" dominant-baseline="middle">${gl.label}</text>`;
+        });
+
+        // Bottom axis
+        svg += `<line x1="${padLeft}" y1="${padTop + plotH}" x2="${padLeft + plotW}" y2="${padTop + plotH}" stroke="#e5e7eb" stroke-width="1"/>`;
+
+        // Area fills (very subtle)
+        series.forEach(s => {
+            if (s.points.length < 2) return;
+            const bottom = padTop + plotH;
+            let d = `M ${s.points[0].x} ${bottom} L ${s.points[0].x} ${s.points[0].y}`;
+            s.points.slice(1).forEach(p => { d += ` L ${p.x} ${p.y}`; });
+            d += ` L ${s.points[s.points.length - 1].x} ${bottom} Z`;
+            svg += `<path d="${d}" fill="${s.color}" opacity="0.07"/>`;
+        });
+
+        // Lines
+        series.forEach(s => {
+            if (s.points.length === 0) return;
+            const d = s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+            svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+        });
+
+        // Dots
+        series.forEach(s => {
+            s.points.forEach(p => {
+                svg += `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${s.color}" stroke="white" stroke-width="1.5"/>`;
+            });
+        });
+
+        // X-axis labels
+        xLabels.forEach(xl => {
+            svg += `<text x="${xl.x}" y="${xl.y}" fill="#6b7280" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle">${xl.label}</text>`;
+        });
+
+        svg += '</svg>';
+        return svg;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────
     _initials(name) {
         if (!name) return '?';
