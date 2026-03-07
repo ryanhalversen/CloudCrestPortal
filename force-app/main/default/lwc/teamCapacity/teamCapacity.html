@@ -419,6 +419,20 @@
                             <div class="bh-empty">No time entries found for this period.</div>
                         </template>
                         <template if:true={hasBillingEntries}>
+                            <!-- Summary averages -->
+                            <template if:true={billingSummaryStats}>
+                                <div class="bh-summary">
+                                    <div class="bh-sum-stat">
+                                        <span class="bh-sum-val">{billingSummaryStats.weeklyAvg}h</span>
+                                        <span class="bh-sum-lbl">avg / week</span>
+                                    </div>
+                                    <div class="bh-sum-divider"></div>
+                                    <div class="bh-sum-stat">
+                                        <span class="bh-sum-val">{billingSummaryStats.monthlyAvg}h</span>
+                                        <span class="bh-sum-lbl">avg / month</span>
+                                    </div>
+                                </div>
+                            </template>
                             <!-- Project filter chips -->
                             <div class="bh-chips-row">
                                 <template for:each={billingProjectChips} for:item="chip">

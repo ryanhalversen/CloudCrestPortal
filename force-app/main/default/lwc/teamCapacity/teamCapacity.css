@@ -379,6 +379,41 @@
 .bh-view-btn-active:hover { background: #0c6478; color: #fff; }
 .bh-range-btn-active { background: #f0f9ff; color: #0e7490; }
 
+/* Summary stats row */
+.bh-summary {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 0;
+}
+.bh-sum-stat {
+    display: flex;
+    flex-direction: column;
+    padding-right: 24px;
+}
+.bh-sum-val {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.1;
+}
+.bh-sum-lbl {
+    font-size: 0.68rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+.bh-sum-divider {
+    width: 1px;
+    height: 32px;
+    background: #e5e7eb;
+    flex-shrink: 0;
+    margin-right: 24px;
+}
+
 /* Project filter chips */
 .bh-chips-row {
     display: flex;

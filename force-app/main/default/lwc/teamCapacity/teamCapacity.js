@@ -480,8 +480,8 @@ export default class TeamCapacity extends LightningElement {
         const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
         if (activeCols.length === 0) return null;
 
-        const W = 900, H = 230;
-        const padLeft = 48, padRight = 24, padTop = 18, padBottom = 44;
+        const W = 900, H = 240;
+        const padLeft = 48, padRight = 24, padTop = 18, padBottom = 58;
         const plotW = W - padLeft - padRight;
         const plotH = H - padTop - padBottom;
 
@@ -525,18 +525,44 @@ export default class TeamCapacity extends LightningElement {
             return { col, color, points, dotStyle: `background:${color}` };
         });
 
-        // X-axis labels
-        const xLabels = periods.map((row, i) => ({
-            x:     Math.round(xOf(i) * 10) / 10,
-            y:     padTop + plotH + 26,
-            label: row.label
-        }));
+        // X-axis labels — include per-period total for active cols
+        const xLabels = periods.map((row, i) => {
+            const activeTotal = activeCols.reduce((sum, col) => {
+                const ci = projectCols.indexOf(col);
+                return sum + (row.cells[ci]?.hours || 0);
+            }, 0);
+            return {
+                x:          Math.round(xOf(i) * 10) / 10,
+                y:          padTop + plotH + 20,
+                label:      row.label,
+                totalHours: Math.round(activeTotal * 10) / 10
+            };
+        });
 
         return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
     }
 
     get hasBillingEntries() { return !this.billingRows.isEmpty; }
     get billingChartEmpty() { return !this.billingChart; }
+
+    // Weekly + monthly averages across active projects for the selected lookback
+    get billingSummaryStats() {
+        const { rows, projectCols } = this.billingRows;
+        if (!rows || rows.length === 0 || !projectCols.length) return null;
+        const sel        = this._billingSelectedProjects;
+        const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
+        if (activeCols.length === 0) return null;
+
+        const totalHours = rows.reduce((sum, row) =>
+            sum + activeCols.reduce((s, col) => {
+                const ci = projectCols.indexOf(col);
+                return s + (row.cells[ci]?.hours || 0);
+            }, 0), 0);
+
+        const weeklyAvg  = Math.round((totalHours / this._billingWeeks) * 10) / 10;
+        const monthlyAvg = Math.round((weeklyAvg * 52 / 12) * 10) / 10;
+        return { weeklyAvg, monthlyAvg };
+    }
 
     // Chip row — one button per project, colored to match the chart line
     get billingProjectChips() {
@@ -636,9 +662,10 @@ export default class TeamCapacity extends LightningElement {
             });
         });
 
-        // X-axis labels
+        // X-axis labels — period name + total hours on second line
         xLabels.forEach(xl => {
-            svg += `<text x="${xl.x}" y="${xl.y}" fill="#6b7280" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle">${xl.label}</text>`;
+            svg += `<text x="${xl.x}" y="${xl.y}" fill="#9ca3af" font-size="11" font-family="system-ui,sans-serif" text-anchor="middle">${xl.label}</text>`;
+            svg += `<text x="${xl.x}" y="${xl.y + 15}" fill="#111827" font-size="12" font-weight="700" font-family="system-ui,sans-serif" text-anchor="middle">${xl.totalHours}h</text>`;
         });
 
         svg += '</svg>';
