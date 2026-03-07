@@ -506,7 +506,7 @@ export default class TeamCapacity extends LightningElement {
         if (!rows || rows.length === 0 || !projectCols.length) return null;
 
         const W = 900, H = 240;
-        const padLeft = 48, padRight = 24, padTop = 18, padBottom = 58;
+        const padLeft = 48, padRight = 60, padTop = 18, padBottom = 58;
         const plotW = W - padLeft - padRight;
         const plotH = H - padTop - padBottom;
 
