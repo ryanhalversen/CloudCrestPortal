@@ -19,41 +19,6 @@
 
         <!-- ── PERSON CAPACITY CARDS ───────────────────────────────────── -->
         <div class="slds-p-horizontal_medium slds-m-bottom_medium">
-            <template if:true={companySummary}>
-                <div class="company-summary">
-                    <div class="cs-stats">
-                        <div class="cs-stat">
-                            <span class="cs-val">{companySummary.totalDemand}h</span>
-                            <span class="cs-lbl">Total weekly demand</span>
-                        </div>
-                        <div class="cs-divider"></div>
-                        <div class="cs-capacity-group">
-                            <div class="cs-group-label">Internal</div>
-                            <div class="cs-stat">
-                                <span class="cs-val">{companySummary.fteCapacity}h</span>
-                                <span class="cs-lbl">FTE capacity</span>
-                            </div>
-                        </div>
-                        <template if:true={companySummary.hasContractors}>
-                        <div class="cs-capacity-group cs-capacity-group-ext">
-                            <div class="cs-group-label cs-group-label-ext">External</div>
-                            <div class="cs-stat">
-                                <span class="cs-val">{companySummary.contractorCapacity}h</span>
-                                <span class="cs-lbl">Contractor capacity</span>
-                            </div>
-                        </div>
-                        </template>
-                        <div class="cs-divider"></div>
-                        <div class="cs-stat">
-                            <span class="cs-val">{companySummary.utilizationLabel}</span>
-                            <span class="cs-lbl">Utilization</span>
-                        </div>
-                    </div>
-                    <div class="util-track">
-                        <div class={companySummary.barClass} style={companySummary.barStyle}></div>
-                    </div>
-                </div>
-            </template>
             <!-- ── Tab navigation ──────────────────────────────────── -->
             <div class="cap-tab-nav">
                 <button class={totalTabClass} data-tab="total" onclick={handleTabClick}>
@@ -105,8 +70,45 @@
                         </div>
                     </div>
                 </template>
-                <!-- FTEs first, then contractors -->
+                <!-- Team card + FTEs + contractors -->
                 <div class="person-row">
+                    <template if:true={teamCard}>
+                        <div class={teamCard.cardClass} data-id={teamCard.id} onclick={handlePersonClick}>
+                            <div class="person-header">
+                                <div class="person-avatar team-avatar">ALL</div>
+                                <div class="person-info">
+                                    <div class="person-name">Team Total</div>
+                                    <div class="person-meta">All members &middot; {teamCard.totalCapacity}h/wk capacity</div>
+                                </div>
+                            </div>
+                            <div class="cap-stats">
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.demand}h</div>
+                                    <div class="cap-stat-lbl">Weekly demand</div>
+                                </div>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.fteCapacity}h</div>
+                                    <div class="cap-stat-lbl">FTE capacity</div>
+                                </div>
+                                <template if:true={teamCard.hasContractors}>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.contractorCapacity}h</div>
+                                    <div class="cap-stat-lbl">Contractor cap.</div>
+                                </div>
+                                </template>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.utilizationLabel}</div>
+                                    <div class="cap-stat-lbl">Utilization</div>
+                                </div>
+                            </div>
+                            <div class="util-track" style="margin-top:8px">
+                                <div class={teamCard.barClass} style={teamCard.barStyle}></div>
+                            </div>
+                        </div>
+                    </template>
                     <template for:each={personCards} for:item="p">
                         <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
                             <div class="person-header">
@@ -215,6 +217,43 @@
                     </div>
                 </template>
                 <div class="person-row">
+                    <template if:true={teamCard}>
+                        <div class={teamCard.cardClass} data-id={teamCard.id} onclick={handlePersonClick}>
+                            <div class="person-header">
+                                <div class="person-avatar team-avatar">ALL</div>
+                                <div class="person-info">
+                                    <div class="person-name">Team Total</div>
+                                    <div class="person-meta">All members &middot; {teamCard.totalCapacity}h/wk capacity</div>
+                                </div>
+                            </div>
+                            <div class="cap-stats">
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.demand}h</div>
+                                    <div class="cap-stat-lbl">Weekly demand</div>
+                                </div>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.fteCapacity}h</div>
+                                    <div class="cap-stat-lbl">FTE capacity</div>
+                                </div>
+                                <template if:true={teamCard.hasContractors}>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.contractorCapacity}h</div>
+                                    <div class="cap-stat-lbl">Contractor cap.</div>
+                                </div>
+                                </template>
+                                <div class="cap-stat-divider"></div>
+                                <div class="cap-stat">
+                                    <div class="cap-stat-val">{teamCard.utilizationLabel}</div>
+                                    <div class="cap-stat-lbl">Utilization</div>
+                                </div>
+                            </div>
+                            <div class="util-track" style="margin-top:8px">
+                                <div class={teamCard.barClass} style={teamCard.barStyle}></div>
+                            </div>
+                        </div>
+                    </template>
                     <template for:each={personCards} for:item="p">
                         <div key={p.id} class={p.cardClass} data-id={p.id} onclick={handlePersonClick}>
                             <div class="person-header">

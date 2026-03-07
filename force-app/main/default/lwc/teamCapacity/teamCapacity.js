@@ -1,6 +1,7 @@
 import { LightningElement, wire, track } from 'lwc';
 import getCapacityData from '@salesforce/apex/TeamCapacityController.getCapacityData';
 import getBillingHistory from '@salesforce/apex/TeamCapacityController.getBillingHistory';
+import getTeamBillingHistory from '@salesforce/apex/TeamCapacityController.getTeamBillingHistory';
 
 // ── Team configuration ─────────────────────────────────────────────────────
 // Weekly billable hour targets per person.
@@ -22,6 +23,8 @@ const PACE_CLASSES = {
 
 // Shared color palette for billing chart — index stays consistent with projectCols order
 const CHART_COLORS = ['#0e7490', '#7c3aed', '#16a34a', '#dc2626', '#d97706', '#2563eb', '#db2777', '#059669', '#92400e'];
+
+const TEAM_CARD_ID = 'TEAM';
 
 export default class TeamCapacity extends LightningElement {
     @track _data        = null;
@@ -61,10 +64,9 @@ export default class TeamCapacity extends LightningElement {
         }
         this._billingLoading = true;
         try {
-            const data = await getBillingHistory({
-                userId: this._billingUserId,
-                weeks:  this._billingWeeks
-            });
+            const data = this._billingUserId === TEAM_CARD_ID
+                ? await getTeamBillingHistory({ weeks: this._billingWeeks })
+                : await getBillingHistory({ userId: this._billingUserId, weeks: this._billingWeeks });
             this._billingData = data || [];
         } catch (e) {
             this._billingData = [];
@@ -172,6 +174,32 @@ export default class TeamCapacity extends LightningElement {
         }));
     }
 
+    // ── Team overview card ────────────────────────────────────────────────
+    get teamCard() {
+        const cards = this.personCards;
+        if (!cards.length) return null;
+        const fteCapacity        = cards.reduce((s, p) => s + p.weeklyTarget, 0);
+        const contractorCapacity = (this._data?.contractors || []).reduce((s, c) => s + (c.weeklyHours || 0), 0);
+        const totalCapacity      = fteCapacity + contractorCapacity;
+        const demand             = Math.round(cards.reduce((s, p) => s + p.demand, 0) * 10) / 10;
+        const utilization        = totalCapacity > 0 ? Math.round((demand / totalCapacity) * 100) : 0;
+        const isOver             = utilization > 100;
+        const isHigh             = !isOver && utilization >= 85;
+        const isSelected         = this._selectedId === TEAM_CARD_ID;
+        return {
+            id:               TEAM_CARD_ID,
+            totalCapacity,
+            fteCapacity,
+            contractorCapacity,
+            hasContractors:   contractorCapacity > 0,
+            demand,
+            utilizationLabel: `${utilization}%`,
+            barStyle:         `width:${Math.min(100, utilization)}%`,
+            barClass:         isOver ? 'util-bar util-bar-over' : isHigh ? 'util-bar util-bar-high' : 'util-bar util-bar-ok',
+            cardClass:        `person-card team-card${isSelected ? ' person-card-selected' : ''}`
+        };
+    }
+
     // ── Company summary ───────────────────────────────────────────────────
     get companySummary() {
         const cards = this.personCards;
@@ -206,7 +234,7 @@ export default class TeamCapacity extends LightningElement {
     // ── Project rows ──────────────────────────────────────────────────────
     get projectRows() {
         const projects = this._data?.projects || [];
-        const filtered = this._selectedId
+        const filtered = this._selectedId && this._selectedId !== TEAM_CARD_ID
             ? projects.filter(p => p.ownerId === this._selectedId || p.supportLeadId === this._selectedId)
             : projects;
 
@@ -324,7 +352,7 @@ export default class TeamCapacity extends LightningElement {
     get noProjects()      { return !this.isLoading && !this.hasProjects; }
     get showEmpty()       { return !this.isLoading && !this.error && this.noProjects; }
     get filterLabel()     {
-        if (!this._selectedId) return 'All active projects';
+        if (!this._selectedId || this._selectedId === TEAM_CARD_ID) return 'All active projects';
         const person = this.personCards.find(p => p.id === this._selectedId);
         return person ? `${person.name}'s projects` : 'Filtered projects';
     }
@@ -332,6 +360,7 @@ export default class TeamCapacity extends LightningElement {
     // ── Billing panel getters ──────────────────────────────────────────────
     get showBillingPanel()  { return !!this._selectedId; }
     get billingPersonName() {
+        if (this._selectedId === TEAM_CARD_ID) return 'Team';
         const p = this.personCards.find(x => x.id === this._selectedId);
         if (p) return p.name;
         const c = this.contractorCards.find(x => x.id === this._selectedId);
@@ -439,10 +468,10 @@ export default class TeamCapacity extends LightningElement {
         const id   = e.currentTarget.dataset.id;
         const same = this._selectedId === id;
         this._selectedId = same ? null : id;
-        // Set billing userId only for FTEs (contractors are Contacts, not Users)
-        const isFte = this.personCards.some(p => p.id === id);
-        this._billingUserId = (!same && isFte) ? id : null;
-        if (!same && isFte) {
+        // Team card and FTEs have billing history; contractors (Contacts) do not
+        const isFteOrTeam = id === TEAM_CARD_ID || this.personCards.some(p => p.id === id);
+        this._billingUserId = (!same && isFteOrTeam) ? id : null;
+        if (!same && isFteOrTeam) {
             this._billingView             = 'week';
             this._billingWeeks            = 8;
             this._billingGrouping         = 'project';
