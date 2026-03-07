@@ -379,6 +379,37 @@
 .bh-view-btn-active:hover { background: #0c6478; color: #fff; }
 .bh-range-btn-active { background: #f0f9ff; color: #0e7490; }
 
+/* Project filter chips */
+.bh-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 0 16px;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 4px;
+}
+.bh-chip {
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1.5px solid;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    transition: opacity 0.12s, box-shadow 0.12s;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.45;
+}
+.bh-chip-active {
+    opacity: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.bh-chip:hover { opacity: 0.85; }
+.bh-chip-active:hover { opacity: 0.88; }
+
 .bh-empty {
     padding: 20px 0;
     text-align: center;

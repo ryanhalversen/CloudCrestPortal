@@ -415,19 +415,31 @@
 
                     <!-- FTE chart -->
                     <template if:false={isContractorSelected}>
-                        <template if:true={billingChartEmpty}>
+                        <template if:false={hasBillingEntries}>
                             <div class="bh-empty">No time entries found for this period.</div>
                         </template>
-                        <template if:false={billingChartEmpty}>
-                            <div class="bh-chart-svg" lwc:dom="manual"></div>
-                            <div class="bh-legend">
-                                <template for:each={billingChart.series} for:item="s">
-                                    <div key={s.col} class="bh-legend-item">
-                                        <span class="bh-legend-dot" style={s.dotStyle}></span>
-                                        <span class="bh-legend-label">{s.col}</span>
-                                    </div>
+                        <template if:true={hasBillingEntries}>
+                            <!-- Project filter chips -->
+                            <div class="bh-chips-row">
+                                <template for:each={billingProjectChips} for:item="chip">
+                                    <button key={chip.col} class={chip.chipClass} data-col={chip.col} onclick={handleProjectChipClick} style={chip.chipStyle}>{chip.col}</button>
                                 </template>
                             </div>
+                            <!-- Chart -->
+                            <template if:false={billingChartEmpty}>
+                                <div class="bh-chart-svg" lwc:dom="manual"></div>
+                                <div class="bh-legend">
+                                    <template for:each={billingChart.series} for:item="s">
+                                        <div key={s.col} class="bh-legend-item">
+                                            <span class="bh-legend-dot" style={s.dotStyle}></span>
+                                            <span class="bh-legend-label">{s.col}</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:true={billingChartEmpty}>
+                                <div class="bh-empty">Select a project above to view billing history.</div>
+                            </template>
                         </template>
                     </template>
                 </div>

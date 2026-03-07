@@ -20,6 +20,9 @@ const PACE_CLASSES = {
     'Behind':  'pace-badge pace-behind'
 };
 
+// Shared color palette for billing chart — index stays consistent with projectCols order
+const CHART_COLORS = ['#0e7490', '#7c3aed', '#16a34a', '#dc2626', '#d97706', '#2563eb', '#db2777', '#059669', '#92400e'];
+
 export default class TeamCapacity extends LightningElement {
     @track _data        = null;
     @track _selectedId  = null;
@@ -28,11 +31,12 @@ export default class TeamCapacity extends LightningElement {
     @track error        = null;
 
     // ── Billing history state ──────────────────────────────────────────────
-    @track _billingUserId  = null;
-    @track _billingWeeks   = 8;
-    @track _billingView    = 'week';   // 'week' | 'month'
-    @track _billingData    = [];
-    @track _billingLoading = false;
+    @track _billingUserId           = null;
+    @track _billingWeeks            = 8;
+    @track _billingView             = 'week';   // 'week' | 'month'
+    @track _billingData             = [];
+    @track _billingLoading          = false;
+    @track _billingSelectedProjects = null;   // null = all; Set<string> = specific subset
 
     // ── Wire: capacity data ────────────────────────────────────────────────
     @wire(getCapacityData)
@@ -414,9 +418,10 @@ export default class TeamCapacity extends LightningElement {
         const isFte = this.personCards.some(p => p.id === id);
         this._billingUserId = (!same && isFte) ? id : null;
         if (!same && isFte) {
-            this._billingLoading = true;
-            this._billingView  = 'week';
-            this._billingWeeks = 8;
+            this._billingLoading          = true;
+            this._billingView             = 'week';
+            this._billingWeeks            = 8;
+            this._billingSelectedProjects = null;
         }
     }
 
@@ -447,10 +452,33 @@ export default class TeamCapacity extends LightningElement {
         this._billingLoading = true;
     }
 
+    handleProjectChipClick(e) {
+        const col  = e.currentTarget.dataset.col;
+        const { projectCols } = this.billingRows;
+        const sel  = this._billingSelectedProjects;
+
+        if (sel === null) {
+            // All selected — deselect just this one
+            const next = new Set(projectCols);
+            next.delete(col);
+            this._billingSelectedProjects = next;
+        } else {
+            const next = new Set(sel);
+            if (next.has(col)) { next.delete(col); } else { next.add(col); }
+            // If all are re-selected, revert to null (all)
+            this._billingSelectedProjects = next.size === projectCols.length ? null : next;
+        }
+    }
+
     // ── Billing chart ─────────────────────────────────────────────────────
     get billingChart() {
         const { projectCols, rows } = this.billingRows;
         if (!rows || rows.length === 0 || !projectCols.length) return null;
+
+        // Apply project filter (null = all selected)
+        const sel        = this._billingSelectedProjects;
+        const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
+        if (activeCols.length === 0) return null;
 
         const W = 900, H = 230;
         const padLeft = 48, padRight = 24, padTop = 18, padBottom = 44;
@@ -461,17 +489,19 @@ export default class TeamCapacity extends LightningElement {
         const periods = [...rows].reverse();
         const n = periods.length;
 
-        // Find max for y-axis
+        // Max hours across active cols only
         let maxHours = 1;
         periods.forEach(row => {
-            row.cells.forEach(cell => { if ((cell.hours || 0) > maxHours) maxHours = cell.hours; });
+            activeCols.forEach(col => {
+                const ci = projectCols.indexOf(col);
+                const h  = row.cells[ci]?.hours || 0;
+                if (h > maxHours) maxHours = h;
+            });
         });
         const yMax = Math.ceil(maxHours / 5) * 5 || 10;
 
         const xOf = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
         const yOf = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
-
-        const COLORS = ['#0e7490', '#7c3aed', '#16a34a', '#dc2626', '#d97706', '#2563eb', '#db2777', '#059669', '#92400e'];
 
         // Grid lines at 0%, 25%, 50%, 75%, 100%
         const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({
@@ -481,9 +511,10 @@ export default class TeamCapacity extends LightningElement {
             x2:    padLeft + plotW
         }));
 
-        // One series per project
-        const series = projectCols.map((col, ci) => {
-            const color  = COLORS[ci % COLORS.length];
+        // One series per active project — color keyed to original col index for consistency
+        const series = activeCols.map(col => {
+            const ci    = projectCols.indexOf(col);
+            const color = CHART_COLORS[ci % CHART_COLORS.length];
             const points = periods.map((row, i) => ({
                 key:   `${col}-${i}`,
                 x:     Math.round(xOf(i) * 10) / 10,
@@ -503,7 +534,27 @@ export default class TeamCapacity extends LightningElement {
         return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
     }
 
+    get hasBillingEntries() { return !this.billingRows.isEmpty; }
     get billingChartEmpty() { return !this.billingChart; }
+
+    // Chip row — one button per project, colored to match the chart line
+    get billingProjectChips() {
+        const { projectCols } = this.billingRows;
+        if (!projectCols || !projectCols.length) return [];
+        const sel = this._billingSelectedProjects;
+        return projectCols.map((col, ci) => {
+            const color    = CHART_COLORS[ci % CHART_COLORS.length];
+            const selected = sel === null || sel.has(col);
+            return {
+                col,
+                selected,
+                chipClass: `bh-chip${selected ? ' bh-chip-active' : ''}`,
+                chipStyle: selected
+                    ? `background:${color};border-color:${color};color:#fff`
+                    : `border-color:${color};color:${color}`
+            };
+        });
+    }
 
     renderedCallback() {
         const container = this.template.querySelector('.bh-chart-svg');
