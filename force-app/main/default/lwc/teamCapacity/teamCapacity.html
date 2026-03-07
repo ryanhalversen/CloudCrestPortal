@@ -427,7 +427,10 @@
                             </div>
                             <!-- Chart -->
                             <template if:false={billingChartEmpty}>
-                                <div class="bh-chart-svg" lwc:dom="manual"></div>
+                                <div class="bh-chart-wrap">
+                                    <div class="bh-chart-svg" lwc:dom="manual"></div>
+                                    <div class="bh-tooltip"></div>
+                                </div>
                                 <div class="bh-legend">
                                     <template for:each={billingChart.series} for:item="s">
                                         <div key={s.col} class="bh-legend-item">

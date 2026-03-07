@@ -516,10 +516,11 @@ export default class TeamCapacity extends LightningElement {
             const ci    = projectCols.indexOf(col);
             const color = CHART_COLORS[ci % CHART_COLORS.length];
             const points = periods.map((row, i) => ({
-                key:   `${col}-${i}`,
-                x:     Math.round(xOf(i) * 10) / 10,
-                y:     Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
-                hours: row.cells[ci]?.hours || 0
+                key:    `${col}-${i}`,
+                x:      Math.round(xOf(i) * 10) / 10,
+                y:      Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
+                hours:  row.cells[ci]?.hours || 0,
+                period: row.label
             }));
             return { col, color, points, dotStyle: `background:${color}` };
         });
@@ -560,6 +561,34 @@ export default class TeamCapacity extends LightningElement {
         const container = this.template.querySelector('.bh-chart-svg');
         if (!container) return;
         container.innerHTML = this._buildChartSVG();
+
+        // Attach tooltip listeners to every dot
+        const wrap    = this.template.querySelector('.bh-chart-wrap');
+        const tooltip = this.template.querySelector('.bh-tooltip');
+        if (!wrap || !tooltip) return;
+
+        container.querySelectorAll('.bh-dot').forEach(dot => {
+            dot.addEventListener('mouseenter', (e) => {
+                const hours  = e.target.dataset.hours;
+                const period = e.target.dataset.period;
+                const col    = e.target.dataset.col;
+                tooltip.innerHTML =
+                    `<div style="font-size:0.88rem;font-weight:700;line-height:1.2">${hours}h</div>` +
+                    `<div style="font-size:0.68rem;opacity:0.75;margin-top:2px">${period}</div>` +
+                    `<div style="font-size:0.65rem;opacity:0.6;margin-top:1px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${col}</div>`;
+                tooltip.style.display = 'block';
+                e.target.setAttribute('r', '6.5');
+
+                const wrapRect = wrap.getBoundingClientRect();
+                const dotRect  = e.target.getBoundingClientRect();
+                tooltip.style.left = `${dotRect.left + dotRect.width / 2 - wrapRect.left}px`;
+                tooltip.style.top  = `${dotRect.top - wrapRect.top - 8}px`;
+            });
+            dot.addEventListener('mouseleave', (e) => {
+                tooltip.style.display = 'none';
+                e.target.setAttribute('r', '4.5');
+            });
+        });
     }
 
     _buildChartSVG() {
@@ -595,10 +624,15 @@ export default class TeamCapacity extends LightningElement {
             svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
         });
 
-        // Dots
+        // Dots — rendered last so they're on top and easy to hover
         series.forEach(s => {
             s.points.forEach(p => {
-                svg += `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${s.color}" stroke="white" stroke-width="1.5"/>`;
+                const h   = p.hours || 0;
+                const per = p.period.replace(/"/g, '&quot;');
+                const col = s.col.replace(/"/g, '&quot;');
+                svg += `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${s.color}" stroke="white" stroke-width="1.5" ` +
+                       `class="bh-dot" style="cursor:pointer" ` +
+                       `data-hours="${h}" data-period="${per}" data-col="${col}"/>`;
             });
         });
 
