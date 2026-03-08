@@ -244,7 +244,7 @@ export default class TeamCapacity extends LightningElement {
         return filtered.map(p => {
             const pct      = p.contractedHours > 0
                              ? Math.round((p.hoursDelivered / p.contractedHours) * 100) : 0;
-            const remaining = Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0));
+            const remaining = Math.round(Math.max(0, (p.contractedHours || 0) - (p.hoursDelivered || 0)) * 100) / 100;
             const endDate  = p.endDate
                              ? new Date(p.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
                              : '—';
