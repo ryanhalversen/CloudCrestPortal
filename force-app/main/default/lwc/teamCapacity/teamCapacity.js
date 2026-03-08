@@ -10,7 +10,7 @@ const TEAM_CONFIG = [
     { match: 'Ryan',  weeklyTarget: 35, role: 'FTE', exclude: true },
     { match: 'Chris', weeklyTarget: 35, role: 'FTE' },
     { match: 'Terri', weeklyTarget: 35, role: 'FTE' },
-    { match: 'Alec',  weeklyTarget: 20, role: 'Delivery Manager' },
+    { match: 'Alec',  weeklyTarget: 20, role: 'Head of Delivery' },
 ];
 const DEFAULT_TARGET = 35;
 
