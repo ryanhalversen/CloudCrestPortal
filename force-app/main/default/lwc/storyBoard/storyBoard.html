@@ -689,30 +689,24 @@
                                 <textarea
                                     class="new-story-textarea story-detail-textarea"
                                     placeholder="Describe the solution…"
-                                    value={solutionInput}
                                     oninput={handleSolutionChange}
-                                    rows="4">
-                                </textarea>
+                                    rows="4">{solutionInput}</textarea>
                             </div>
                             <div class="modal-field-row">
                                 <label class="modal-field-label">Components to Deploy</label>
                                 <textarea
                                     class="new-story-textarea story-detail-textarea"
                                     placeholder="List components, classes, or metadata…"
-                                    value={componentsInput}
                                     oninput={handleComponentsChange}
-                                    rows="4">
-                                </textarea>
+                                    rows="4">{componentsInput}</textarea>
                             </div>
                             <div class="modal-field-row">
                                 <label class="modal-field-label">Q&amp;A</label>
                                 <textarea
                                     class="new-story-textarea story-detail-textarea"
                                     placeholder="Notes from quality assurance testing…"
-                                    value={qaInput}
                                     oninput={handleQaChange}
-                                    rows="4">
-                                </textarea>
+                                    rows="4">{qaInput}</textarea>
                             </div>
                         </div>
                         <div class="modal-field-row modal-field-documentation">
@@ -720,10 +714,8 @@
                             <textarea
                                 class="new-story-textarea story-detail-textarea"
                                 placeholder="Lucid Cart, Canva Documents, PowerPoint, Tagno Training Material, etc."
-                                value={documentationInput}
                                 oninput={handleDocumentationChange}
-                                rows="3">
-                            </textarea>
+                                rows="3">{documentationInput}</textarea>
                         </div>
                         <template if:true={isClosedStatus}>
                             <div class="modal-field-row modal-closing-comments-row">
