@@ -1410,8 +1410,9 @@
 }
 
 .story-detail-textarea {
-    resize: vertical;
+    resize: none;
     min-height: 80px;
+    overflow: hidden;
 }
 
 .modal-closing-comments-row {

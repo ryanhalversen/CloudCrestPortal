@@ -294,6 +294,15 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         window.addEventListener('timerstopped', this._handleExternalTimerStop);
         window.addEventListener('timerstarted',  this._handleExternalTimerStart);
     }
+    renderedCallback() {
+        if (this.showNormalModal) {
+            this.template.querySelectorAll('.story-detail-textarea').forEach(el => {
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+            });
+        }
+    }
+
     disconnectedCallback() {
         if (_timerInterval) clearInterval(_timerInterval);
         window.removeEventListener('timerstopped', this._handleExternalTimerStop);
@@ -517,7 +526,22 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     _stripHtml(html) {
         if (!html) return '';
-        return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+        let t = html;
+        t = t.replace(/<\/p>/gi, '\n')
+             .replace(/<\/div>/gi, '\n')
+             .replace(/<\/li>/gi, '\n')
+             .replace(/<\/h[1-6]>/gi, '\n')
+             .replace(/<br\s*\/?>/gi, '\n');
+        t = t.replace(/<[^>]*>/g, '');
+        t = t.replace(/&nbsp;/g, ' ')
+             .replace(/&amp;/g, '&')
+             .replace(/&lt;/g, '<')
+             .replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"')
+             .replace(/&#39;/g, "'")
+             .replace(/&apos;/g, "'");
+        t = t.replace(/\n{3,}/g, '\n\n');
+        return t.trim();
     }
 
     _mapNextStep(s) {
