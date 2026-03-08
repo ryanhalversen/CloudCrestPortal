@@ -491,6 +491,31 @@
                                 </template>
                             </div>
 
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Solution</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Describe the solution…"
+                                    oninput={handleSolutionChange}
+                                    rows="4">{solutionInput}</textarea>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Components to Deploy</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="List components, classes, or metadata…"
+                                    oninput={handleComponentsChange}
+                                    rows="4">{componentsInput}</textarea>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Q&amp;A</label>
+                                <textarea
+                                    class="new-story-textarea story-detail-textarea"
+                                    placeholder="Notes from quality assurance testing…"
+                                    oninput={handleQaChange}
+                                    rows="4">{qaInput}</textarea>
+                            </div>
+
                         </div>
 
                         <!-- ── Right: time records ── -->
@@ -681,34 +706,8 @@
 
                     </div>
 
-                    <!-- ── Solution / Components to Deploy / Q&A ── -->
+                    <!-- ── Documentation / Save ── -->
                     <div class="modal-body-fields">
-                        <div class="modal-fields-grid">
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Solution</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="Describe the solution…"
-                                    oninput={handleSolutionChange}
-                                    rows="4">{solutionInput}</textarea>
-                            </div>
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Components to Deploy</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="List components, classes, or metadata…"
-                                    oninput={handleComponentsChange}
-                                    rows="4">{componentsInput}</textarea>
-                            </div>
-                            <div class="modal-field-row">
-                                <label class="modal-field-label">Q&amp;A</label>
-                                <textarea
-                                    class="new-story-textarea story-detail-textarea"
-                                    placeholder="Notes from quality assurance testing…"
-                                    oninput={handleQaChange}
-                                    rows="4">{qaInput}</textarea>
-                            </div>
-                        </div>
                         <div class="modal-field-row modal-field-documentation">
                             <label class="modal-field-label">Documentation</label>
                             <textarea

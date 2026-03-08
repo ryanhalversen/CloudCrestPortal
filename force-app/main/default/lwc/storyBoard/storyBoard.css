@@ -612,6 +612,7 @@
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    overflow-y: auto;
 }
 .modal-col-time {
     width: 300px;
@@ -1403,11 +1404,6 @@
     gap: 12px;
 }
 
-.modal-fields-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-}
 
 .story-detail-textarea {
     resize: none;
