@@ -1,0 +1,177 @@
+<!-- force-app/main/default/lwc/outpostDevelopment/outpostDevelopment.html -->
+<template>
+    <lightning-card title="OutPost Development" icon-name="standard:kanban">
+
+        <!-- Loading spinner -->
+        <template if:true={isLoading}>
+            <div class="op-loading">
+                <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- Error banner -->
+        <template if:true={error}>
+            <div class="op-error">{error}</div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <!-- Header: role badge + project filter -->
+            <div class="op-header">
+                <span class={roleBadgeClass}>{roleBadge}</span>
+                <lightning-combobox
+                    label="Project"
+                    variant="label-hidden"
+                    value={_selectedProject}
+                    options={projectOptions}
+                    onchange={handleProjectChange}
+                    style="min-width: 220px">
+                </lightning-combobox>
+            </div>
+
+            <!-- 6-column Kanban board -->
+            <div class={boardClass}>
+                <template for:each={columns} for:item="col">
+                    <div key={col.status} class="op-col" data-status={col.status}>
+                        <div class="op-col-header" style={col.headerStyle}>
+                            <span class="op-col-title">{col.status}</span>
+                            <span class="op-col-badge">{col.count}</span>
+                        </div>
+                        <div class="op-col-cards" data-status={col.status}>
+                            <template if:false={col.hasCards}>
+                                <div class="op-col-empty"></div>
+                            </template>
+                            <template for:each={col.cards} for:item="card">
+                                <div
+                                    key={card.id}
+                                    class={card.cardClass}
+                                    data-id={card.id}
+                                    data-status={card.status}
+                                    onpointerdown={handlePointerDown}
+                                    onpointermove={handlePointerMove}
+                                    onpointerup={handlePointerUp}
+                                    onclick={handleCardClick}>
+
+                                    <div class="op-card-subject">{card.subject}</div>
+
+                                    <div class="op-card-meta">
+                                        <span class={card.priorityClass}>{card.priority}</span>
+                                        <span>{card.type}</span>
+                                    </div>
+
+                                    <!-- Owner view: show contractor name; Contractor view: show project name -->
+                                    <template if:true={isOwnerView}>
+                                        <div class="op-card-attr">&#x1F464; {card.supportName}</div>
+                                    </template>
+                                    <template if:false={isOwnerView}>
+                                        <div class="op-card-attr">&#x1F4C1; {card.projectName}</div>
+                                    </template>
+
+                                    <div class="op-card-footer">
+                                        <span>&#x23F1; {card.hoursLogged}h</span>
+                                        <span class="op-est">est {card.hoursEstimate}h</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+        </template>
+
+        <!-- Detail modal backdrop -->
+        <template if:true={showModal}>
+            <div class="op-backdrop" onclick={handleCloseModal}></div>
+
+            <!-- Detail modal panel -->
+            <div class="op-modal">
+                <div class="op-modal-header">
+                    <span>{_activeCard.subject}</span>
+                    <button onclick={handleModalClose}>&#x2715;</button>
+                </div>
+
+                <div class="op-modal-body">
+
+                    <!-- Status buttons -->
+                    <div>
+                        <h4 class="op-section-title">Status</h4>
+                        <div class="op-status-bar">
+                            <template for:each={statusOptions} for:item="s">
+                                <button
+                                    key={s.value}
+                                    class={s.btnClass}
+                                    data-status={s.value}
+                                    onclick={handleStatusChange}>
+                                    {s.label}
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Log Time -->
+                    <div class="op-log-section">
+                        <h4 class="op-section-title">Log Time</h4>
+                        <div class="op-log-row">
+                            <lightning-input
+                                type="number"
+                                label="Hours"
+                                value={_logHours}
+                                step="0.25"
+                                min="0.25"
+                                onchange={handleLogHoursChange}>
+                            </lightning-input>
+                            <lightning-input
+                                type="date"
+                                label="Date"
+                                value={_logDate}
+                                onchange={handleLogDateChange}>
+                            </lightning-input>
+                        </div>
+                        <lightning-input
+                            label="Notes"
+                            value={_logDesc}
+                            placeholder="Optional notes..."
+                            onchange={handleLogDescChange}>
+                        </lightning-input>
+                        <lightning-button
+                            label="Log Time"
+                            variant="brand"
+                            onclick={handleLogTime}>
+                        </lightning-button>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="op-comments-section">
+                        <h4 class="op-section-title">Comments</h4>
+
+                        <template if:false={_comments.length}>
+                            <p class="op-empty-comments">No comments yet.</p>
+                        </template>
+
+                        <template for:each={_comments} for:item="c">
+                            <div key={c.id} class="op-comment">
+                                <div class="op-comment-meta">{c.authorName} &middot; {c.createdDate}</div>
+                                <div class="op-comment-body">{c.body}</div>
+                            </div>
+                        </template>
+
+                        <lightning-textarea
+                            label="New Comment"
+                            variant="label-hidden"
+                            placeholder="Add a comment..."
+                            value={_commentText}
+                            onchange={handleCommentChange}>
+                        </lightning-textarea>
+                        <lightning-button
+                            label="Post Comment"
+                            onclick={handlePostComment}>
+                        </lightning-button>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+    </lightning-card>
+</template>
