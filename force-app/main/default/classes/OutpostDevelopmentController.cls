@@ -28,6 +28,7 @@ public without sharing class OutpostDevelopmentController {
         @AuraEnabled public Id      projectId;
         @AuraEnabled public Decimal hoursLogged;
         @AuraEnabled public Decimal hoursEstimate;
+        @AuraEnabled public String  solution;
     }
 
     public class ProjectOption {
@@ -58,7 +59,7 @@ public without sharing class OutpostDevelopmentController {
             'SELECT Id, Subject, Status, Priority, Type, ' +
             'OwnerId, Owner.Name, Story_Support__c, Story_Support__r.Name, ' +
             'Projects__c, Projects__r.Name, ' +
-            'Hours_Estimate_to_Complete__c, Time_Logged_on_Story__c ' +
+            'Hours_Estimate_to_Complete__c, Time_Logged_on_Story__c, Solution__c ' +
             'FROM Case';
 
         String ownerQuery =
@@ -125,6 +126,7 @@ public without sharing class OutpostDevelopmentController {
             w.hoursEstimate = c.Hours_Estimate_to_Complete__c != null
                 ? c.Hours_Estimate_to_Complete__c
                 : 0;
+            w.solution      = c.Solution__c;
             result.add(w);
         }
         return result;
@@ -144,6 +146,19 @@ public without sharing class OutpostDevelopmentController {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (AuraHandledException ex) {
             throw ex;
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
+    }
+
+    // ── saveSolution ──────────────────────────────────────────────────────
+
+    @AuraEnabled
+    public static void saveSolution(String caseId, String solution) {
+        try {
+            update new Case(Id = caseId, Solution__c = String.isBlank(solution) ? null : solution);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {
             throw new AuraHandledException(ex.getMessage());
         }

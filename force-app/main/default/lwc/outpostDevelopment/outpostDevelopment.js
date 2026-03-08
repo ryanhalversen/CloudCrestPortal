@@ -11,6 +11,7 @@ import getComments       from '@salesforce/apex/OutpostDevelopmentController.get
 import getChatMessages   from '@salesforce/apex/OutpostDevelopmentController.getChatMessages';
 import postChatMessage   from '@salesforce/apex/OutpostDevelopmentController.postChatMessage';
 import searchChatUsers   from '@salesforce/apex/OutpostDevelopmentController.searchChatUsers';
+import saveSolution      from '@salesforce/apex/OutpostDevelopmentController.saveSolution';
 
 // ── Module-level drag state (non-reactive) ────────────────────────────────
 let _dragCardId       = null;
@@ -63,12 +64,14 @@ export default class OutpostDevelopment extends LightningElement {
     @track isCardDragging   = false;
 
     // Modal: story detail
-    @track _activeCard   = null;
-    @track _comments     = [];
-    @track _commentText  = '';
-    @track _logHours     = '';
-    @track _logDesc      = '';
-    @track _logDate      = '';
+    @track _activeCard      = null;
+    @track _comments        = [];
+    @track _commentText     = '';
+    @track _logHours        = '';
+    @track _logDesc         = '';
+    @track _logDate         = '';
+    @track _solutionInput   = '';
+    @track _isSavingSolution = false;
 
     // Modal: chat
     @track _chatMessages       = [];
@@ -293,16 +296,18 @@ export default class OutpostDevelopment extends LightningElement {
         const story = allStories.find(s => s.id === cardId);
         if (!story) return;
 
-        this._activeCard        = { ...story };
-        this._logHours          = '';
-        this._logDesc           = '';
-        this._logDate           = this._todayString();
-        this._commentText       = '';
-        this._comments          = [];
-        this._chatMessages      = [];
-        this._chatText          = '';
-        this._mentionMap        = {};
+        this._activeCard          = { ...story };
+        this._logHours            = '';
+        this._logDesc             = '';
+        this._logDate             = this._todayString();
+        this._commentText         = '';
+        this._comments            = [];
+        this._chatMessages        = [];
+        this._chatText            = '';
+        this._mentionMap          = {};
         this._showMentionDropdown = false;
+        this._solutionInput       = story.solution || '';
+        this._isSavingSolution    = false;
         this._loadComments(cardId);
         this._loadChatMessages(cardId);
     }
@@ -324,6 +329,23 @@ export default class OutpostDevelopment extends LightningElement {
         this._comments            = [];
         this._chatMessages        = [];
         this._showMentionDropdown = false;
+    }
+
+    // ── Solution ──────────────────────────────────────────────────────────
+
+    handleSolutionChange(e) { this._solutionInput = e.target.value; }
+
+    async handleSaveSolution() {
+        if (this._isSavingSolution || !this._activeCard) return;
+        this._isSavingSolution = true;
+        try {
+            await saveSolution({ caseId: this._activeCard.id, solution: this._solutionInput.trim() || null });
+            this._showToast('Saved', 'Solution saved.', 'success');
+        } catch (err) {
+            this._showToast('Error', err?.body?.message || 'Failed to save solution', 'error');
+        } finally {
+            this._isSavingSolution = false;
+        }
     }
 
     // ── Log time ──────────────────────────────────────────────────────────
@@ -485,11 +507,15 @@ export default class OutpostDevelopment extends LightningElement {
         this._mentionResults      = [];
         this._mentionQuery        = '';
 
-        // Re-focus textarea
+        // Sync DOM value and re-focus textarea
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
             const ta = this.template.querySelector('.op-chat-textarea');
-            if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+            if (ta) {
+                ta.value = this._chatText;
+                ta.focus();
+                ta.setSelectionRange(ta.value.length, ta.value.length);
+            }
         }, 0);
     }
 

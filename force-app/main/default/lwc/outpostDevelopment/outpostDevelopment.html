@@ -95,6 +95,21 @@
 
                     <div class="op-modal-body">
 
+                        <!-- Solution -->
+                        <div class="op-solution-section">
+                            <h4 class="op-section-title">Solution</h4>
+                            <textarea
+                                class="op-solution-textarea"
+                                placeholder="Describe the solution..."
+                                oninput={handleSolutionChange}
+                                rows="4">{_solutionInput}</textarea>
+                            <lightning-button
+                                label="Save Solution"
+                                disabled={_isSavingSolution}
+                                onclick={handleSaveSolution}>
+                            </lightning-button>
+                        </div>
+
                         <!-- Log Time -->
                         <div class="op-log-section">
                             <h4 class="op-section-title">Log Time</h4>
@@ -142,7 +157,7 @@
                             <lightning-textarea
                                 label="New Note"
                                 variant="label-hidden"
-                                placeholder="Add a note..."
+                                placeholder="Add a note...saves to chatter"
                                 value={_commentText}
                                 onchange={handleCommentChange}>
                             </lightning-textarea>
