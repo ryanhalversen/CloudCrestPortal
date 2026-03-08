@@ -154,7 +154,8 @@
 .pace-on     { background: #dcfce7; color: #166534; }
 .pace-ahead  { background: #dbeafe; color: #1e40af; }
 .pace-behind { background: #fee2e2; color: #b91c1c; }
-.pace-none   { background: #f3f4f6; color: #9ca3af; }
+.pace-none    { background: #f3f4f6; color: #9ca3af; }
+.pace-results { background: #faf5ff; color: #7c3aed; }
 
 .muted      { color: #d1d5db; }
 .empty-state { padding: 24px; text-align: center; color: #9ca3af; font-size: 0.85rem; }

@@ -103,7 +103,9 @@ export default class TeamCapacity extends LightningElement {
             }
             const person = personMap.get(p.ownerId);
             const ownerSplit = 1 - ((p.supportSplit || 0) / 100);
-            person.demand       += Math.max(0, p.onTimeWeeklyPace || 0) * ownerSplit;
+            if (p.contractType !== 'Block') {
+                person.demand += Math.max(0, p.onTimeWeeklyPace || 0) * ownerSplit;
+            }
             person.projectCount += 1;
         });
 
@@ -124,7 +126,9 @@ export default class TeamCapacity extends LightningElement {
             }
             const person = personMap.get(p.supportLeadId);
             const split  = (p.supportSplit || 0) / 100;
-            person.demand       += Math.max(0, p.onTimeWeeklyPace || 0) * split;
+            if (p.contractType !== 'Block') {
+                person.demand += Math.max(0, p.onTimeWeeklyPace || 0) * split;
+            }
             person.projectCount += 1;
         });
 
@@ -253,21 +257,24 @@ export default class TeamCapacity extends LightningElement {
                                   : isOwnerSplitView
                                   ? (p.onTimeWeeklyPace || 0) * (1 - (p.supportSplit || 0) / 100)
                                   : (p.onTimeWeeklyPace || 0);
+            const isBlock = p.contractType === 'Block';
             return {
                 id:               p.id,
                 name:             p.name,
                 clientName:       p.clientName,
                 ownerName:        p.ownerName,
                 supportLeadName:  p.supportLeadName,
-                weeklyPace:       effectivePace > 0
+                weeklyPace:       isBlock ? '—'
+                                  : effectivePace > 0
                                   ? `${Math.round(effectivePace * 10) / 10}h/wk` : '—',
                 contractedHours:  p.contractedHours || 0,
                 hoursDelivered:   p.hoursDelivered  || 0,
                 remainingHours:   remaining,
                 remainingWeeks:   p.remainingWeeks != null ? `${p.remainingWeeks}w` : '—',
                 endDate,
-                paceStatus:       p.paceStatus || '—',
-                paceClass:        PACE_CLASSES[p.paceStatus] || 'pace-badge pace-none',
+                paceStatus:       isBlock ? 'Results Based' : (p.paceStatus || '—'),
+                paceClass:        isBlock ? 'pace-badge pace-results'
+                                  : (PACE_CLASSES[p.paceStatus] || 'pace-badge pace-none'),
                 contractType:     p.contractType || '—',
                 progressPct:      Math.min(100, pct),
                 progressLabel:    `${pct}%`,
