@@ -306,4 +306,137 @@ private class OutpostDevelopmentControllerTest {
         System.assertNotEquals(null, result, 'Should return empty list, not null');
         System.assertEquals(0, result.size(), 'Should be empty with no comments');
     }
+
+    // ── postChatMessage ───────────────────────────────────────────────────
+
+    @isTest
+    static void testPostChatMessage_createsFeedItem() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory = (Case) td.get('ownerStory');
+
+        Test.startTest();
+        Id result = OutpostDevelopmentController.postChatMessage(ownerStory.Id, 'Hello team');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should return the FeedItem Id');
+        List<FeedItem> items = [SELECT Id, Body FROM FeedItem WHERE Id = :result];
+        System.assertEquals(1, items.size(), 'FeedItem should exist');
+        System.assertEquals('Hello team', items[0].Body, 'Body should match');
+    }
+
+    @isTest
+    static void testPostChatMessage_withMentionSyntax() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory = (Case) td.get('ownerStory');
+        User supportUser = (User) td.get('supportUser');
+
+        String msg = 'Hey @[' + supportUser.Id + '] check this out';
+
+        Test.startTest();
+        Id result = OutpostDevelopmentController.postChatMessage(ownerStory.Id, msg);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should return a FeedItem Id even with mention syntax');
+    }
+
+    // ── getChatMessages ───────────────────────────────────────────────────
+
+    @isTest
+    static void testGetChatMessages_returnsMessages() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory = (Case) td.get('ownerStory');
+
+        insert new FeedItem(ParentId = ownerStory.Id, Body = 'First message', Type = 'TextPost');
+        insert new FeedItem(ParentId = ownerStory.Id, Body = 'Second message', Type = 'TextPost');
+
+        Test.startTest();
+        List<OutpostDevelopmentController.ChatMessageWrapper> result =
+            OutpostDevelopmentController.getChatMessages(ownerStory.Id);
+        Test.stopTest();
+
+        System.assertEquals(2, result.size(), 'Should return 2 chat messages');
+        System.assertEquals('First message',  result[0].body, 'First message body should match');
+        System.assertEquals('Second message', result[1].body, 'Second message body should match');
+        System.assertNotEquals(null, result[0].createdDate, 'Created date should be populated');
+        System.assertNotEquals(null, result[0].authorId,    'Author Id should be populated');
+    }
+
+    @isTest
+    static void testGetChatMessages_emptyWhenNoMessages() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory = (Case) td.get('ownerStory');
+
+        Test.startTest();
+        List<OutpostDevelopmentController.ChatMessageWrapper> result =
+            OutpostDevelopmentController.getChatMessages(ownerStory.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should return empty list, not null');
+        System.assertEquals(0, result.size(), 'Should be empty with no messages');
+    }
+
+    @isTest
+    static void testGetChatMessages_isCurrentUserFlagSet() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory = (Case) td.get('ownerStory');
+
+        insert new FeedItem(ParentId = ownerStory.Id, Body = 'My message', Type = 'TextPost');
+
+        Test.startTest();
+        List<OutpostDevelopmentController.ChatMessageWrapper> result =
+            OutpostDevelopmentController.getChatMessages(ownerStory.Id);
+        Test.stopTest();
+
+        System.assertEquals(true, result[0].isCurrentUser, 'isCurrentUser should be true for message posted by current user');
+    }
+
+    @isTest
+    static void testGetChatMessages_resolvesMentionInBody() {
+        Map<String, Object> td = createTestData();
+        Case ownerStory   = (Case) td.get('ownerStory');
+        User supportUser  = (User) td.get('supportUser');
+
+        // Insert FeedItem with @[userId] mention syntax
+        String msgWithMention = 'Hi @[' + supportUser.Id + '] see above';
+        insert new FeedItem(ParentId = ownerStory.Id, Body = msgWithMention, Type = 'TextPost');
+
+        Test.startTest();
+        List<OutpostDevelopmentController.ChatMessageWrapper> result =
+            OutpostDevelopmentController.getChatMessages(ownerStory.Id);
+        Test.stopTest();
+
+        System.assertEquals(1, result.size(), 'Should return 1 message');
+        System.assert(result[0].body.contains('@Support TestUser'),
+            'Mention should be resolved to display name. Got: ' + result[0].body);
+    }
+
+    // ── searchChatUsers ───────────────────────────────────────────────────
+
+    @isTest
+    static void testSearchChatUsers_returnsMatchingUsers() {
+        createTestData(); // creates 'Support TestUser'
+
+        Test.startTest();
+        List<OutpostDevelopmentController.UserOption> result =
+            OutpostDevelopmentController.searchChatUsers('Support');
+        Test.stopTest();
+
+        System.assert(!result.isEmpty(), 'Should return at least one matching user');
+        Boolean found = false;
+        for (OutpostDevelopmentController.UserOption opt : result) {
+            if (opt.label.contains('Support')) { found = true; break; }
+        }
+        System.assert(found, 'Should find the Support TestUser');
+    }
+
+    @isTest
+    static void testSearchChatUsers_emptyTermReturnsEmpty() {
+        Test.startTest();
+        List<OutpostDevelopmentController.UserOption> result =
+            OutpostDevelopmentController.searchChatUsers('');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Should return empty list, not null');
+        System.assertEquals(0, result.size(), 'Blank term should return empty');
+    }
 }

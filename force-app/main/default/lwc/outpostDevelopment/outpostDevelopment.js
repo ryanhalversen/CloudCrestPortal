@@ -3,11 +3,14 @@ import { LightningElement, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { refreshApex } from '@salesforce/apex';
 import userId from '@salesforce/user/Id';
-import getOutpostData from '@salesforce/apex/OutpostDevelopmentController.getOutpostData';
-import updateStatus   from '@salesforce/apex/OutpostDevelopmentController.updateStatus';
-import logTime        from '@salesforce/apex/OutpostDevelopmentController.logTime';
-import postComment    from '@salesforce/apex/OutpostDevelopmentController.postComment';
-import getComments    from '@salesforce/apex/OutpostDevelopmentController.getComments';
+import getOutpostData    from '@salesforce/apex/OutpostDevelopmentController.getOutpostData';
+import updateStatus      from '@salesforce/apex/OutpostDevelopmentController.updateStatus';
+import logTime           from '@salesforce/apex/OutpostDevelopmentController.logTime';
+import postComment       from '@salesforce/apex/OutpostDevelopmentController.postComment';
+import getComments       from '@salesforce/apex/OutpostDevelopmentController.getComments';
+import getChatMessages   from '@salesforce/apex/OutpostDevelopmentController.getChatMessages';
+import postChatMessage   from '@salesforce/apex/OutpostDevelopmentController.postChatMessage';
+import searchChatUsers   from '@salesforce/apex/OutpostDevelopmentController.searchChatUsers';
 
 // ── Module-level drag state (non-reactive) ────────────────────────────────
 let _dragCardId     = null;
@@ -57,7 +60,7 @@ export default class OutpostDevelopment extends LightningElement {
     @track error            = null;
     @track isCardDragging   = false;
 
-    // Modal state
+    // Modal: story detail
     @track _activeCard   = null;
     @track _comments     = [];
     @track _commentText  = '';
@@ -65,8 +68,17 @@ export default class OutpostDevelopment extends LightningElement {
     @track _logDesc      = '';
     @track _logDate      = '';
 
+    // Modal: chat
+    @track _chatMessages       = [];
+    @track _chatText           = '';
+    @track _mentionQuery       = '';
+    @track _mentionResults     = [];
+    @track _showMentionDropdown = false;
+
     _wiredResult;
-    currentUserId = userId;
+    _mentionTimer    = null;
+    _mentionMap      = {};   // { displayName: userId }
+    currentUserId    = userId;
 
     // ── Wire ──────────────────────────────────────────────────────────────
 
@@ -129,18 +141,18 @@ export default class OutpostDevelopment extends LightningElement {
                 .slice()
                 .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99))
                 .map(s => ({
-                    id:           s.id,
-                    subject:      s.subject,
-                    status:       s.status,
-                    priority:     s.priority  || '',
+                    id:            s.id,
+                    subject:       s.subject,
+                    status:        s.status,
+                    priority:      s.priority  || '',
                     priorityClass: `op-pri op-pri-${(s.priority || 'low').toLowerCase()}`,
-                    type:         s.type      || '',
-                    ownerName:    s.ownerName   || '',
-                    supportName:  s.supportName || '',
-                    projectName:  s.projectName || '',
-                    hoursLogged:  s.hoursLogged  ?? 0,
+                    type:          s.type      || '',
+                    ownerName:     s.ownerName   || '',
+                    supportName:   s.supportName || '',
+                    projectName:   s.projectName || '',
+                    hoursLogged:   s.hoursLogged  ?? 0,
                     hoursEstimate: s.hoursEstimate ?? 0,
-                    cardClass:    'op-card'
+                    cardClass:     'op-card'
                 }));
             return {
                 status,
@@ -167,6 +179,10 @@ export default class OutpostDevelopment extends LightningElement {
         }));
     }
 
+    get hasChatMessages() {
+        return this._chatMessages.length > 0;
+    }
+
     // ── Project filter ────────────────────────────────────────────────────
 
     handleProjectChange(e) {
@@ -191,13 +207,11 @@ export default class OutpostDevelopment extends LightningElement {
         const dx = Math.abs(e.clientX - _startX);
         const dy = Math.abs(e.clientY - _startY);
         if (!_isDragging && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
-            _isDragging       = true;
-            _didDrag          = true;
+            _isDragging         = true;
+            _didDrag            = true;
             this.isCardDragging = true;
 
-            // Create ghost
             _ghost = document.createElement('div');
-            _ghost.className  = 'op-drag-ghost';
             _ghost.style.cssText =
                 'position:fixed;pointer-events:none;opacity:0.75;z-index:9999;' +
                 'min-width:160px;max-width:220px;background:white;border-radius:8px;' +
@@ -219,9 +233,7 @@ export default class OutpostDevelopment extends LightningElement {
         const wasFromStatus = _dragFromStatus;
 
         if (_isDragging) {
-            // Release pointer capture so elementFromPoint works
             try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (ex) { /* ignore */ }
-
             const el        = document.elementFromPoint(e.clientX, e.clientY);
             const col       = el ? el.closest('[data-status]') : null;
             const newStatus = col ? col.dataset.status : null;
@@ -235,10 +247,9 @@ export default class OutpostDevelopment extends LightningElement {
             }
         }
 
-        // Cleanup
-        _dragCardId     = null;
-        _dragFromStatus = null;
-        _isDragging     = false;
+        _dragCardId         = null;
+        _dragFromStatus     = null;
+        _isDragging         = false;
         this.isCardDragging = false;
         if (_ghost) { _ghost.remove(); _ghost = null; }
     }
@@ -255,30 +266,40 @@ export default class OutpostDevelopment extends LightningElement {
         const story = allStories.find(s => s.id === cardId);
         if (!story) return;
 
-        this._activeCard  = { ...story };
-        this._logHours    = '';
-        this._logDesc     = '';
-        this._logDate     = this._todayString();
-        this._commentText = '';
-        this._comments    = [];
+        this._activeCard        = { ...story };
+        this._logHours          = '';
+        this._logDesc           = '';
+        this._logDate           = this._todayString();
+        this._commentText       = '';
+        this._comments          = [];
+        this._chatMessages      = [];
+        this._chatText          = '';
+        this._mentionMap        = {};
+        this._showMentionDropdown = false;
         this._loadComments(cardId);
+        this._loadChatMessages(cardId);
     }
 
     // ── Modal close ───────────────────────────────────────────────────────
 
     handleCloseModal(e) {
         if (e.target === e.currentTarget || e.currentTarget.classList.contains('op-backdrop')) {
-            this._activeCard = null;
-            this._comments   = [];
+            this._clearModal();
         }
     }
 
     handleModalClose() {
-        this._activeCard = null;
-        this._comments   = [];
+        this._clearModal();
     }
 
-    // ── Status change (from modal buttons) ───────────────────────────────
+    _clearModal() {
+        this._activeCard          = null;
+        this._comments            = [];
+        this._chatMessages        = [];
+        this._showMentionDropdown = false;
+    }
+
+    // ── Status change ─────────────────────────────────────────────────────
 
     handleStatusChange(e) {
         const newStatus = e.currentTarget.dataset.status;
@@ -307,7 +328,6 @@ export default class OutpostDevelopment extends LightningElement {
             this._showToast('Validation', 'Please enter a valid number of hours.', 'warning');
             return;
         }
-        if (!this._activeCard) return;
         const minutes    = Math.round(hours * 60);
         const caseId     = this._activeCard.id;
         const loggedDate = this._logDate || this._todayString();
@@ -324,7 +344,7 @@ export default class OutpostDevelopment extends LightningElement {
             });
     }
 
-    // ── Post comment ──────────────────────────────────────────────────────
+    // ── Case comments ─────────────────────────────────────────────────────
 
     handleCommentChange(e) { this._commentText = e.detail.value; }
 
@@ -343,8 +363,6 @@ export default class OutpostDevelopment extends LightningElement {
             });
     }
 
-    // ── Load comments ─────────────────────────────────────────────────────
-
     async _loadComments(caseId) {
         try {
             const raw = await getComments({ caseId });
@@ -352,13 +370,139 @@ export default class OutpostDevelopment extends LightningElement {
                 id:          c.id,
                 authorName:  c.authorName,
                 body:        c.body,
-                createdDate: c.createdDate
-                    ? new Date(c.createdDate).toLocaleString()
-                    : ''
+                createdDate: c.createdDate ? new Date(c.createdDate).toLocaleString() : ''
             }));
         } catch (err) {
             this._showToast('Error', err?.body?.message || 'Failed to load comments', 'error');
         }
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────
+
+    async _loadChatMessages(caseId) {
+        try {
+            const raw = await getChatMessages({ caseId });
+            this._chatMessages = raw.map(m => ({
+                id:            m.id,
+                body:          m.body,
+                authorName:    m.authorName,
+                isCurrentUser: m.isCurrentUser,
+                createdDate:   m.createdDate ? new Date(m.createdDate).toLocaleString() : '',
+                bubbleClass:   m.isCurrentUser
+                    ? 'op-chat-row op-chat-row-mine'
+                    : 'op-chat-row op-chat-row-other',
+                bubbleInnerClass: m.isCurrentUser
+                    ? 'op-chat-bubble op-chat-bubble-mine'
+                    : 'op-chat-bubble op-chat-bubble-other',
+                metaClass: m.isCurrentUser ? 'op-chat-meta op-chat-meta-mine' : 'op-chat-meta'
+            }));
+            // Scroll to bottom after render
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => {
+                const msgList = this.template.querySelector('.op-chat-messages');
+                if (msgList) msgList.scrollTop = msgList.scrollHeight;
+            }, 50);
+        } catch (err) {
+            // Non-critical, don't toast
+        }
+    }
+
+    // @mention detection in the chat textarea
+    handleChatInput(e) {
+        this._chatText = e.target.value;
+        const cursorPos        = e.target.selectionStart;
+        const textBeforeCursor = this._chatText.substring(0, cursorPos);
+
+        // Match @word at the tail of text-before-cursor (allows spaces for full names)
+        const match = textBeforeCursor.match(/(^|[\s\n])@([^@\n]{0,40})$/);
+        if (match) {
+            const query = match[2];
+            this._mentionQuery = query;
+            if (query.length >= 1) {
+                clearTimeout(this._mentionTimer);
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                this._mentionTimer = setTimeout(() => {
+                    this._fetchMentions(query);
+                }, 200);
+            } else {
+                this._showMentionDropdown = false;
+            }
+        } else {
+            this._showMentionDropdown = false;
+            this._mentionResults      = [];
+        }
+    }
+
+    handleChatKeydown(e) {
+        // Close mention dropdown on Escape
+        if (e.key === 'Escape' && this._showMentionDropdown) {
+            this._showMentionDropdown = false;
+            e.preventDefault();
+        }
+        // Send on Enter (without shift)
+        if (e.key === 'Enter' && !e.shiftKey && !this._showMentionDropdown) {
+            e.preventDefault();
+            this.handleSendChat();
+        }
+    }
+
+    async _fetchMentions(term) {
+        try {
+            const results = await searchChatUsers({ term });
+            this._mentionResults      = results;
+            this._showMentionDropdown = results.length > 0;
+        } catch (err) {
+            this._showMentionDropdown = false;
+        }
+    }
+
+    handleSelectMention(e) {
+        const uId   = e.currentTarget.dataset.value;
+        const uName = e.currentTarget.dataset.label;
+
+        // Replace the trailing @query with @Name in the displayed text
+        const escapedQuery = this._mentionQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const replaced = this._chatText.replace(
+            new RegExp('(^|[\\s\\n])@' + escapedQuery + '$'),
+            (_, pre) => `${pre}@${uName} `
+        );
+        this._chatText = replaced;
+
+        // Store mapping for submission
+        this._mentionMap[uName] = uId;
+
+        this._showMentionDropdown = false;
+        this._mentionResults      = [];
+        this._mentionQuery        = '';
+
+        // Re-focus textarea
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            const ta = this.template.querySelector('.op-chat-textarea');
+            if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        }, 0);
+    }
+
+    handleSendChat() {
+        const text = (this._chatText || '').trim();
+        if (!text || !this._activeCard) return;
+        const caseId = this._activeCard.id;
+
+        // Build submit message: replace @Name with @[userId] for Chatter @mentions
+        let submitMsg = text;
+        Object.entries(this._mentionMap).forEach(([name, uid]) => {
+            submitMsg = submitMsg.split('@' + name).join('@[' + uid + ']');
+        });
+
+        postChatMessage({ caseId, message: submitMsg })
+            .then(() => {
+                this._chatText  = '';
+                this._mentionMap = {};
+                return this._loadChatMessages(caseId);
+            })
+            .catch(err => {
+                this._showToast('Error', err?.body?.message || 'Failed to send message', 'error');
+            });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

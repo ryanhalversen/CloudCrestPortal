@@ -29,7 +29,7 @@
                 </lightning-combobox>
             </div>
 
-            <!-- 6-column Kanban board -->
+            <!-- Kanban board -->
             <div class={boardClass}>
                 <template for:each={columns} for:item="col">
                     <div key={col.status} class="op-col" data-status={col.status}>
@@ -53,20 +53,16 @@
                                     onclick={handleCardClick}>
 
                                     <div class="op-card-subject">{card.subject}</div>
-
                                     <div class="op-card-meta">
                                         <span class={card.priorityClass}>{card.priority}</span>
                                         <span>{card.type}</span>
                                     </div>
-
-                                    <!-- Owner view: show contractor name; Contractor view: show project name -->
                                     <template if:true={isOwnerView}>
                                         <div class="op-card-attr">&#x1F464; {card.supportName}</div>
                                     </template>
                                     <template if:false={isOwnerView}>
                                         <div class="op-card-attr">&#x1F4C1; {card.projectName}</div>
                                     </template>
-
                                     <div class="op-card-footer">
                                         <span>&#x23F1; {card.hoursLogged}h</span>
                                         <span class="op-est">est {card.hoursEstimate}h</span>
@@ -80,96 +76,151 @@
 
         </template>
 
-        <!-- Detail modal backdrop -->
+        <!-- ── 2-column modal ──────────────────────────────────────────── -->
         <template if:true={showModal}>
             <div class="op-backdrop" onclick={handleCloseModal}></div>
 
-            <!-- Detail modal panel -->
-            <div class="op-modal">
-                <div class="op-modal-header">
-                    <span>{_activeCard.subject}</span>
-                    <button onclick={handleModalClose}>&#x2715;</button>
+            <div class="op-modal-2col">
+
+                <!-- LEFT: story detail -->
+                <div class="op-modal-left">
+                    <div class="op-modal-header">
+                        <span>{_activeCard.subject}</span>
+                        <button onclick={handleModalClose}>&#x2715;</button>
+                    </div>
+
+                    <div class="op-modal-body">
+
+                        <!-- Status buttons -->
+                        <div>
+                            <h4 class="op-section-title">Status</h4>
+                            <div class="op-status-bar">
+                                <template for:each={statusOptions} for:item="s">
+                                    <button
+                                        key={s.value}
+                                        class={s.btnClass}
+                                        data-status={s.value}
+                                        onclick={handleStatusChange}>
+                                        {s.label}
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Log Time -->
+                        <div class="op-log-section">
+                            <h4 class="op-section-title">Log Time</h4>
+                            <div class="op-log-row">
+                                <lightning-input
+                                    type="number"
+                                    label="Hours"
+                                    value={_logHours}
+                                    step="0.25"
+                                    min="0.25"
+                                    onchange={handleLogHoursChange}>
+                                </lightning-input>
+                                <lightning-input
+                                    type="date"
+                                    label="Date"
+                                    value={_logDate}
+                                    onchange={handleLogDateChange}>
+                                </lightning-input>
+                            </div>
+                            <lightning-input
+                                label="Notes"
+                                value={_logDesc}
+                                placeholder="Optional notes..."
+                                onchange={handleLogDescChange}>
+                            </lightning-input>
+                            <lightning-button
+                                label="Log Time"
+                                variant="brand"
+                                onclick={handleLogTime}>
+                            </lightning-button>
+                        </div>
+
+                        <!-- Case Comments -->
+                        <div class="op-comments-section">
+                            <h4 class="op-section-title">Notes</h4>
+                            <template if:false={_comments.length}>
+                                <p class="op-empty-comments">No notes yet.</p>
+                            </template>
+                            <template for:each={_comments} for:item="c">
+                                <div key={c.id} class="op-comment">
+                                    <div class="op-comment-meta">{c.authorName} &middot; {c.createdDate}</div>
+                                    <div class="op-comment-body">{c.body}</div>
+                                </div>
+                            </template>
+                            <lightning-textarea
+                                label="New Note"
+                                variant="label-hidden"
+                                placeholder="Add a note..."
+                                value={_commentText}
+                                onchange={handleCommentChange}>
+                            </lightning-textarea>
+                            <lightning-button
+                                label="Save Note"
+                                onclick={handlePostComment}>
+                            </lightning-button>
+                        </div>
+
+                    </div>
                 </div>
 
-                <div class="op-modal-body">
-
-                    <!-- Status buttons -->
-                    <div>
-                        <h4 class="op-section-title">Status</h4>
-                        <div class="op-status-bar">
-                            <template for:each={statusOptions} for:item="s">
-                                <button
-                                    key={s.value}
-                                    class={s.btnClass}
-                                    data-status={s.value}
-                                    onclick={handleStatusChange}>
-                                    {s.label}
-                                </button>
-                            </template>
-                        </div>
+                <!-- RIGHT: team chat -->
+                <div class="op-modal-right">
+                    <div class="op-chat-header">
+                        <span class="op-chat-title">&#x1F4AC; Team Chat</span>
+                        <span class="op-chat-hint">Saved to Chatter on this story</span>
                     </div>
 
-                    <!-- Log Time -->
-                    <div class="op-log-section">
-                        <h4 class="op-section-title">Log Time</h4>
-                        <div class="op-log-row">
-                            <lightning-input
-                                type="number"
-                                label="Hours"
-                                value={_logHours}
-                                step="0.25"
-                                min="0.25"
-                                onchange={handleLogHoursChange}>
-                            </lightning-input>
-                            <lightning-input
-                                type="date"
-                                label="Date"
-                                value={_logDate}
-                                onchange={handleLogDateChange}>
-                            </lightning-input>
-                        </div>
-                        <lightning-input
-                            label="Notes"
-                            value={_logDesc}
-                            placeholder="Optional notes..."
-                            onchange={handleLogDescChange}>
-                        </lightning-input>
-                        <lightning-button
-                            label="Log Time"
-                            variant="brand"
-                            onclick={handleLogTime}>
-                        </lightning-button>
-                    </div>
-
-                    <!-- Comments -->
-                    <div class="op-comments-section">
-                        <h4 class="op-section-title">Comments</h4>
-
-                        <template if:false={_comments.length}>
-                            <p class="op-empty-comments">No comments yet.</p>
+                    <!-- Message list -->
+                    <div class="op-chat-messages">
+                        <template if:false={hasChatMessages}>
+                            <div class="op-chat-empty">No messages yet. Start the conversation!</div>
                         </template>
+                        <template for:each={_chatMessages} for:item="msg">
+                            <div key={msg.id} class={msg.bubbleClass}>
+                                <div class={msg.metaClass}>{msg.authorName} &middot; {msg.createdDate}</div>
+                                <div class={msg.bubbleInnerClass}>{msg.body}</div>
+                            </div>
+                        </template>
+                    </div>
 
-                        <template for:each={_comments} for:item="c">
-                            <div key={c.id} class="op-comment">
-                                <div class="op-comment-meta">{c.authorName} &middot; {c.createdDate}</div>
-                                <div class="op-comment-body">{c.body}</div>
+                    <!-- Input area -->
+                    <div class="op-chat-input-area">
+
+                        <!-- @mention dropdown -->
+                        <template if:true={_showMentionDropdown}>
+                            <div class="op-mention-dropdown">
+                                <template for:each={_mentionResults} for:item="u">
+                                    <div
+                                        key={u.value}
+                                        class="op-mention-item"
+                                        data-value={u.value}
+                                        data-label={u.label}
+                                        onmousedown={handleSelectMention}>
+                                        <span class="op-mention-avatar">&#x1F464;</span>
+                                        <span class="op-mention-name">{u.label}</span>
+                                    </div>
+                                </template>
                             </div>
                         </template>
 
-                        <lightning-textarea
-                            label="New Comment"
-                            variant="label-hidden"
-                            placeholder="Add a comment..."
-                            value={_commentText}
-                            onchange={handleCommentChange}>
-                        </lightning-textarea>
-                        <lightning-button
-                            label="Post Comment"
-                            onclick={handlePostComment}>
-                        </lightning-button>
+                        <textarea
+                            class="op-chat-textarea"
+                            placeholder="Message... Type @ to mention someone"
+                            value={_chatText}
+                            oninput={handleChatInput}
+                            onkeydown={handleChatKeydown}>
+                        </textarea>
+                        <div class="op-chat-send-row">
+                            <span class="op-chat-hint-small">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</span>
+                            <button class="op-chat-send-btn" onclick={handleSendChat}>Send &#x2192;</button>
+                        </div>
                     </div>
-
                 </div>
+
             </div>
         </template>
 
