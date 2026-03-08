@@ -85,27 +85,15 @@
                 <!-- LEFT: story detail -->
                 <div class="op-modal-left">
                     <div class="op-modal-header">
-                        <span>{_activeCard.subject}</span>
-                        <button onclick={handleModalClose}>&#x2715;</button>
+                        <div class="op-modal-title-row">
+                            <span class="op-modal-subject">{_activeCard.subject}</span>
+                            <span class="op-modal-status-badge">{_activeCard.status}</span>
+                        </div>
+                        <button class="op-modal-close-btn" onclick={handleModalClose}>&#x2715;</button>
                     </div>
+                    <p class="op-modal-drag-hint">Drag the card on the board to change status</p>
 
                     <div class="op-modal-body">
-
-                        <!-- Status buttons -->
-                        <div>
-                            <h4 class="op-section-title">Status</h4>
-                            <div class="op-status-bar">
-                                <template for:each={statusOptions} for:item="s">
-                                    <button
-                                        key={s.value}
-                                        class={s.btnClass}
-                                        data-status={s.value}
-                                        onclick={handleStatusChange}>
-                                        {s.label}
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
 
                         <!-- Log Time -->
                         <div class="op-log-section">

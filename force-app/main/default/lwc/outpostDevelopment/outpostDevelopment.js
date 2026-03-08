@@ -13,14 +13,16 @@ import postChatMessage   from '@salesforce/apex/OutpostDevelopmentController.pos
 import searchChatUsers   from '@salesforce/apex/OutpostDevelopmentController.searchChatUsers';
 
 // ── Module-level drag state (non-reactive) ────────────────────────────────
-let _dragCardId     = null;
-let _dragFromStatus = null;
-let _startX         = 0;
-let _startY         = 0;
-let _ghost          = null;
-let _isDragging     = false;
-let _didDrag        = false;
-const DRAG_THRESHOLD = 6;
+let _dragCardId       = null;
+let _dragFromStatus   = null;
+let _dropTargetStatus = null;
+let _dropHighlightEl  = null;
+let _startX           = 0;
+let _startY           = 0;
+let _ghost            = null;
+let _isDragging       = false;
+let _didDrag          = false;
+const DRAG_THRESHOLD  = 6;
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const COLUMNS = [
@@ -170,17 +172,12 @@ export default class OutpostDevelopment extends LightningElement {
         return !!this._activeCard;
     }
 
-    get statusOptions() {
-        if (!this._activeCard) return [];
-        return COLUMNS.map(col => ({
-            value:    col,
-            label:    col,
-            btnClass: `op-status-btn${col === this._activeCard.status ? ' active' : ''}`
-        }));
-    }
-
     get hasChatMessages() {
         return this._chatMessages.length > 0;
+    }
+
+    get activeCardStatus() {
+        return this._activeCard ? this._activeCard.status : '';
     }
 
     // ── Project filter ────────────────────────────────────────────────────
@@ -193,12 +190,14 @@ export default class OutpostDevelopment extends LightningElement {
 
     handlePointerDown(e) {
         const card = e.currentTarget;
-        _dragCardId     = card.dataset.id;
-        _dragFromStatus = (card.closest('[data-status]') || card).dataset.status;
-        _startX         = e.clientX;
-        _startY         = e.clientY;
-        _isDragging     = false;
-        _didDrag        = false;
+        _dragCardId       = card.dataset.id;
+        _dragFromStatus   = card.dataset.status;
+        _dropTargetStatus = null;
+        _dropHighlightEl  = null;
+        _startX           = e.clientX;
+        _startY           = e.clientY;
+        _isDragging       = false;
+        _didDrag          = false;
         card.setPointerCapture(e.pointerId);
     }
 
@@ -206,6 +205,7 @@ export default class OutpostDevelopment extends LightningElement {
         if (!_dragCardId) return;
         const dx = Math.abs(e.clientX - _startX);
         const dy = Math.abs(e.clientY - _startY);
+
         if (!_isDragging && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
             _isDragging         = true;
             _didDrag            = true;
@@ -213,17 +213,44 @@ export default class OutpostDevelopment extends LightningElement {
 
             _ghost = document.createElement('div');
             _ghost.style.cssText =
-                'position:fixed;pointer-events:none;opacity:0.75;z-index:9999;' +
+                'position:fixed;pointer-events:none;opacity:0.85;z-index:9999;' +
                 'min-width:160px;max-width:220px;background:white;border-radius:8px;' +
                 'padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,0.25);' +
-                'font-size:0.8125rem;font-weight:600;color:#1e293b;';
+                'font-size:0.8125rem;font-weight:600;color:#1e293b;' +
+                'border:2px solid #2563eb;';
             const subjectEl = e.currentTarget.querySelector('.op-card-subject');
             _ghost.textContent = subjectEl ? subjectEl.textContent : '';
             document.body.appendChild(_ghost);
         }
-        if (_isDragging && _ghost) {
-            _ghost.style.left = (e.clientX + 14) + 'px';
-            _ghost.style.top  = (e.clientY - 18) + 'px';
+
+        if (_isDragging) {
+            if (_ghost) {
+                _ghost.style.left = (e.clientX + 14) + 'px';
+                _ghost.style.top  = (e.clientY - 18) + 'px';
+            }
+
+            // Detect drop column using bounding rects — reliable in LWC shadow DOM
+            const cols = this.template.querySelectorAll('.op-col');
+            let hitCol = null;
+            cols.forEach(colEl => {
+                const r = colEl.getBoundingClientRect();
+                if (e.clientX >= r.left && e.clientX <= r.right &&
+                    e.clientY >= r.top  && e.clientY <= r.bottom) {
+                    hitCol = colEl;
+                }
+            });
+
+            // Update highlight
+            if (_dropHighlightEl && _dropHighlightEl !== hitCol) {
+                _dropHighlightEl.classList.remove('op-col--drop-target');
+            }
+            if (hitCol) {
+                hitCol.classList.add('op-col--drop-target');
+                _dropTargetStatus = hitCol.dataset.status;
+            } else {
+                _dropTargetStatus = null;
+            }
+            _dropHighlightEl = hitCol;
         }
     }
 
@@ -232,23 +259,23 @@ export default class OutpostDevelopment extends LightningElement {
         const wasCardId     = _dragCardId;
         const wasFromStatus = _dragFromStatus;
 
-        if (_isDragging) {
-            try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (ex) { /* ignore */ }
-            const el        = document.elementFromPoint(e.clientX, e.clientY);
-            const col       = el ? el.closest('[data-status]') : null;
-            const newStatus = col ? col.dataset.status : null;
+        // Clear highlight
+        if (_dropHighlightEl) {
+            _dropHighlightEl.classList.remove('op-col--drop-target');
+            _dropHighlightEl = null;
+        }
 
-            if (newStatus && newStatus !== wasFromStatus && COLUMNS.includes(newStatus)) {
-                updateStatus({ caseId: wasCardId, newStatus })
-                    .then(() => refreshApex(this._wiredResult))
-                    .catch(err => {
-                        this._showToast('Error', err?.body?.message || 'Status update failed', 'error');
-                    });
-            }
+        if (_isDragging && _dropTargetStatus && _dropTargetStatus !== wasFromStatus) {
+            updateStatus({ caseId: wasCardId, newStatus: _dropTargetStatus })
+                .then(() => refreshApex(this._wiredResult))
+                .catch(err => {
+                    this._showToast('Error', err?.body?.message || 'Status update failed', 'error');
+                });
         }
 
         _dragCardId         = null;
         _dragFromStatus     = null;
+        _dropTargetStatus   = null;
         _isDragging         = false;
         this.isCardDragging = false;
         if (_ghost) { _ghost.remove(); _ghost = null; }
@@ -297,23 +324,6 @@ export default class OutpostDevelopment extends LightningElement {
         this._comments            = [];
         this._chatMessages        = [];
         this._showMentionDropdown = false;
-    }
-
-    // ── Status change ─────────────────────────────────────────────────────
-
-    handleStatusChange(e) {
-        const newStatus = e.currentTarget.dataset.status;
-        const caseId    = this._activeCard.id;
-        if (!newStatus || newStatus === this._activeCard.status) return;
-
-        updateStatus({ caseId, newStatus })
-            .then(() => {
-                this._activeCard = { ...this._activeCard, status: newStatus };
-                return refreshApex(this._wiredResult);
-            })
-            .catch(err => {
-                this._showToast('Error', err?.body?.message || 'Status update failed', 'error');
-            });
     }
 
     // ── Log time ──────────────────────────────────────────────────────────
