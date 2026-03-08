@@ -9,9 +9,8 @@ import getTeamBillingHistory from '@salesforce/apex/TeamCapacityController.getTe
 const TEAM_CONFIG = [
     { match: 'Ryan',  weeklyTarget: 35, role: 'FTE', exclude: true },
     { match: 'Chris', weeklyTarget: 35, role: 'FTE' },
-    { match: 'Terri', weeklyTarget: 35, role: 'FTE' }
-    // Example contractor entries:
-    // { match: 'Alec',  weeklyTarget: 20, role: 'Contractor' },
+    { match: 'Terri', weeklyTarget: 35, role: 'FTE' },
+    { match: 'Alec',  weeklyTarget: 20, role: 'FTE' },
 ];
 const DEFAULT_TARGET = 35;
 
