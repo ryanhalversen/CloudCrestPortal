@@ -406,7 +406,7 @@ public class StoryBoardControllerTest {
         insert new FeedItem(ParentId = c.Id, Body = 'Hello', Type = 'TextPost');
 
         Test.startTest();
-        List<FeedItem> result = StoryBoardController.getChatMessages(c.Id);
+        List<StoryBoardController.ChatMessageWrapper> result = StoryBoardController.getChatMessages(c.Id);
         Test.stopTest();
 
         System.assertNotEquals(null, result, 'Result should not be null');

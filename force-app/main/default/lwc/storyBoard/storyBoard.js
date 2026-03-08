@@ -32,6 +32,7 @@ import assignContact           from '@salesforce/apex/StoryBoardController.assig
 import updateSubjectDescription from '@salesforce/apex/StoryBoardController.updateSubjectDescription';
 import getChatMessages        from '@salesforce/apex/StoryBoardController.getChatMessages';
 import postChatMessage        from '@salesforce/apex/StoryBoardController.postChatMessage';
+import searchChatUsers        from '@salesforce/apex/StoryBoardController.searchChatUsers';
 import getEpicsForProject     from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 import reassignStory          from '@salesforce/apex/StoryBoardController.reassignStory';
 import updateStoryTextFields  from '@salesforce/apex/StoryBoardController.updateStoryTextFields';
@@ -167,11 +168,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     @track subjectDescSaveError  = false;
 
     // ── Support Chat state ────────────────────────────────────────────────
-    @track chatMessages   = [];
-    @track chatInput      = '';
-    @track isLoadingChat  = false;
-    @track isSendingChat  = false;
-    @track chatSendError  = '';
+    @track chatMessages             = [];
+    @track chatInput                = '';
+    @track isLoadingChat            = false;
+    @track isSendingChat            = false;
+    @track chatSendError            = '';
+    @track _showMentionDropdown     = false;
+    @track _mentionResults          = [];
+    _mentionQuery   = '';
+    _mentionMap     = {};
+    _mentionDebounce = null;
 
     // ── Story text fields state ───────────────────────────────────────────
     @track solutionInput        = '';
@@ -632,9 +638,12 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.isEditingSubjectDesc = false;
         this.editSubjectInput     = '';
         this.editDescInput        = '';
-        this.chatMessages         = [];
-        this.chatInput            = '';
-        this.chatSendError        = '';
+        this.chatMessages             = [];
+        this.chatInput                = '';
+        this.chatSendError            = '';
+        this._mentionMap              = {};
+        this._showMentionDropdown     = false;
+        this._mentionResults          = [];
         if (card.storySupportId) {
             this._loadChatMessages(id);
         }
@@ -1291,28 +1300,84 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     _mapChatMsg(m) {
-        const d = new Date(m.CreatedDate);
+        const d = new Date(m.createdDate);
         return {
-            id:        m.Id,
-            body:      m.Body,
-            user:      m.CreatedBy?.Name || '',
+            id:            m.id,
+            body:          m.body,
+            user:          m.authorName || '',
+            isCurrentUser: m.isCurrentUser,
+            bubbleClass:   'chat-msg' + (m.isCurrentUser ? ' chat-msg-mine' : ''),
             timeLabel: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
                        d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
         };
     }
 
-    handleChatInputChange(e) { this.chatInput = e.target.value; }
+    handleChatInputChange(e) {
+        this.chatInput = e.target.value;
+        const val = e.target.value;
+        const cursor = e.target.selectionStart;
+        const textBefore = val.substring(0, cursor);
+        const match = textBefore.match(/(^|[\s\n])@([^@\n]{0,40})$/);
+        if (match) {
+            const query = match[2];
+            this._mentionQuery = query;
+            clearTimeout(this._mentionDebounce);
+            if (query.length >= 1) {
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                this._mentionDebounce = setTimeout(() => {
+                    searchChatUsers({ term: query })
+                        .then(results => {
+                            this._mentionResults = results;
+                            this._showMentionDropdown = results.length > 0;
+                        })
+                        .catch(() => { this._showMentionDropdown = false; });
+                }, 200);
+            } else {
+                this._showMentionDropdown = false;
+                this._mentionResults = [];
+            }
+        } else {
+            this._showMentionDropdown = false;
+            this._mentionResults = [];
+        }
+    }
+
+    handleSelectMention(e) {
+        const uid  = e.currentTarget.dataset.value;
+        const name = e.currentTarget.dataset.label;
+        this._mentionMap[name] = uid;
+        const ta = this.template.querySelector('.chat-input-textarea');
+        if (ta) {
+            const val = ta.value;
+            const cursor = ta.selectionStart;
+            const textBefore = val.substring(0, cursor);
+            const newBefore = textBefore.replace(/(^|[\s\n])@[^@\n]*$/, (_, prefix) => prefix + '@' + name + ' ');
+            ta.value = newBefore + val.substring(cursor);
+            this.chatInput = ta.value;
+        }
+        this._showMentionDropdown = false;
+        this._mentionResults = [];
+    }
 
     handleChatKeyDown(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Escape') {
+            this._showMentionDropdown = false;
+            this._mentionResults = [];
+        }
+        if (e.key === 'Enter' && !e.shiftKey && !this._showMentionDropdown) {
             e.preventDefault();
             this.handleChatSend();
         }
     }
 
     async handleChatSend() {
-        const message = this.chatInput.trim();
-        if (!message || this.isSendingChat) return;
+        const displayText = this.chatInput.trim();
+        if (!displayText || this.isSendingChat) return;
+        // Replace @Name with @[userId] for Chatter mention notifications
+        let message = displayText;
+        Object.entries(this._mentionMap).forEach(([name, uid]) => {
+            message = message.split('@' + name).join('@[' + uid + ']');
+        });
         const caseId = this.modalCard.id;
         this.isSendingChat = true;
         this.chatSendError = '';
@@ -1320,13 +1385,16 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             const feedId = await postChatMessage({ caseId, message });
             const now = new Date();
             this.chatMessages = [...this.chatMessages, {
-                id:        feedId,
-                body:      message,
-                user:      'You',
+                id:            feedId,
+                body:          displayText,
+                user:          'You',
+                isCurrentUser: true,
+                bubbleClass:   'chat-msg chat-msg-mine',
                 timeLabel: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
                            now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
             }];
             this.chatInput = '';
+            this._mentionMap = {};
             const ta = this.template.querySelector('.chat-input-textarea');
             if (ta) ta.value = '';
             // Update pending-message flag: true only when the support user sent last

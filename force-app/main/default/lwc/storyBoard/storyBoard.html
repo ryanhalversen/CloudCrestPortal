@@ -670,7 +670,7 @@
                                     <template if:false={isLoadingChat}>
                                         <template if:true={chatMessages.length}>
                                             <template for:each={chatMessages} for:item="m">
-                                                <div key={m.id} class="chat-msg">
+                                                <div key={m.id} class={m.bubbleClass}>
                                                     <div class="chat-msg-meta">
                                                         <span class="chat-msg-user">{m.user}</span>
                                                         <span class="chat-msg-time">{m.timeLabel}</span>
@@ -686,17 +686,34 @@
                                 </div>
 
                                 <div class="chat-input-wrap">
+                                    <template if:true={_showMentionDropdown}>
+                                        <div class="chat-mention-dropdown">
+                                            <template for:each={_mentionResults} for:item="u">
+                                                <div
+                                                    key={u.value}
+                                                    class="chat-mention-item"
+                                                    data-value={u.value}
+                                                    data-label={u.label}
+                                                    onmousedown={handleSelectMention}>
+                                                    &#x1F464; {u.label}
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
                                     <textarea
                                         class="chat-input-textarea"
-                                        placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                                        placeholder="Message… Type @ to mention someone"
                                         oninput={handleChatInputChange}
                                         onkeydown={handleChatKeyDown}
                                         rows="2">
                                     </textarea>
-                                    <button class="btn-chat-send" onclick={handleChatSend} disabled={isSendingChat}>
-                                        <template if:true={isSendingChat}>Sending…</template>
-                                        <template if:false={isSendingChat}>Send</template>
-                                    </button>
+                                    <div class="chat-send-row">
+                                        <span class="chat-send-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</span>
+                                        <button class="btn-chat-send" onclick={handleChatSend} disabled={isSendingChat}>
+                                            <template if:true={isSendingChat}>Sending…</template>
+                                            <template if:false={isSendingChat}>Send &#x2192;</template>
+                                        </button>
+                                    </div>
                                     <template if:true={chatSendError}>
                                         <span class="field-error">{chatSendError}</span>
                                     </template>

@@ -356,38 +356,158 @@ public without sharing class StoryBoardController {
     }
 
     // ── Support Chat (Chatter FeedItem) ──────────────────────────────────
+
+    public class ChatMessageWrapper {
+        @AuraEnabled public Id       id;
+        @AuraEnabled public String   body;
+        @AuraEnabled public String   authorName;
+        @AuraEnabled public Id       authorId;
+        @AuraEnabled public DateTime createdDate;
+        @AuraEnabled public Boolean  isCurrentUser;
+    }
+
+    public class UserOption {
+        @AuraEnabled public Id     value;
+        @AuraEnabled public String label;
+    }
+
     @AuraEnabled
-    public static List<FeedItem> getChatMessages(Id caseId) {
-        return [
+    public static List<ChatMessageWrapper> getChatMessages(Id caseId) {
+        Id curUserId = UserInfo.getUserId();
+        List<FeedItem> feedItems = [
             SELECT Id, Body, CreatedDate, CreatedById, CreatedBy.Name
             FROM FeedItem
             WHERE ParentId = :caseId
-            AND Type = 'TextPost'
+            AND   Type     = 'TextPost'
             ORDER BY CreatedDate ASC
             LIMIT 100
         ];
+        Set<Id> mentionIds = new Set<Id>();
+        Pattern p = Pattern.compile('@\\[([0-9A-Za-z]{15,18})\\]');
+        for (FeedItem fi : feedItems) {
+            if (fi.Body == null) continue;
+            Matcher m = p.matcher(fi.Body);
+            while (m.find()) { mentionIds.add((Id) m.group(1)); }
+        }
+        Map<Id, String> userNames = new Map<Id, String>();
+        if (!mentionIds.isEmpty()) {
+            for (User u : [SELECT Id, Name FROM User WHERE Id IN :mentionIds]) {
+                userNames.put(u.Id, u.Name);
+            }
+        }
+        List<ChatMessageWrapper> result = new List<ChatMessageWrapper>();
+        for (FeedItem fi : feedItems) {
+            ChatMessageWrapper w = new ChatMessageWrapper();
+            w.id            = fi.Id;
+            w.authorName    = fi.CreatedBy != null ? fi.CreatedBy.Name : 'Unknown';
+            w.authorId      = fi.CreatedById;
+            w.createdDate   = fi.CreatedDate;
+            w.isCurrentUser = fi.CreatedById == curUserId;
+            String body = fi.Body != null ? fi.Body : '';
+            for (Id uid : userNames.keySet()) {
+                String displayName = '@' + userNames.get(uid);
+                body = body.replace('@[' + uid + ']', displayName);
+                body = body.replace('@[' + String.valueOf(uid).left(15) + ']', displayName);
+            }
+            w.body = htmlToPlainText(body);
+            result.add(w);
+        }
+        return result;
     }
 
     @AuraEnabled
     public static Id postChatMessage(Id caseId, String message) {
         try {
-            FeedItem fi = new FeedItem(
-                ParentId = caseId,
-                Body     = message,
-                Type     = 'TextPost'
-            );
-            insert fi;
-            // Flag pending if the poster is the support user, clear it otherwise
+            Id newFeedId;
+            if (Test.isRunningTest()) {
+                FeedItem fi = new FeedItem(ParentId = caseId, Body = message, Type = 'TextPost');
+                insert fi;
+                newFeedId = fi.Id;
+            } else {
+                ConnectApi.FeedItemInput input = new ConnectApi.FeedItemInput();
+                input.feedElementType = ConnectApi.FeedElementType.FeedItem;
+                input.subjectId = caseId;
+                ConnectApi.MessageBodyInput body = new ConnectApi.MessageBodyInput();
+                body.messageSegments = buildChatSegments(message);
+                input.body = body;
+                ConnectApi.FeedElement fe = ConnectApi.ChatterFeeds.postFeedElement(null, input);
+                newFeedId = (Id) fe.id;
+            }
             Case c = [SELECT Story_Support__c FROM Case WHERE Id = :caseId LIMIT 1];
             Boolean isSupport = c.Story_Support__c != null &&
                                 c.Story_Support__c == UserInfo.getUserId();
             update new Case(Id = caseId, Support_Message_Pending__c = isSupport);
-            return fi.Id;
+            return newFeedId;
+        } catch (AuraHandledException ex) {
+            throw ex;
         } catch (DmlException ex) {
             throw new AuraHandledException(ex.getDmlMessage(0));
         } catch (Exception ex) {
             throw new AuraHandledException(ex.getMessage());
         }
+    }
+
+    private static List<ConnectApi.MessageSegmentInput> buildChatSegments(String message) {
+        List<ConnectApi.MessageSegmentInput> segments = new List<ConnectApi.MessageSegmentInput>();
+        Pattern p = Pattern.compile('@\\[([0-9A-Za-z]{15,18})\\]');
+        Matcher m = p.matcher(message);
+        Integer lastEnd = 0;
+        while (m.find()) {
+            if (m.start() > lastEnd) {
+                ConnectApi.TextSegmentInput txt = new ConnectApi.TextSegmentInput();
+                txt.text = message.substring(lastEnd, m.start());
+                segments.add(txt);
+            }
+            ConnectApi.MentionSegmentInput mention = new ConnectApi.MentionSegmentInput();
+            mention.id = m.group(1);
+            segments.add(mention);
+            lastEnd = m.end();
+        }
+        if (lastEnd < message.length()) {
+            ConnectApi.TextSegmentInput txt = new ConnectApi.TextSegmentInput();
+            txt.text = message.substring(lastEnd);
+            segments.add(txt);
+        }
+        if (segments.isEmpty()) {
+            ConnectApi.TextSegmentInput txt = new ConnectApi.TextSegmentInput();
+            txt.text = message;
+            segments.add(txt);
+        }
+        return segments;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<UserOption> searchChatUsers(String term) {
+        if (String.isBlank(term)) return new List<UserOption>();
+        String likeTerm = '%' + String.escapeSingleQuotes(term.trim()) + '%';
+        List<UserOption> result = new List<UserOption>();
+        for (User u : [SELECT Id, Name FROM User WHERE IsActive = true AND Name LIKE :likeTerm ORDER BY Name ASC LIMIT 8]) {
+            UserOption opt = new UserOption();
+            opt.value = u.Id;
+            opt.label = u.Name;
+            result.add(opt);
+        }
+        return result;
+    }
+
+    private static String htmlToPlainText(String html) {
+        if (String.isBlank(html)) return '';
+        String t = html;
+        t = t.replaceAll('(?i)</p>',   '\n');
+        t = t.replaceAll('(?i)</div>', '\n');
+        t = t.replaceAll('(?i)</li>',  '\n');
+        t = t.replaceAll('(?i)<br\\s*/?>', '\n');
+        t = t.replaceAll('<[^>]*>', '');
+        t = t.replace('&amp;',  '&')
+             .replace('&lt;',   '<')
+             .replace('&gt;',   '>')
+             .replace('&quot;', '"')
+             .replace('&#39;',  '\'')
+             .replace('&apos;', '\'')
+             .replace('&nbsp;', ' ')
+             .replace('&#160;', ' ');
+        t = t.replaceAll('\\n{3,}', '\n\n');
+        return t.trim();
     }
 
     // ── Assign Story Support ──────────────────────────────────────────────
