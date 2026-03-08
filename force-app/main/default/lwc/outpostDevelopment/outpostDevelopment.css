@@ -487,8 +487,8 @@
 }
 
 .op-chat-bubble-mine {
-    background: #0f172a;
-    color: white;
+    background: #dbeafe;
+    color: #1e3a5f;
     border-bottom-right-radius: 4px;
 }
 
@@ -543,7 +543,7 @@
 }
 
 .op-chat-send-btn {
-    background: #0f172a;
+    background: #2563eb;
     color: white;
     border: none;
     border-radius: 6px;
@@ -555,7 +555,7 @@
 }
 
 .op-chat-send-btn:hover {
-    background: #1e293b;
+    background: #1d4ed8;
 }
 
 /* ── @mention dropdown ───────────────────────────────── */

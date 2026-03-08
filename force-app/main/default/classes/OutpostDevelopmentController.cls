@@ -264,15 +264,14 @@ public without sharing class OutpostDevelopmentController {
             w.createdDate   = fi.CreatedDate;
             w.isCurrentUser = fi.CreatedById == curUserId;
 
-            // Resolve @[userId] → @Name in body for display
+            // Resolve @[userId] → @Name, then convert HTML to plain text
             String body = fi.Body != null ? fi.Body : '';
             for (Id uid : userNames.keySet()) {
                 String displayName = '@' + userNames.get(uid);
                 body = body.replace('@[' + uid + ']', displayName);
-                // Also handle 15-char ID variant
                 body = body.replace('@[' + String.valueOf(uid).left(15) + ']', displayName);
             }
-            w.body = body;
+            w.body = htmlToPlainText(body);
             result.add(w);
         }
         return result;
@@ -360,5 +359,31 @@ public without sharing class OutpostDevelopmentController {
             result.add(opt);
         }
         return result;
+    }
+
+    // ── HTML → plain text converter ───────────────────────────────────────
+
+    private static String htmlToPlainText(String html) {
+        if (String.isBlank(html)) return '';
+        String t = html;
+        // Block-level closings → newline
+        t = t.replaceAll('(?i)</p>',   '\n');
+        t = t.replaceAll('(?i)</div>', '\n');
+        t = t.replaceAll('(?i)</li>',  '\n');
+        t = t.replaceAll('(?i)<br\\s*/?>', '\n');
+        // Strip all remaining tags
+        t = t.replaceAll('<[^>]*>', '');
+        // Decode common HTML entities
+        t = t.replace('&amp;',  '&')
+             .replace('&lt;',   '<')
+             .replace('&gt;',   '>')
+             .replace('&quot;', '"')
+             .replace('&#39;',  '\'')
+             .replace('&apos;', '\'')
+             .replace('&nbsp;', ' ')
+             .replace('&#160;', ' ');
+        // Collapse 3+ consecutive newlines to 2
+        t = t.replaceAll('\\n{3,}', '\n\n');
+        return t.trim();
     }
 }
