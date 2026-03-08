@@ -545,15 +545,35 @@ export default class TeamCapacity extends LightningElement {
         const plotW = W - padLeft - padRight;
         const plotH = H - padTop - padBottom;
 
-        const periods = [...rows].reverse();   // oldest → newest
-        const n       = periods.length;
-        const xOf = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
+        const periods  = [...rows].reverse();   // oldest → newest
+        const n        = periods.length;
+        const xOf      = (i) => n <= 1 ? padLeft + plotW / 2 : padLeft + (i / (n - 1)) * plotW;
+        const projects = this._data?.projects || [];
+
+        // Return on-time pace for a project name, adjusted for week/month view
+        const getPace = (name) => {
+            const proj = projects.find(p => p.name === name && p.contractType !== 'Block');
+            if (!proj || !proj.onTimeWeeklyPace) return 0;
+            return this._billingView === 'month'
+                ? proj.onTimeWeeklyPace * (52 / 12)
+                : proj.onTimeWeeklyPace;
+        };
 
         // ── Total view: single line ─────────────────────────────────────
         if (this._billingGrouping === 'total') {
-            const maxHours = Math.max(...periods.map(r => r.totalHours), 1);
-            const yMax     = Math.ceil(maxHours / 5) * 5 || 10;
-            const yOf      = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
+            const relevantProjects = this._billingUserId === TEAM_CARD_ID
+                ? projects
+                : projects.filter(p => p.ownerId === this._billingUserId || p.supportLeadId === this._billingUserId);
+            const totalPaceWeekly = relevantProjects
+                .filter(p => p.contractType !== 'Block')
+                .reduce((s, p) => s + (p.onTimeWeeklyPace || 0), 0);
+            const paceHours = this._billingView === 'month'
+                ? Math.round(totalPaceWeekly * (52 / 12) * 10) / 10
+                : Math.round(totalPaceWeekly * 10) / 10;
+
+            const maxRaw = Math.max(...periods.map(r => r.totalHours), paceHours, 1);
+            const yMax   = Math.ceil(maxRaw / 5) * 5 || 10;
+            const yOf    = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
 
             const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => ({
                 y: Math.round(yOf(f * yMax)), label: Math.round(f * yMax) + 'h',
@@ -562,15 +582,11 @@ export default class TeamCapacity extends LightningElement {
 
             const color  = '#0e7490';
             const series = [{
-                col:      'Total Hours',
-                color,
-                dotStyle: `background:${color}`,
-                points:   periods.map((row, i) => ({
-                    key:    `total-${i}`,
-                    x:      Math.round(xOf(i) * 10) / 10,
-                    y:      Math.round(yOf(row.totalHours) * 10) / 10,
-                    hours:  row.totalHours,
-                    period: row.label
+                col: 'Total Hours', color, dotStyle: `background:${color}`,
+                points: periods.map((row, i) => ({
+                    key: `total-${i}`, x: Math.round(xOf(i) * 10) / 10,
+                    y: Math.round(yOf(row.totalHours) * 10) / 10,
+                    hours: row.totalHours, period: row.label
                 }))
             }];
 
@@ -579,7 +595,11 @@ export default class TeamCapacity extends LightningElement {
                 label: row.label, totalHours: row.totalHours
             }));
 
-            return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
+            const paceLines = paceHours > 0
+                ? [{ y: Math.round(yOf(paceHours) * 10) / 10, color, paceHours }]
+                : [];
+
+            return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels, paceLines };
         }
 
         // ── By-project view: one line per active project ────────────────
@@ -587,6 +607,7 @@ export default class TeamCapacity extends LightningElement {
         const activeCols = sel === null ? projectCols : projectCols.filter(c => sel.has(c));
         if (activeCols.length === 0) return null;
 
+        // Include pace values in maxHours so dotted lines fit within the chart
         let maxHours = 1;
         periods.forEach(row => {
             activeCols.forEach(col => {
@@ -594,6 +615,11 @@ export default class TeamCapacity extends LightningElement {
                 if (h > maxHours) maxHours = h;
             });
         });
+        activeCols.forEach(col => {
+            const pace = getPace(col);
+            if (pace > maxHours) maxHours = pace;
+        });
+
         const yMax = Math.ceil(maxHours / 5) * 5 || 10;
         const yOf  = (h) => padTop + plotH - ((h || 0) / yMax) * plotH;
 
@@ -608,11 +634,9 @@ export default class TeamCapacity extends LightningElement {
             return {
                 col, color, dotStyle: `background:${color}`,
                 points: periods.map((row, i) => ({
-                    key:    `${col}-${i}`,
-                    x:      Math.round(xOf(i) * 10) / 10,
-                    y:      Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
-                    hours:  row.cells[ci]?.hours || 0,
-                    period: row.label
+                    key: `${col}-${i}`, x: Math.round(xOf(i) * 10) / 10,
+                    y: Math.round(yOf(row.cells[ci]?.hours || 0) * 10) / 10,
+                    hours: row.cells[ci]?.hours || 0, period: row.label
                 }))
             };
         });
@@ -627,7 +651,16 @@ export default class TeamCapacity extends LightningElement {
             };
         });
 
-        return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels };
+        // Dotted pace reference line per active project (color matches its series line)
+        const paceLines = activeCols.map(col => {
+            const pace = getPace(col);
+            if (pace <= 0) return null;
+            const ci    = projectCols.indexOf(col);
+            const color = CHART_COLORS[ci % CHART_COLORS.length];
+            return { y: Math.round(yOf(pace) * 10) / 10, color, paceHours: Math.round(pace * 10) / 10 };
+        }).filter(Boolean);
+
+        return { W, H, padLeft, padTop, plotW, plotH, gridLines, series, xLabels, paceLines };
     }
 
     get hasBillingEntries() { return !this.billingRows.isEmpty; }
@@ -734,6 +767,14 @@ export default class TeamCapacity extends LightningElement {
             d += ` L ${s.points[s.points.length - 1].x} ${bottom} Z`;
             svg += `<path d="${d}" fill="${s.color}" opacity="0.07"/>`;
         });
+
+        // Pace reference lines (dotted) — drawn after areas, before solid data lines
+        if (chart.paceLines && chart.paceLines.length) {
+            chart.paceLines.forEach(pl => {
+                svg += `<line x1="${padLeft}" y1="${pl.y}" x2="${padLeft + plotW}" y2="${pl.y}" ` +
+                       `stroke="${pl.color}" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.7"/>`;
+            });
+        }
 
         // Lines
         series.forEach(s => {
