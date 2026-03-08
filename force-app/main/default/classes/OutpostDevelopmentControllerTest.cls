@@ -176,7 +176,7 @@ private class OutpostDevelopmentControllerTest {
         Boolean threw = false;
         Test.startTest();
         try {
-            OutpostDevelopmentController.updateStatus(ownerStory.Id, 'New');
+            OutpostDevelopmentController.updateStatus(ownerStory.Id, 'Cancelled');
         } catch (AuraHandledException ex) {
             threw = true;
         }
@@ -191,8 +191,8 @@ private class OutpostDevelopmentControllerTest {
         Case ownerStory = (Case) td.get('ownerStory');
 
         List<String> statuses = new List<String>{
-            'Scheduled', 'Work In Progress (WIP)', 'In Review',
-            'In UAT', 'Blocked', 'Completed'
+            'New', 'Backlog', 'Scheduled', 'Work In Progress (WIP)',
+            'Waiting for User', 'On Hold', 'In Review', 'In UAT', 'Blocked', 'Completed'
         };
 
         Test.startTest();

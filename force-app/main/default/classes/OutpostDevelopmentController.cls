@@ -1,7 +1,8 @@
 public without sharing class OutpostDevelopmentController {
 
     static final List<String> COLUMNS = new List<String>{
-        'Scheduled', 'Work In Progress (WIP)', 'In Review', 'In UAT', 'Blocked', 'Completed'
+        'New', 'Backlog', 'Scheduled', 'Work In Progress (WIP)',
+        'Waiting for User', 'On Hold', 'In Review', 'In UAT', 'Blocked', 'Completed'
     };
     static final Set<String> EXCLUDED = new Set<String>{ 'Meetings', 'Project Management', 'Helpdesk' };
 

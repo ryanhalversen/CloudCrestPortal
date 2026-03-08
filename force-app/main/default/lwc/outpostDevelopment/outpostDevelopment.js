@@ -21,8 +21,12 @@ const DRAG_THRESHOLD = 6;
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const COLUMNS = [
+    'New',
+    'Backlog',
     'Scheduled',
     'Work In Progress (WIP)',
+    'Waiting for User',
+    'On Hold',
     'In Review',
     'In UAT',
     'Blocked',
@@ -30,8 +34,12 @@ const COLUMNS = [
 ];
 
 const COL_COLORS = {
+    'New':                     '#e2e8f0',
+    'Backlog':                 '#cbd5e1',
     'Scheduled':               '#ade8f4',
     'Work In Progress (WIP)':  '#90e0ef',
+    'Waiting for User':        '#c4b5fd',
+    'On Hold':                 '#fcd34d',
     'In Review':               '#0077b6',
     'In UAT':                  '#005f8e',
     'Blocked':                 '#dc2626',
