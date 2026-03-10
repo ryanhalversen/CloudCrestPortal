@@ -1,19 +1,17 @@
 // force-app/main/default/lwc/contractorBoard/contractorBoard.js
 import { LightningElement, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { refreshApex }   from '@salesforce/apex';
-import getProjects        from '@salesforce/apex/ContractorBoardController.getProjects';
-import getStories         from '@salesforce/apex/ContractorBoardController.getStories';
-import getTimeEntries     from '@salesforce/apex/ContractorBoardController.getTimeEntries';
-import getNextSteps       from '@salesforce/apex/ContractorBoardController.getNextSteps';
-import getChatMessages    from '@salesforce/apex/ContractorBoardController.getChatMessages';
-import getAttachments     from '@salesforce/apex/ContractorBoardController.getAttachments';
-import searchUsers        from '@salesforce/apex/ContractorBoardController.searchUsers';
-import postChatMessage    from '@salesforce/apex/ContractorBoardController.postChatMessage';
-import logTime            from '@salesforce/apex/ContractorBoardController.logTime';
-import addNextStep        from '@salesforce/apex/ContractorBoardController.addNextStep';
-import createStory        from '@salesforce/apex/ContractorBoardController.createStory';
-import uploadAttachment   from '@salesforce/apex/ContractorBoardController.uploadAttachment';
+import getProjectsForUser  from '@salesforce/apex/ContractorBoardController.getProjectsForUser';
+import getStories          from '@salesforce/apex/ContractorBoardController.getStories';
+import getTimeEntries      from '@salesforce/apex/ContractorBoardController.getTimeEntries';
+import getNextSteps        from '@salesforce/apex/ContractorBoardController.getNextSteps';
+import getChatMessages     from '@salesforce/apex/ContractorBoardController.getChatMessages';
+import getAttachments      from '@salesforce/apex/ContractorBoardController.getAttachments';
+import searchUsers         from '@salesforce/apex/ContractorBoardController.searchUsers';
+import postChatMessage     from '@salesforce/apex/ContractorBoardController.postChatMessage';
+import logTime             from '@salesforce/apex/ContractorBoardController.logTime';
+import addNextStep         from '@salesforce/apex/ContractorBoardController.addNextStep';
+import uploadAttachment    from '@salesforce/apex/ContractorBoardController.uploadAttachment';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +45,6 @@ export default class ContractorBoard extends LightningElement {
     @track isLoading        = false;
     @track errorMessage     = null;
     @track selectedProjectId = '';
-    @track showMineOnly     = false;
 
     // Story detail modal
     @track selectedStory    = null;
@@ -78,45 +75,27 @@ export default class ContractorBoard extends LightningElement {
     @track attachLoading    = false;
     @track viewerAttachment = null;
 
-    // New story modal
-    @track showNewStoryModal = false;
-    @track newSubject        = '';
-    @track newDescription    = '';
-    @track newPriority       = 'Medium';
-    @track newType           = '';
-    @track isCreatingStory   = false;
-    @track subjectError      = false;
-    @track newStoryError     = null;
-
     // Misc
     totalCount               = 0;
     @track distBarSegments   = [];
-    projectOptions           = [{ label: 'All Projects', value: '' }];
+    @track projectPills      = [];
     _allCards                = [];
     _wiredStories;
 
-    typeOptions = [
-        { label: '— None —',     value: '' },
-        { label: 'Feature',      value: 'Feature' },
-        { label: 'Bug',          value: 'Bug' },
-        { label: 'Support',      value: 'Support' },
-        { label: 'Enhancement',  value: 'Enhancement' },
-        { label: 'Task',         value: 'Task' },
-    ];
-
     // ── Wire ──────────────────────────────────────────────────────────────────
 
-    @wire(getProjects)
+    @wire(getProjectsForUser)
     wiredProjects({ data }) {
         if (data) {
-            this.projectOptions = [
-                { label: 'All Projects', value: '' },
-                ...data.map(p => ({ label: p.Name, value: p.Id })),
-            ];
+            this.projectPills = data.map(p => ({
+                id:        p.Id,
+                name:      p.Name,
+                pillClass: this._pillClass(p.Id),
+            }));
         }
     }
 
-    @wire(getStories, { projectId: '$selectedProjectId', mineOnly: '$showMineOnly' })
+    @wire(getStories, { projectId: '$selectedProjectId' })
     wiredStories(result) {
         this._wiredStories = result;
         this.isLoading = false;
@@ -223,38 +202,20 @@ export default class ContractorBoard extends LightningElement {
     get timeTabClass()   { return `right-tab${this.isTimeTab  ? ' active' : ''}`; }
     get stepsTabClass()  { return `right-tab${this.isStepsTab ? ' active' : ''}`; }
 
-    get allBtnClass()    { return `toggle-btn${!this.showMineOnly ? ' active' : ''}`; }
-    get mineBtnClass()   { return `toggle-btn${this.showMineOnly  ? ' active' : ''}`; }
+    get allPillClass() { return this._pillClass(''); }
+
+    _pillClass(id) {
+        return `project-pill${this.selectedProjectId === id ? ' active' : ''}`;
+    }
 
     get chatSendLabel()  { return this.isSavingChat  ? 'Sending...' : 'Send'; }
     get logTimeBtnLabel(){ return this.isSavingTime  ? 'Saving...'  : 'Log'; }
     get addStepBtnLabel(){ return this.isSavingStep  ? 'Saving...'  : 'Add'; }
-    get createStoryBtnLabel() { return this.isCreatingStory ? 'Submitting...' : 'Submit Story'; }
 
     get totalHoursDisplay() {
         const totalMins = this.timeEntries.reduce((s, t) => s + (t.Minutes_Logged__c || 0), 0);
         const hrs = +(totalMins / 60).toFixed(2);
         return hrs ? `${hrs}h total` : '';
-    }
-
-    get selectedProjectLabel() {
-        const opt = this.projectOptions.find(o => o.value === this.selectedProjectId);
-        return (opt && opt.value) ? opt.label : '';
-    }
-
-    get newSubjectClass() {
-        return `new-story-input${this.subjectError ? ' input-error' : ''}`;
-    }
-
-    get newPriorityLowClass()      { return this._prioClass('Low'); }
-    get newPriorityMediumClass()   { return this._prioClass('Medium'); }
-    get newPriorityHighClass()     { return this._prioClass('High'); }
-    get newPriorityCriticalClass() { return this._prioClass('Critical'); }
-
-    _prioClass(p) {
-        const sel = this.newPriority === p ? ' selected' : '';
-        const map = { Low: 'low', Medium: 'medium', High: 'high', Critical: 'critical' };
-        return `priority-btn priority-${map[p]}${sel}`;
     }
 
     get viewerIsImage() {
@@ -264,13 +225,15 @@ export default class ContractorBoard extends LightningElement {
 
     // ── Filter Handlers ───────────────────────────────────────────────────────
 
-    handleProjectChange(evt) {
-        this.selectedProjectId = evt.detail.value;
+    handlePillClick(evt) {
+        this.selectedProjectId = evt.currentTarget.dataset.id;
         this.isLoading = true;
+        // Recompute pill active classes
+        this.projectPills = this.projectPills.map(p => ({
+            ...p,
+            pillClass: this._pillClass(p.id),
+        }));
     }
-
-    handleShowAll()  { this.showMineOnly = false; }
-    handleShowMine() { this.showMineOnly = true; }
 
     // ── Card Click / Modal ────────────────────────────────────────────────────
 
@@ -531,60 +494,6 @@ export default class ContractorBoard extends LightningElement {
     }
 
     handleCloseViewer() { this.viewerAttachment = null; }
-
-    // ── New Story ─────────────────────────────────────────────────────────────
-
-    handleSubmitStoryClick() {
-        this.newSubject       = '';
-        this.newDescription   = '';
-        this.newPriority      = 'Medium';
-        this.newType          = '';
-        this.subjectError     = false;
-        this.newStoryError    = null;
-        this.showNewStoryModal = true;
-    }
-
-    handleCloseNewStory()       { this.showNewStoryModal = false; }
-    handleNewStoryBackdrop()    { this.showNewStoryModal = false; }
-
-    handleNewSubjectInput(evt)  { this.newSubject     = evt.target.value; this.subjectError = false; }
-    handleNewDescInput(evt)     { this.newDescription = evt.target.value; }
-
-    handleNewPrioritySelect(evt) {
-        this.newPriority = evt.currentTarget.dataset.priority;
-    }
-
-    handleNewTypeChange(evt) { this.newType = evt.detail.value; }
-
-    handleCreateStory() {
-        if (!(this.newSubject || '').trim()) {
-            this.subjectError = true;
-            return;
-        }
-        this.isCreatingStory = true;
-        this.newStoryError   = null;
-
-        createStory({
-            subject:     this.newSubject.trim(),
-            description: this.newDescription,
-            priority:    this.newPriority,
-            projectId:   this.selectedProjectId || null,
-            storyType:   this.newType || null,
-        })
-            .then(caseNumber => {
-                this._toast(
-                    'Story Submitted',
-                    `Story ${caseNumber} has been created. Your team has been notified.`,
-                    'success'
-                );
-                this.showNewStoryModal = false;
-                return refreshApex(this._wiredStories);
-            })
-            .catch(err => {
-                this.newStoryError = err?.body?.message || 'Could not create story.';
-            })
-            .finally(() => { this.isCreatingStory = false; });
-    }
 
     // ── Data Mappers ──────────────────────────────────────────────────────────
 

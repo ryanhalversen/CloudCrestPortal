@@ -56,19 +56,29 @@ private class ContractorBoardControllerTest {
     // ── Read Tests ────────────────────────────────────────────────────────────
 
     @IsTest
-    static void testGetProjects() {
+    static void testGetProjectsForUser() {
         createTestData();
         Test.startTest();
-        List<Sprint__c> projects = ContractorBoardController.getProjects();
+        List<Sprint__c> projects = ContractorBoardController.getProjectsForUser();
         Test.stopTest();
-        System.assertNotEquals(0, projects.size(), 'Should return at least one project');
+        // Running user owns the test story so should see its project
+        System.assertNotEquals(0, projects.size(), 'Should return project for this user');
+    }
+
+    @IsTest
+    static void testGetProjectsForUser_noStories() {
+        // No data — user has no stories
+        Test.startTest();
+        List<Sprint__c> projects = ContractorBoardController.getProjectsForUser();
+        Test.stopTest();
+        System.assertEquals(0, projects.size(), 'Should return empty list');
     }
 
     @IsTest
     static void testGetStories_all() {
         createTestData();
         Test.startTest();
-        List<Case> stories = ContractorBoardController.getStories(null, false);
+        List<Case> stories = ContractorBoardController.getStories(null);
         Test.stopTest();
         System.assertNotEquals(null, stories, 'Should return a list');
     }
@@ -78,18 +88,10 @@ private class ContractorBoardControllerTest {
         Map<String, Object> data = createTestData();
         Sprint__c proj = (Sprint__c) data.get('proj');
         Test.startTest();
-        List<Case> stories = ContractorBoardController.getStories(proj.Id, false);
+        List<Case> stories = ContractorBoardController.getStories(proj.Id);
         Test.stopTest();
+        // Running user owns the story, so should appear
         System.assertEquals(1, stories.size(), 'Should return story for project');
-    }
-
-    @IsTest
-    static void testGetStories_mineOnly() {
-        createTestData();
-        Test.startTest();
-        List<Case> stories = ContractorBoardController.getStories(null, true);
-        Test.stopTest();
-        System.assertNotEquals(null, stories, 'Should return a list');
     }
 
     @IsTest

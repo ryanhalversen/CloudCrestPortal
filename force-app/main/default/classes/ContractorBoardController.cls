@@ -27,18 +27,30 @@ public with sharing class ContractorBoardController {
 
     // ── Read ──────────────────────────────────────────────────────────────────
 
+    // Returns only projects where the running user has stories assigned to them
     @AuraEnabled(cacheable=true)
-    public static List<Sprint__c> getProjects() {
+    public static List<Sprint__c> getProjectsForUser() {
+        Id uid = UserInfo.getUserId();
+        Set<Id> projIds = new Set<Id>();
+        for (Case c : [
+            SELECT Projects__c
+            FROM   Case
+            WHERE  Projects__c != null
+            AND    (OwnerId = :uid OR Story_Support__c = :uid)
+        ]) {
+            projIds.add(c.Projects__c);
+        }
+        if (projIds.isEmpty()) return new List<Sprint__c>();
         return [
             SELECT Id, Name
             FROM   Sprint__c
-            WHERE  Status__c = 'In Progress'
+            WHERE  Id IN :projIds
             ORDER BY Name
         ];
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<Case> getStories(String projectId, Boolean mineOnly) {
+    public static List<Case> getStories(String projectId) {
         Id uid = UserInfo.getUserId();
 
         String q =
@@ -47,13 +59,11 @@ public with sharing class ContractorBoardController {
             'Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c, ' +
             'OwnerId, Owner.Name, Story_Support__c, CreatedDate ' +
             'FROM Case ' +
-            'WHERE Status NOT IN (\'Cancelled\') ';
+            'WHERE Status NOT IN (\'Cancelled\') ' +
+            'AND (OwnerId = \'' + uid + '\' OR Story_Support__c = \'' + uid + '\') ';
 
         if (String.isNotBlank(projectId)) {
             q += 'AND Projects__c = \'' + String.escapeSingleQuotes(projectId) + '\' ';
-        }
-        if (mineOnly == true) {
-            q += 'AND (OwnerId = \'' + uid + '\' OR Story_Support__c = \'' + uid + '\') ';
         }
         q += 'ORDER BY CreatedDate DESC LIMIT 500';
 

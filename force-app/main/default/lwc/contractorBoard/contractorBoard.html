@@ -14,25 +14,23 @@
                 </div>
             </div>
             <div class="header-right">
-                <lightning-combobox
-                    name="projectFilter"
-                    variant="label-hidden"
-                    placeholder="All Projects"
-                    options={projectOptions}
-                    value={selectedProjectId}
-                    onchange={handleProjectChange}
-                    dropdown-alignment="right">
-                </lightning-combobox>
-
-                <div class="toggle-group">
-                    <button class={allBtnClass} onclick={handleShowAll}>All</button>
-                    <button class={mineBtnClass} onclick={handleShowMine}>Mine</button>
+                <div class="project-pills">
+                    <button
+                        class={allPillClass}
+                        data-id=""
+                        onclick={handlePillClick}>
+                        All
+                    </button>
+                    <template for:each={projectPills} for:item="pill">
+                        <button
+                            key={pill.id}
+                            class={pill.pillClass}
+                            data-id={pill.id}
+                            onclick={handlePillClick}>
+                            {pill.name}
+                        </button>
+                    </template>
                 </div>
-
-                <button class="btn-submit-story" onclick={handleSubmitStoryClick}>
-                    <lightning-icon icon-name="utility:add" size="x-small" style="--lwc-colorTextIcon:#fff;"></lightning-icon>
-                    Submit Story
-                </button>
             </div>
         </div>
 
@@ -366,88 +364,6 @@
                         <template if:false={viewerIsImage}>
                             <iframe src={viewerAttachment.downloadUrl} class="viewer-iframe" title={viewerAttachment.title}></iframe>
                         </template>
-                    </div>
-                </div>
-            </div>
-        </template>
-
-        <!-- ── Submit New Story Modal ── -->
-        <template if:true={showNewStoryModal}>
-            <div class="modal-backdrop" onclick={handleNewStoryBackdrop}>
-                <div class="modal-container sm-modal" onclick={stopPropagation}>
-                    <div class="modal-header">
-                        <div class="modal-header-top">
-                            <h3 class="board-title" style="font-size:1rem;">Submit a Story</h3>
-                            <button class="modal-close" onclick={handleCloseNewStory}>&times;</button>
-                        </div>
-                        <template if:true={selectedProjectLabel}>
-                            <div class="new-story-context">
-                                <span class="new-story-context-label">Project:</span>
-                                <span class="new-story-context-value">{selectedProjectLabel}</span>
-                            </div>
-                        </template>
-                    </div>
-                    <div class="modal-body" style="gap:14px;">
-
-                        <!-- Subject -->
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">Subject <span class="new-story-required">*</span></label>
-                            <input
-                                type="text"
-                                class={newSubjectClass}
-                                placeholder="Brief summary of the story"
-                                value={newSubject}
-                                oninput={handleNewSubjectInput}>
-                            <template if:true={subjectError}>
-                                <span class="field-error">Subject is required.</span>
-                            </template>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">Description</label>
-                            <textarea
-                                class="new-story-textarea"
-                                data-id="newDescTextarea"
-                                placeholder="Provide details, steps to reproduce, acceptance criteria..."
-                                rows="5"
-                                oninput={handleNewDescInput}>
-                            </textarea>
-                        </div>
-
-                        <!-- Priority -->
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">Priority</label>
-                            <div class="modal-priority-options">
-                                <button class={newPriorityLowClass}      data-priority="Low"      onclick={handleNewPrioritySelect}>Low</button>
-                                <button class={newPriorityMediumClass}   data-priority="Medium"   onclick={handleNewPrioritySelect}>Medium</button>
-                                <button class={newPriorityHighClass}     data-priority="High"     onclick={handleNewPrioritySelect}>High</button>
-                                <button class={newPriorityCriticalClass} data-priority="Critical" onclick={handleNewPrioritySelect}>Critical</button>
-                            </div>
-                        </div>
-
-                        <!-- Type -->
-                        <div class="modal-field-row">
-                            <label class="modal-field-label">Type</label>
-                            <lightning-combobox
-                                name="newType"
-                                variant="label-hidden"
-                                placeholder="Select type..."
-                                options={typeOptions}
-                                value={newType}
-                                onchange={handleNewTypeChange}>
-                            </lightning-combobox>
-                        </div>
-
-                        <template if:true={newStoryError}>
-                            <p class="field-error">{newStoryError}</p>
-                        </template>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-cancel" onclick={handleCloseNewStory}>Cancel</button>
-                        <button class="btn-save" onclick={handleCreateStory} disabled={isCreatingStory}>
-                            {createStoryBtnLabel}
-                        </button>
                     </div>
                 </div>
             </div>

@@ -48,52 +48,38 @@
     gap: 12px;
 }
 
-/* ── Toggle ──────────────────────────────────────────────────────────────── */
-.toggle-group {
-    display: flex;
-    background: #f3f4f6;
-    border-radius: 8px;
-    padding: 3px;
-    gap: 2px;
-}
-.toggle-btn {
-    padding: 6px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    background: transparent;
-    color: #6b7280;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-.toggle-btn.active {
-    background: #ffffff;
-    color: #0d1b2a;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-}
-.toggle-btn:hover:not(.active) { color: #374151; }
-
-/* ── Submit Story Button ─────────────────────────────────────────────────── */
-.btn-submit-story {
+/* ── Project Pills ───────────────────────────────────────────────────────── */
+.project-pills {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 16px;
-    border-radius: 7px;
-    border: none;
-    background: #00b4d8;
-    color: #fff;
-    font-size: 0.82rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    max-width: 70vw;
+}
+.project-pills::-webkit-scrollbar { display: none; }
+.project-pill {
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 1.5px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s;
     white-space: nowrap;
+    font-family: inherit;
+    transition: all 0.15s;
+    flex-shrink: 0;
 }
-.btn-submit-story:hover { background: #0096b4; }
+.project-pill:hover:not(.active) { border-color: #00b4d8; color: #00b4d8; }
+.project-pill.active {
+    background: #00b4d8;
+    border-color: #00b4d8;
+    color: #fff;
+}
 
 /* ── Distribution Bar ────────────────────────────────────────────────────── */
 .dist-bar-wrapper {
