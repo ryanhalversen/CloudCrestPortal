@@ -1,0 +1,457 @@
+<!-- force-app/main/default/lwc/contractorBoard/contractorBoard.html -->
+<template>
+    <div class="board-wrapper">
+
+        <!-- ── Header ── -->
+        <div class="board-header">
+            <div class="header-left">
+                <div class="header-icon">
+                    <lightning-icon icon-name="utility:kanban" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                </div>
+                <div>
+                    <h2 class="board-title">Project Board</h2>
+                    <p class="board-subtitle">{totalCount} stories</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <lightning-combobox
+                    name="projectFilter"
+                    variant="label-hidden"
+                    placeholder="All Projects"
+                    options={projectOptions}
+                    value={selectedProjectId}
+                    onchange={handleProjectChange}
+                    dropdown-alignment="right">
+                </lightning-combobox>
+
+                <div class="toggle-group">
+                    <button class={allBtnClass} onclick={handleShowAll}>All</button>
+                    <button class={mineBtnClass} onclick={handleShowMine}>Mine</button>
+                </div>
+
+                <button class="btn-submit-story" onclick={handleSubmitStoryClick}>
+                    <lightning-icon icon-name="utility:add" size="x-small" style="--lwc-colorTextIcon:#fff;"></lightning-icon>
+                    Submit Story
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Distribution Bar ── -->
+        <template if:true={hasStories}>
+            <div class="dist-bar-wrapper">
+                <div class="dist-bar-track">
+                    <template for:each={distBarSegments} for:item="seg">
+                        <div
+                            key={seg.status}
+                            class="dist-bar-segment"
+                            style={seg.style}
+                            title={seg.tooltip}>
+                        </div>
+                    </template>
+                </div>
+                <div class="dist-bar-legend">
+                    <template for:each={distBarSegments} for:item="seg">
+                        <div key={seg.status} class="legend-item">
+                            <span class="legend-dot" style={seg.dotStyle}></span>
+                            <span class="legend-status">{seg.label}</span>
+                            <span class="legend-stats" style={seg.textStyle}>{seg.count}</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Loading / Error ── -->
+        <template if:true={isLoading}>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+        <template if:true={errorMessage}>
+            <div class="error-banner">
+                <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                {errorMessage}
+            </div>
+        </template>
+
+        <!-- ── Kanban Board ── -->
+        <template if:false={isLoading}>
+            <div class="board-scroll">
+                <div class="board-columns">
+                    <template for:each={columns} for:item="col">
+                        <div key={col.status} class="board-col">
+                            <div class="col-header">
+                                <div class="col-title-wrap">
+                                    <span class="col-dot" style={col.dotStyle}></span>
+                                    <span class="col-title">{col.label}</span>
+                                </div>
+                                <span class="col-badge">{col.count}</span>
+                            </div>
+                            <div class="col-cards">
+                                <template for:each={col.cards} for:item="card">
+                                    <div
+                                        key={card.id}
+                                        class={card.cardClass}
+                                        data-id={card.id}
+                                        onclick={handleCardClick}>
+                                        <div class="card-subject">{card.subject}</div>
+                                        <div class="card-meta">
+                                            <span class={card.priorityClass}>{card.priority}</span>
+                                            <template if:true={card.storyType}>
+                                                <span class="meta-type">{card.storyType}</span>
+                                            </template>
+                                        </div>
+                                        <div class="card-footer">
+                                            <template if:true={card.hoursDisplay}>
+                                                <span class="card-hours-logged">{card.hoursDisplay}</span>
+                                            </template>
+                                            <span class="card-date">{card.ageDisplay}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template if:true={col.isEmpty}>
+                                    <p class="col-empty">No stories</p>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Story Detail Modal ── -->
+        <template if:true={selectedStory}>
+            <div class="modal-backdrop" onclick={handleBackdropClick}>
+                <div class="modal-container" onclick={stopPropagation}>
+
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <div class="modal-header-top">
+                            <div class="modal-header-id">
+                                <span class="modal-case-number">{selectedStory.caseNumber}</span>
+                                <span class="modal-status-chip" style={selectedStory.statusChipStyle}>{selectedStory.status}</span>
+                                <span class={selectedStory.priorityClass}>{selectedStory.priority}</span>
+                                <template if:true={selectedStory.storyType}>
+                                    <span class="meta-type">{selectedStory.storyType}</span>
+                                </template>
+                            </div>
+                            <button class="modal-close" onclick={handleCloseModal} title="Close">&times;</button>
+                        </div>
+                        <div class="modal-header-meta">
+                            <template if:true={selectedStory.projectName}>
+                                <span class="modal-meta-label">Project</span>
+                                <span class="modal-epic-name">{selectedStory.projectName}</span>
+                                <span class="modal-meta-sep">·</span>
+                            </template>
+                            <template if:true={selectedStory.epicName}>
+                                <span class="modal-meta-label">Epic</span>
+                                <span class="modal-epic-name">{selectedStory.epicName}</span>
+                                <span class="modal-meta-sep">·</span>
+                            </template>
+                            <span class="modal-meta-label">Assigned to</span>
+                            <span class="modal-contact-name">{selectedStory.ownerName}</span>
+                        </div>
+                    </div>
+
+                    <!-- Modal Body: left detail pane + right collaboration pane -->
+                    <div class="modal-body modal-body-split">
+
+                        <!-- Left: story details -->
+                        <div class="modal-col-detail">
+                            <div class="modal-subject">{selectedStory.subject}</div>
+
+                            <template if:true={selectedStory.description}>
+                                <p class="modal-description">{selectedStory.description}</p>
+                            </template>
+                            <template if:false={selectedStory.description}>
+                                <p class="modal-no-desc">No description provided.</p>
+                            </template>
+
+                            <!-- Attachments -->
+                            <div class="attach-section">
+                                <div class="attach-section-header">
+                                    <span class="attach-section-title">Attachments</span>
+                                    <button class="btn-add-attach" onclick={handleAttachClick}>+ Upload</button>
+                                    <input
+                                        type="file"
+                                        class="attach-file-input"
+                                        data-id="fileInput"
+                                        onchange={handleFileSelected}
+                                        multiple>
+                                </div>
+                                <template if:true={attachLoading}>
+                                    <div class="loading-state" style="padding:12px;">
+                                        <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                                    </div>
+                                </template>
+                                <template if:false={attachLoading}>
+                                    <div class="attach-list">
+                                        <template for:each={attachments} for:item="att">
+                                            <div key={att.contentDocumentId} class="attach-chip">
+                                                <span class="attach-ext">{att.fileExtension}</span>
+                                                <span class="attach-name" title={att.title}>{att.title}</span>
+                                                <a href={att.downloadUrl} class="attach-btn-dl" target="_blank" title="Download">&#8595;</a>
+                                                <button class="attach-btn-open" data-id={att.contentDocumentId} data-url={att.downloadUrl} data-ext={att.fileExtension} data-title={att.title} onclick={handleViewAttachment}>View</button>
+                                            </div>
+                                        </template>
+                                        <template if:true={noAttachments}>
+                                            <p class="attach-empty">No files attached.</p>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Right: time + next steps + chat -->
+                        <div class="modal-col-right">
+
+                            <!-- Tab Bar -->
+                            <div class="right-tabs">
+                                <button class={chatTabClass}  data-tab="chat"      onclick={handleTabChange}>Chat</button>
+                                <button class={timeTabClass}  data-tab="time"      onclick={handleTabChange}>Time</button>
+                                <button class={stepsTabClass} data-tab="nextsteps" onclick={handleTabChange}>Next Steps</button>
+                            </div>
+
+                            <!-- Chat Tab -->
+                            <template if:true={isChatTab}>
+                                <div class="chat-messages" data-id="chatMessages">
+                                    <template if:true={chatMessages.length}>
+                                        <template for:each={chatMessages} for:item="msg">
+                                            <div key={msg.id} class={msg.msgClass}>
+                                                <div class="chat-msg-meta">
+                                                    <span class="chat-msg-user">{msg.authorName}</span>
+                                                    <span class="chat-msg-time">{msg.createdDate}</span>
+                                                </div>
+                                                <p class="chat-msg-body">{msg.body}</p>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={chatMessages.length}>
+                                        <p class="chat-empty">No messages yet. Start the conversation!</p>
+                                    </template>
+                                </div>
+                                <div class="chat-input-wrap">
+                                    <!-- @mention dropdown -->
+                                    <template if:true={showMentionDropdown}>
+                                        <div class="chat-mention-dropdown">
+                                            <template for:each={mentionResults} for:item="u">
+                                                <div key={u.id} class="chat-mention-item" data-id={u.id} data-name={u.name} onclick={handleMentionSelect}>
+                                                    {u.name}
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <textarea
+                                        class="chat-input-textarea"
+                                        placeholder="Write a message... (@ to mention)"
+                                        rows="3"
+                                        oninput={handleChatInput}
+                                        onkeydown={handleChatKeydown}>
+                                    </textarea>
+                                    <div class="chat-send-row">
+                                        <span class="chat-send-hint">Shift+Enter for new line · Enter to send</span>
+                                        <button class="btn-chat-send" onclick={handlePostChat} disabled={isSavingChat}>
+                                            {chatSendLabel}
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Time Tab -->
+                            <template if:true={isTimeTab}>
+                                <div class="time-tab-body">
+                                    <!-- Log Time Form -->
+                                    <div class="log-time-form">
+                                        <input
+                                            type="number"
+                                            class="log-time-hours"
+                                            placeholder="Hours"
+                                            value={logHours}
+                                            min="0.25"
+                                            step="0.25"
+                                            oninput={handleLogHoursInput}>
+                                        <input
+                                            type="text"
+                                            class="log-time-desc"
+                                            placeholder="What did you work on?"
+                                            value={logDesc}
+                                            oninput={handleLogDescInput}
+                                            onkeydown={handleLogTimeKeydown}>
+                                        <button class="btn-log-time" onclick={handleLogTime} disabled={isSavingTime}>
+                                            {logTimeBtnLabel}
+                                        </button>
+                                    </div>
+                                    <!-- Time entry list -->
+                                    <div class="time-panel-header">
+                                        <span class="time-panel-title">Logged</span>
+                                        <span class="time-panel-total">{totalHoursDisplay}</span>
+                                    </div>
+                                    <template if:true={timeLoading}>
+                                        <div class="loading-state" style="padding:12px;">
+                                            <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                                        </div>
+                                    </template>
+                                    <div class="time-entry-list">
+                                        <template for:each={timeEntries} for:item="te">
+                                            <div key={te.Id} class="time-entry">
+                                                <span class="te-hours">{te.hoursDisplay}</span>
+                                                <div class="te-right">
+                                                    <span class="te-desc">{te.Additional_Comments__c}</span>
+                                                    <span class="te-meta">{te.ownerName} · {te.dateDisplay}</span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template if:true={noTimeEntries}>
+                                            <p class="time-empty">No time logged yet.</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Next Steps Tab -->
+                            <template if:true={isStepsTab}>
+                                <div class="steps-tab-body">
+                                    <!-- Add Step Form -->
+                                    <div class="next-step-input-wrap">
+                                        <textarea
+                                            class="chat-input-textarea"
+                                            placeholder="Add a next step or comment..."
+                                            rows="3"
+                                            oninput={handleNextStepInput}>
+                                        </textarea>
+                                        <button class="btn-log-time" style="align-self:flex-end;" onclick={handleAddNextStep} disabled={isSavingStep}>
+                                            {addStepBtnLabel}
+                                        </button>
+                                    </div>
+                                    <!-- Steps list -->
+                                    <div class="time-entry-list">
+                                        <template for:each={nextSteps} for:item="step">
+                                            <div key={step.Id} class="next-step-entry">
+                                                <span class="ns-arrow">&#8594;</span>
+                                                <div class="te-right">
+                                                    <span class="te-desc">{step.CommentBody}</span>
+                                                    <span class="te-meta">{step.authorName} · {step.dateDisplay}</span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template if:true={noNextSteps}>
+                                            <p class="time-empty">No next steps yet.</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Attachment Viewer Modal ── -->
+        <template if:true={viewerAttachment}>
+            <div class="modal-backdrop" onclick={handleCloseViewer}>
+                <div class="modal-container modal-container-viewer" onclick={stopPropagation}>
+                    <div class="viewer-topbar">
+                        <span class="viewer-title">{viewerAttachment.title}</span>
+                        <div class="viewer-topbar-actions">
+                            <a href={viewerAttachment.downloadUrl} class="btn-viewer-dl" target="_blank">Download</a>
+                            <button class="btn-viewer-close" onclick={handleCloseViewer}>&times;</button>
+                        </div>
+                    </div>
+                    <div class="viewer-body">
+                        <template if:true={viewerIsImage}>
+                            <img src={viewerAttachment.downloadUrl} class="viewer-img" alt={viewerAttachment.title} />
+                        </template>
+                        <template if:false={viewerIsImage}>
+                            <iframe src={viewerAttachment.downloadUrl} class="viewer-iframe" title={viewerAttachment.title}></iframe>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Submit New Story Modal ── -->
+        <template if:true={showNewStoryModal}>
+            <div class="modal-backdrop" onclick={handleNewStoryBackdrop}>
+                <div class="modal-container sm-modal" onclick={stopPropagation}>
+                    <div class="modal-header">
+                        <div class="modal-header-top">
+                            <h3 class="board-title" style="font-size:1rem;">Submit a Story</h3>
+                            <button class="modal-close" onclick={handleCloseNewStory}>&times;</button>
+                        </div>
+                        <template if:true={selectedProjectLabel}>
+                            <div class="new-story-context">
+                                <span class="new-story-context-label">Project:</span>
+                                <span class="new-story-context-value">{selectedProjectLabel}</span>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="modal-body" style="gap:14px;">
+
+                        <!-- Subject -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Subject <span class="new-story-required">*</span></label>
+                            <input
+                                type="text"
+                                class={newSubjectClass}
+                                placeholder="Brief summary of the story"
+                                value={newSubject}
+                                oninput={handleNewSubjectInput}>
+                            <template if:true={subjectError}>
+                                <span class="field-error">Subject is required.</span>
+                            </template>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Description</label>
+                            <textarea
+                                class="new-story-textarea"
+                                data-id="newDescTextarea"
+                                placeholder="Provide details, steps to reproduce, acceptance criteria..."
+                                rows="5"
+                                oninput={handleNewDescInput}>
+                            </textarea>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Priority</label>
+                            <div class="modal-priority-options">
+                                <button class={newPriorityLowClass}      data-priority="Low"      onclick={handleNewPrioritySelect}>Low</button>
+                                <button class={newPriorityMediumClass}   data-priority="Medium"   onclick={handleNewPrioritySelect}>Medium</button>
+                                <button class={newPriorityHighClass}     data-priority="High"     onclick={handleNewPrioritySelect}>High</button>
+                                <button class={newPriorityCriticalClass} data-priority="Critical" onclick={handleNewPrioritySelect}>Critical</button>
+                            </div>
+                        </div>
+
+                        <!-- Type -->
+                        <div class="modal-field-row">
+                            <label class="modal-field-label">Type</label>
+                            <lightning-combobox
+                                name="newType"
+                                variant="label-hidden"
+                                placeholder="Select type..."
+                                options={typeOptions}
+                                value={newType}
+                                onchange={handleNewTypeChange}>
+                            </lightning-combobox>
+                        </div>
+
+                        <template if:true={newStoryError}>
+                            <p class="field-error">{newStoryError}</p>
+                        </template>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick={handleCloseNewStory}>Cancel</button>
+                        <button class="btn-save" onclick={handleCreateStory} disabled={isCreatingStory}>
+                            {createStoryBtnLabel}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+    </div>
+</template>
