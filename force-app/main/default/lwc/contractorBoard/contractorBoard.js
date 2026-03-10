@@ -16,13 +16,24 @@ import uploadAttachment    from '@salesforce/apex/ContractorBoardController.uplo
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const STATUS_COLS = [
-    { status: 'Backlog',     label: 'Backlog',      color: '#6b7280' },
-    { status: 'Blocked',     label: 'Blocked',      color: '#ef4444' },
-    { status: 'New',         label: 'New',          color: '#3b82f6' },
-    { status: 'In Progress', label: 'In Progress',  color: '#f59e0b' },
-    { status: 'In QA',       label: 'In QA',        color: '#8b5cf6' },
-    { status: 'Closed',      label: 'Closed',       color: '#10b981' },
+    { status: 'On Hold',               label: 'On Hold',           color: '#00b4d8' },
+    { status: 'Backlog',               label: 'Backlog',           color: '#0096c7' },
+    { status: 'Blocked',               label: 'Blocked',           color: '#004a70' },
+    { status: 'New',                   label: 'New',               color: '#caf0f8' },
+    { status: 'Scheduled',             label: 'Scheduled',         color: '#ade8f4' },
+    { status: 'Work In Progress (WIP)',label: 'In Progress',       color: '#90e0ef' },
+    { status: 'Waiting for User',      label: 'Waiting',           color: '#48cae4' },
+    { status: 'In Review',             label: 'In Review',         color: '#0077b6' },
+    { status: 'In UAT',                label: 'In UAT',            color: '#005f8e' },
+    { status: 'Completed',             label: 'Completed',         color: '#012a3d' },
+    { status: 'Cancelled',             label: 'Cancelled',         color: '#023e5a' },
 ];
+
+// Salesforce sometimes stores legacy values — map them forward
+const STATUS_ALIAS = {
+    'Closed':  'Completed',
+    'Working': 'Work In Progress (WIP)',
+};
 
 const STATUS_COLOR_MAP = {};
 STATUS_COLS.forEach(c => { STATUS_COLOR_MAP[c.status] = c.color; });
@@ -123,10 +134,11 @@ export default class ContractorBoard extends LightningElement {
 
         records.forEach(r => {
             const card = this._mapCard(r);
-            if (map[card.status]) {
-                map[card.status].cards.push(card);
-                map[card.status].count++;
-                map[card.status].isEmpty = false;
+            const col  = map[card.status] || map[STATUS_ALIAS[card.status]];
+            if (col) {
+                col.cards.push(card);
+                col.count++;
+                col.isEmpty = false;
             }
         });
 
@@ -140,7 +152,7 @@ export default class ContractorBoard extends LightningElement {
         const days = Math.floor(
             (Date.now() - new Date(r.CreatedDate).getTime()) / 86_400_000
         );
-        const status   = r.Status || 'Backlog';
+        const status   = STATUS_ALIAS[r.Status] || r.Status || 'Backlog';
         const priority = r.Priority || 'Medium';
         const color    = STATUS_COLOR_MAP[status] || '#6b7280';
 
