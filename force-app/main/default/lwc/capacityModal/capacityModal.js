@@ -114,7 +114,8 @@ export default class CapacityModal extends LightningElement {
                 borderDash:           ds.isDashed ? [6, 4] : undefined,
                 tension:              isLine ? 0.3 : 0,
                 pointRadius:          isLine ? 0 : undefined,
-                pointHoverRadius:     isLine ? 4 : undefined,
+                pointHitRadius:       isLine ? 20 : undefined,
+                pointHoverRadius:     isLine ? 5 : undefined,
                 fill:                 false,
                 hoverOffset:          isDoughnut ? 6 : undefined,
                 barPercentage:        isDoughnut ? undefined : 0.7,
@@ -193,6 +194,9 @@ export default class CapacityModal extends LightningElement {
             options: {
                 responsive:          true,
                 maintainAspectRatio: false,
+                interaction: isLine
+                    ? { mode: 'index', intersect: false }
+                    : { mode: 'nearest', intersect: true },
                 plugins: {
                     legend: {
                         display:  datasets.length > 1 || isDoughnut,
