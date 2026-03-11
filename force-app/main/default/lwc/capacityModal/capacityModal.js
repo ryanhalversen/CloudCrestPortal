@@ -10,11 +10,12 @@ const CHART_COLORS = ['#00b4d8','#ef4444','#0096c7','#0077b6','#caf0f8','#ade8f4
 export default class CapacityModal extends NavigationMixin(LightningElement) {
     @api cardData = null;
 
-    _chart           = null;
-    _chartLoaded     = false;
-    chartError       = null;
-    _drilldownActive = false;
-    _drilldownTitle  = '';
+    _chart               = null;
+    _chartLoaded         = false;
+    chartError           = null;
+    _drilldownActive     = false;
+    _drilldownTitle      = '';
+    _canvasClickHandler  = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -219,17 +220,12 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         (elements.length || isLabel) ? 'pointer' : 'default';
                 } : undefined,
                 onClick: hasDrilldown ? (event, elements) => {
-                    if (elements.length) {
-                        // Bar click → drilldown
-                        const idx       = elements[0].index;
-                        const projectId = projectIds[idx];
-                        const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
-                        if (projectId) this._handleBarClick(projectId, rawLabel);
-                    } else {
-                        // X-axis label click → navigate to record
-                        const idx = this._getXAxisLabelIndex(event);
-                        if (idx >= 0 && projectIds[idx]) this._navigateToProject(projectIds[idx]);
-                    }
+                    if (!elements.length) return;
+                    // Bar click → drilldown
+                    const idx       = elements[0].index;
+                    const projectId = projectIds[idx];
+                    const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
+                    if (projectId) this._handleBarClick(projectId, rawLabel);
                 } : undefined,
                 plugins: {
                     legend: {
@@ -258,6 +254,28 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             },
             plugins: [wowPlugin]
         });
+
+        // Native click listener for x-axis label → open record in new tab
+        // (Chart.js onClick does not reliably fire in the axis area below chartArea.bottom)
+        if (hasDrilldown) {
+            if (this._canvasClickHandler) {
+                canvas.removeEventListener('click', this._canvasClickHandler);
+            }
+            this._canvasClickHandler = (e) => {
+                if (!this._chart) return;
+                const { chartArea, scales } = this._chart;
+                if (!scales.x || e.offsetY <= chartArea.bottom) return;
+                let closest = -1, closestDist = Infinity;
+                for (let i = 0; i < scales.x.ticks.length; i++) {
+                    const dist = Math.abs(e.offsetX - scales.x.getPixelForTick(i));
+                    if (dist < closestDist) { closestDist = dist; closest = i; }
+                }
+                if (closest >= 0 && closestDist < 60 && projectIds[closest]) {
+                    this._navigateToProject(projectIds[closest]);
+                }
+            };
+            canvas.addEventListener('click', this._canvasClickHandler);
+        }
     }
 
     // ── Drilldown ─────────────────────────────────────────────────────────────
@@ -384,6 +402,11 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     _destroyChart() {
+        if (this._canvasClickHandler) {
+            const c = this.refs.canvas;
+            if (c) c.removeEventListener('click', this._canvasClickHandler);
+            this._canvasClickHandler = null;
+        }
         if (this._chart) {
             this._chart.destroy();
             this._chart = null;
