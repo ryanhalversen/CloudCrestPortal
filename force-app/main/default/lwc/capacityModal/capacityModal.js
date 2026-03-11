@@ -265,12 +265,14 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!this._chart) return;
                 const { chartArea, scales } = this._chart;
                 if (!scales.x || e.offsetY <= chartArea.bottom) return;
-                // Divide the x-axis into equal slots — avoids off-by-one from rotated labels
+                // Rotated labels anchor at their tick mark (right end of text), so the
+                // visible text sits one slot to the LEFT of the tick — shift +1 to correct.
                 const xScale = scales.x;
                 const n = xScale.ticks.length;
                 if (!n) return;
                 const segW = (xScale.right - xScale.left) / n;
-                const idx  = Math.floor((e.offsetX - xScale.left) / segW);
+                const raw  = Math.floor((e.offsetX - xScale.left) / segW);
+                const idx  = raw + 1;
                 if (idx >= 0 && idx < n && projectIds[idx]) {
                     this._navigateToProject(projectIds[idx]);
                 }
