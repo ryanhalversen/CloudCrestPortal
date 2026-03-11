@@ -75,6 +75,17 @@ public with sharing class CommandCenterController {
         Date w4Ago = Date.today().addDays(-28);
         Date ws    = Date.today().toStartOfWeek();
 
+        // Contractor capacity (weekly hours × 4 weeks, in minutes)
+        Decimal contractorWeeklyHrs = 0;
+        for (Contact c : [
+            SELECT Available_Hours__c FROM Contact
+            WHERE  Account.Name = 'CloudCrest Contractors'
+              AND  Available_Hours__c != null AND Available_Hours__c > 0
+        ]) {
+            contractorWeeklyHrs += c.Available_Hours__c;
+        }
+        Decimal capacityMins = contractorWeeklyHrs * 60 * 4;
+
         // Sum minutes per day → bucket into weeks
         Map<Date, Decimal> byWeek = new Map<Date, Decimal>();
         for (AggregateResult ar : [
@@ -100,35 +111,44 @@ public with sharing class CommandCenterController {
             data.add((m / 60).setScale(1, RoundingMode.HALF_UP));
         }
 
+        Integer utilPct = capacityMins > 0
+            ? Integer.valueOf(((totalMins / capacityMins) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
+        Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
+        Integer onTimePct = totalProj > 0 ? (onTrack * 100) / totalProj : 0;
+
         Integer completed = [
             SELECT COUNT() FROM Case
             WHERE  Status IN ('Completed','Closed')
               AND  LastModifiedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
         ];
-        Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
-        Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
 
-        Integer pct    = totalProj > 0 ? (onTrack * 100) / totalProj : 0;
-        String  status = totalProj == 0 ? 'neutral' : pct >= 70 ? 'good' : pct >= 40 ? 'warning' : 'critical';
+        // Neutral when no data exists; otherwise base status on utilization vs planned capacity
+        String status = (totalMins == 0 && totalProj == 0) ? 'neutral'
+            : utilPct >= 75 ? 'good'
+            : utilPct >= 60 ? 'warning'
+            : 'critical';
 
         CardData cd = new CardData();
-        cd.title    = 'Delivery Performance';
+        cd.title    = 'Team Performance';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question    = 'Did we deliver at pace?';
+        cd.question    = 'Did the team perform as expected?';
         cd.status      = status;
-        cd.benchmarks  = bm('< 60h/wk avg', '60–90h/wk avg', '> 90h/wk avg');
+        cd.benchmarks  = bm('< 60% utilization', '60–75% utilization', '> 75% utilization');
         cd.kpis = new List<KPI>{
-            kpi('Hours Logged',      hrs(totalMins),             'neutral',                     '4-week total'),
-            kpi('Stories Closed',    String.valueOf(completed),  'neutral',                     '4-week total'),
-            kpi('Projects On Track', onTrack + '/' + totalProj, pct >= 70 ? 'up' : 'down',    'active projects')
+            kpi('Utilization',       utilPct + '%',              utilPct >= 75 ? 'up' : 'down', 'vs planned capacity'),
+            kpi('Projects On Track', onTrack + '/' + totalProj, onTimePct >= 70 ? 'up' : 'down', 'on-time rate'),
+            kpi('Stories Closed',    String.valueOf(completed),  'neutral',                       '4-week total')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ ds('Hours', data, '#00b4d8') };
         cd.insights    = new List<String>{
-            'Team logged ' + hrs(totalMins) + ' over 4 weeks (' + hrs(totalMins / 4) + '/wk avg)',
-            completed + ' stories completed or closed in the period',
-            onTrack + ' of ' + totalProj + ' active projects currently on track'
+            utilPct + '% team utilization over the last 4 weeks (' + hrs(totalMins) + ' logged)',
+            onTrack + ' of ' + totalProj + ' active projects currently on track (' + onTimePct + '%)',
+            completed + ' stories closed in the period'
         };
         return cd;
     }
@@ -137,7 +157,34 @@ public with sharing class CommandCenterController {
     public static CardData getPastCustomer() {
         Date w4Ago = Date.today().addDays(-28);
 
-        // Step 1 — aggregate hours by project ID
+        // On-time rate from active projects
+        Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
+        Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
+        Integer onTimePct = totalProj > 0 ? (onTrack * 100) / totalProj : 0;
+
+        // Hours delivered vs committed pace (sum from active sprints)
+        Decimal deliveredHrs = 0;
+        Decimal committedHrs = 0;
+        for (Sprint__c s : [
+            SELECT Hours_Delivered__c, On_Time_Weekly_Pace__c
+            FROM   Sprint__c
+            WHERE  Status__c = 'In Progress'
+        ]) {
+            if (s.Hours_Delivered__c != null)      deliveredHrs += s.Hours_Delivered__c;
+            if (s.On_Time_Weekly_Pace__c != null)  committedHrs += s.On_Time_Weekly_Pace__c * 4;
+        }
+        Integer deliveryPct = committedHrs > 0
+            ? Integer.valueOf(((deliveredHrs / committedHrs) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        // Scope changes in the past 4 weeks
+        Integer scopeChanges = [
+            SELECT COUNT() FROM Case
+            WHERE  Type = 'Change Request'
+              AND  CreatedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
+        ];
+
+        // Chart: hours by project
         Map<String, Decimal> projMins = new Map<String, Decimal>();
         for (AggregateResult ar : [
             SELECT Case__r.Projects__c pid, SUM(Minutes_Logged__c) m
@@ -152,47 +199,42 @@ public with sharing class CommandCenterController {
             Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
             projMins.put(pid, m);
         }
-
-        // Step 2 — look up project names
         Map<String, String> projNames = new Map<String, String>();
-        for (Sprint__c s : [
-            SELECT Id, Name FROM Sprint__c WHERE Id IN :projMins.keySet()
-        ]) {
+        for (Sprint__c s : [SELECT Id, Name FROM Sprint__c WHERE Id IN :projMins.keySet()]) {
             projNames.put(s.Id, s.Name);
         }
-
-        List<String>  labels   = new List<String>();
-        List<Decimal> data     = new List<Decimal>();
-        Decimal       totalMins = 0;
+        List<String>  chartLabels = new List<String>();
+        List<Decimal> chartData   = new List<Decimal>();
         for (String pid : projMins.keySet()) {
             String lbl = projNames.containsKey(pid) ? projNames.get(pid) : 'Unknown';
-            labels.add(lbl.length() > 18 ? lbl.substring(0, 18) + '…' : lbl);
-            Decimal m = projMins.get(pid);
-            data.add((m / 60).setScale(1, RoundingMode.HALF_UP));
-            totalMins += m;
+            chartLabels.add(lbl.length() > 18 ? lbl.substring(0, 18) + '…' : lbl);
+            chartData.add((projMins.get(pid) / 60).setScale(1, RoundingMode.HALF_UP));
         }
 
-        Integer activeProjects = projMins.size();
-        Decimal avgPerProj     = activeProjects > 0 ? totalMins / activeProjects : 0;
+        String status = totalProj == 0 ? 'neutral'
+            : onTimePct >= 90 ? 'good'
+            : onTimePct >= 70 ? 'warning'
+            : 'critical';
 
         CardData cd = new CardData();
-        cd.title    = 'Client Billing';
+        cd.title    = 'Client Delivery';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question   = 'Who did we bill and how much?';
-        cd.status     = totalMins > 0 ? 'good' : 'warning';
-        cd.benchmarks = bm('< 40h billed', '40–80h billed', '> 80h billed');
+        cd.question   = 'Did we deliver on our commitments?';
+        cd.status     = status;
+        cd.benchmarks = bm('< 70% on time', '70–90% on time', '> 90% on time');
         cd.kpis = new List<KPI>{
-            kpi('Billable Hours',   hrs(totalMins),              'neutral', '4-week total'),
-            kpi('Active Projects',  String.valueOf(activeProjects), 'neutral', 'with time logged'),
-            kpi('Avg / Project',    hrs(avgPerProj),             'neutral', '4-week avg')
+            kpi('On-Time Rate',    onTimePct + '%',             onTimePct >= 90 ? 'up' : 'down',   'active projects'),
+            kpi('Hours Delivered', deliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h',
+                                                                deliveryPct >= 90 ? 'up' : 'down', 'vs ' + committedHrs.setScale(0, RoundingMode.HALF_UP) + 'h pace'),
+            kpi('Scope Changes',   String.valueOf(scopeChanges), scopeChanges == 0 ? 'up' : 'down', 'last 4 weeks')
         };
         cd.chartType   = 'bar';
-        cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hours', data, '#0096c7') };
+        cd.chartLabels = chartLabels;
+        cd.datasets    = new List<ChartDataset>{ ds('Hours', chartData, '#0096c7') };
         cd.insights    = new List<String>{
-            hrs(totalMins) + ' billed across ' + activeProjects + ' projects in 4 weeks',
-            labels.isEmpty() ? 'No billing data available' : 'Top project: ' + labels[0] + ' (' + (data.isEmpty() ? '0' : String.valueOf(data[0])) + 'h)',
-            'Average ' + hrs(avgPerProj) + ' per project this period'
+            onTimePct + '% of active projects on track to deliver on time',
+            deliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h delivered vs ' + committedHrs.setScale(0, RoundingMode.HALF_UP) + 'h committed pace (' + deliveryPct + '%)',
+            scopeChanges + ' scope change' + (scopeChanges == 1 ? '' : 's') + ' raised in the past 4 weeks'
         };
         return cd;
     }
@@ -201,10 +243,10 @@ public with sharing class CommandCenterController {
     public static CardData getPastEmployee() {
         Date w4Ago = Date.today().addDays(-28);
 
-        List<String>  labels   = new List<String>();
-        List<Decimal> data     = new List<Decimal>();
-        Decimal       totalMins = 0;
-
+        // Hours logged per person
+        Map<String, Decimal> personMins = new Map<String, Decimal>();
+        List<String>  labels = new List<String>();
+        List<Decimal> data   = new List<Decimal>();
         for (AggregateResult ar : [
             SELECT CreatedBy.Name nm, SUM(Minutes_Logged__c) m
             FROM   Time__c
@@ -215,42 +257,63 @@ public with sharing class CommandCenterController {
         ]) {
             String  nm = (String)  ar.get('nm');
             Decimal m  = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
+            personMins.put(nm, m);
             labels.add(nm);
             data.add((m / 60).setScale(1, RoundingMode.HALF_UP));
-            totalMins += m;
         }
 
-        Decimal contractorWeeklyHrs = 0;
+        // Contractor targets: Available_Hours__c/week × 4 weeks × 60 min, match by name
+        Map<String, Decimal> targets = new Map<String, Decimal>();
         for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
+            SELECT Name, Available_Hours__c FROM Contact
             WHERE  Account.Name = 'CloudCrest Contractors'
               AND  Available_Hours__c != null AND Available_Hours__c > 0
         ]) {
-            contractorWeeklyHrs += c.Available_Hours__c;
+            targets.put(c.Name, c.Available_Hours__c * 4 * 60);
         }
-        Decimal capacityMins = contractorWeeklyHrs * 60 * 4;
-        Integer utilPct = capacityMins > 0
-            ? Integer.valueOf(((totalMins / capacityMins) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
+
+        // Members who logged ≥80% of their 4-week allocation
+        Integer metTarget = 0;
+        Integer teamSize  = targets.size();
+        for (String name : targets.keySet()) {
+            Decimal logged = personMins.containsKey(name) ? personMins.get(name) : 0;
+            if (logged >= targets.get(name) * 0.8) metTarget++;
+        }
+        Integer metPct = teamSize > 0 ? (metTarget * 100) / teamSize : 0;
+
+        Integer completed = [
+            SELECT COUNT() FROM Case
+            WHERE  Status IN ('Completed','Closed')
+              AND  LastModifiedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
+        ];
+
+        Decimal totalMins = 0;
+        for (Decimal m : personMins.values()) totalMins += m;
+        Decimal avgMins = personMins.size() > 0 ? totalMins / personMins.size() : 0;
+
+        String status = teamSize == 0 ? 'neutral'
+            : metPct >= 80 ? 'good'
+            : metPct >= 50 ? 'warning'
+            : 'critical';
 
         CardData cd = new CardData();
-        cd.title    = 'Team Utilization';
+        cd.title    = 'Individual Performance';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question   = 'Did the team work at full capacity?';
-        cd.status     = utilPct >= 75 ? 'good' : utilPct >= 50 ? 'warning' : 'critical';
-        cd.benchmarks = bm('< 50% utilized', '50–75% utilized', '> 75% utilized');
+        cd.question   = 'Did everyone meet their objectives?';
+        cd.status     = status;
+        cd.benchmarks = bm('< 50% met targets', '50–80% met targets', '> 80% met targets');
         cd.kpis = new List<KPI>{
-            kpi('Team Total',    hrs(totalMins),              'neutral',                  '4-week total'),
-            kpi('Utilization',   utilPct + '%',               utilPct >= 70 ? 'up' : 'down', 'vs contractor cap'),
-            kpi('Contributors',  String.valueOf(labels.size()), 'neutral',                 'active members')
+            kpi('Met Hour Targets', metTarget + '/' + teamSize,   metPct >= 80 ? 'up' : 'down', '≥80% of allocation'),
+            kpi('Stories Closed',   String.valueOf(completed),    'neutral',                     '4-week total'),
+            kpi('Avg Hours/Person', hrs(avgMins),                 'neutral',                     'per active member')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ ds('Hours', data, '#0077b6') };
         cd.insights    = new List<String>{
-            labels.isEmpty() ? 'No time logged in period' : 'Top contributor: ' + labels[0] + ' (' + (data.isEmpty() ? '0' : String.valueOf(data[0])) + 'h)',
-            utilPct + '% contractor utilization vs available capacity',
-            hrs(totalMins / 4) + ' average team output per week over 4 weeks'
+            metTarget + ' of ' + teamSize + ' contractors met their hour targets (' + metPct + '%)',
+            completed + ' stories completed across the team in 4 weeks',
+            'Average ' + hrs(avgMins) + ' per active member over the period'
         };
         return cd;
     }

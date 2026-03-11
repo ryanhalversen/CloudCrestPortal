@@ -80,7 +80,7 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Delivery Performance', cd.title);
+        System.assertEquals('Team Performance', cd.title);
         System.assertEquals(3, cd.kpis.size(), 'Should have 3 KPIs');
         System.assertEquals('bar', cd.chartType);
         System.assertEquals(4, cd.chartLabels.size(), 'Should have 4 week labels');
@@ -94,7 +94,7 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Client Billing', cd.title);
+        System.assertEquals('Client Delivery', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
     }
@@ -106,7 +106,7 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Team Utilization', cd.title);
+        System.assertEquals('Individual Performance', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
         // Should have at least 1 contributor (from @TestSetup time entries)
@@ -235,7 +235,7 @@ private class CommandCenterControllerTest {
         CommandCenterController.CardData cd = CommandCenterController.getPastCustomer();
         Test.stopTest();
         System.assertNotEquals(null, cd);
-        System.assertEquals('warning', cd.status, 'No billing data → warning');
+        System.assertEquals('critical', cd.status, 'No on-time projects → critical');
         System.assertEquals(0, cd.chartLabels.size());
     }
 }
