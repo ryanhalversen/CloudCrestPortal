@@ -114,6 +114,18 @@ private class CommandCenterControllerTest {
         System.assertEquals('Client Delivery', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
+        System.assertEquals(2, cd.datasets.size(), 'Should have Delivered + Committed datasets');
+        // Test project has Weekly_Pace_Estimate__c = 10 → treated as retainer → appears in chart
+        System.assertNotEquals(0, cd.chartLabels.size(), 'Retainer project should appear in chart');
+        // Verify KPI labels
+        Boolean foundDeliveryRate = false;
+        Boolean foundAtPace       = false;
+        for (CommandCenterController.KPI k : cd.kpis) {
+            if (k.label == 'Delivery Rate')      foundDeliveryRate = true;
+            if (k.label == 'Projects at Pace')   foundAtPace       = true;
+        }
+        System.assert(foundDeliveryRate, 'Should have Delivery Rate KPI');
+        System.assert(foundAtPace,        'Should have Projects at Pace KPI');
     }
 
     @IsTest
@@ -261,7 +273,9 @@ private class CommandCenterControllerTest {
         CommandCenterController.CardData cd = CommandCenterController.getPastCustomer();
         Test.stopTest();
         System.assertNotEquals(null, cd);
-        System.assertEquals('critical', cd.status, 'No on-time projects → critical');
-        System.assertEquals(0, cd.chartLabels.size());
+        // deliveryRate = 0% (0h delivered / committed) → critical
+        System.assertEquals('critical', cd.status, '0h delivered vs committed → critical');
+        // Projects still appear in chart even with no time entries
+        System.assertNotEquals(0, cd.chartLabels.size(), 'Retainer project still appears in chart');
     }
 }

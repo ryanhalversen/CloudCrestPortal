@@ -36,6 +36,12 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>       chartLabels;
         @AuraEnabled public List<ChartDataset> datasets;
         @AuraEnabled public List<String>       insights;
+        @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
+    }
+
+    public class ProjectRow {
+        @AuraEnabled public String name;
+        @AuraEnabled public String paceStatus;
     }
 
     // ── FTE Capacity Constants ────────────────────────────────────────────────
@@ -131,12 +137,30 @@ public with sharing class CommandCenterController {
         Decimal totalFteHrs = (totalFteMins / 60).setScale(1, RoundingMode.HALF_UP);
         Integer utilPct     = Integer.valueOf(((totalFteHrs / FTE_4WK_TARGET_HRS) * 100).setScale(0, RoundingMode.HALF_UP));
 
-        // Projects on track vs slipped (active projects by pace status)
-        Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
-        Integer slipped   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c IN ('At Risk', 'Behind', 'Critical')];
-        Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
+        // Active projects — count on-track vs slipped using actual Pace_Status__c formula values:
+        //   "🚀 Ahead of Pace 🚀", "✅ On Pace ✅", "⚠️ Behind Pace ⚠️", "🚨 Houston, We Have A Problem 🚨"
         // TODO: milestones missed — no dedicated milestone/deadline object in schema;
         //       would require a Milestone__c object or Case Type='Milestone' to track properly
+        List<Sprint__c> activeProjects = [
+            SELECT Name, Pace_Status__c, Accountlu__r.Name
+            FROM   Sprint__c
+            WHERE  Status__c = 'In Progress'
+            ORDER BY Name ASC
+            LIMIT  50
+        ];
+        Integer onTrack   = 0;
+        Integer slipped   = 0;
+        Integer totalProj = activeProjects.size();
+        List<ProjectRow> projectRows = new List<ProjectRow>();
+        for (Sprint__c s : activeProjects) {
+            String ps = s.Pace_Status__c != null ? s.Pace_Status__c : '';
+            if      (ps.contains('Ahead') || ps.contains('On Pace')) onTrack++;
+            else if (ps.contains('Behind') || ps.contains('Problem') || ps.contains('Houston')) slipped++;
+            ProjectRow pr = new ProjectRow();
+            pr.name       = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
+            pr.paceStatus = ps.length() > 0 ? ps : '—';
+            projectRows.add(pr);
+        }
 
         // Neutral only when there is truly no data; otherwise threshold on utilization
         String status = (totalFteMins == 0 && totalProj == 0) ? 'neutral'
@@ -192,92 +216,191 @@ public with sharing class CommandCenterController {
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ logDs, tgtDs };
         cd.insights    = insights;
+        cd.projects    = projectRows;
         return cd;
     }
 
     @AuraEnabled(cacheable=true)
     public static CardData getPastCustomer() {
         Date w4Ago = Date.today().addDays(-28);
+        Date ws    = Date.today().toStartOfWeek();
 
-        // On-time rate from active projects
-        Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
-        Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
-        Integer onTimePct = totalProj > 0 ? (onTrack * 100) / totalProj : 0;
-
-        // Hours delivered vs committed pace (sum from active sprints)
-        Decimal deliveredHrs = 0;
-        Decimal committedHrs = 0;
-        for (Sprint__c s : [
-            SELECT Hours_Delivered__c, On_Time_Weekly_Pace__c
+        // ── 1. All active projects, sorted by weekly commitment desc ──────────
+        List<Sprint__c> allProjects = [
+            SELECT Id, Name, Contract_Type__c, Weekly_Pace_Estimate__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-        ]) {
-            if (s.Hours_Delivered__c != null)      deliveredHrs += s.Hours_Delivered__c;
-            if (s.On_Time_Weekly_Pace__c != null)  committedHrs += s.On_Time_Weekly_Pace__c * 4;
-        }
-        Integer deliveryPct = committedHrs > 0
-            ? Integer.valueOf(((deliveredHrs / committedHrs) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
-
-        // Scope changes in the past 4 weeks
-        Integer scopeChanges = [
-            SELECT COUNT() FROM Case
-            WHERE  Type = 'Change Request'
-              AND  CreatedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
+            ORDER BY Weekly_Pace_Estimate__c DESC NULLS LAST, Name ASC
+            LIMIT  25
         ];
 
-        // Chart: hours by project
-        Map<String, Decimal> projMins = new Map<String, Decimal>();
-        for (AggregateResult ar : [
-            SELECT Case__r.Projects__c pid, SUM(Minutes_Logged__c) m
-            FROM   Time__c
-            WHERE  Logged_Date__c    >= :w4Ago
-              AND  Case__r.Projects__c != null
-            GROUP BY Case__r.Projects__c
-            ORDER BY SUM(Minutes_Logged__c) DESC
-            LIMIT  8
-        ]) {
-            String  pid = (String)  ar.get('pid');
-            Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
-            projMins.put(pid, m);
-        }
-        Map<String, String> projNames = new Map<String, String>();
-        for (Sprint__c s : [SELECT Id, Name FROM Sprint__c WHERE Id IN :projMins.keySet()]) {
-            projNames.put(s.Id, s.Name);
-        }
-        List<String>  chartLabels = new List<String>();
-        List<Decimal> chartData   = new List<Decimal>();
-        for (String pid : projMins.keySet()) {
-            String lbl = projNames.containsKey(pid) ? projNames.get(pid) : 'Unknown';
-            chartLabels.add(lbl.length() > 18 ? lbl.substring(0, 18) + '…' : lbl);
-            chartData.add((projMins.get(pid) / 60).setScale(1, RoundingMode.HALF_UP));
+        // ── 2. Partition by contract type ──────────────────────────────────────
+        Set<Id>          retainerIds  = new Set<Id>();          // non-Block with weekly hrs set
+        Set<Id>          blockIds     = new Set<Id>();           // Block: results-based, no weekly pace
+        Map<Id, Decimal> weeklyCommit = new Map<Id, Decimal>(); // retainer → h/wk committed
+        Map<Id, String>  displayName  = new Map<Id, String>();
+        List<String>     missingData  = new List<String>();     // non-Block but no weekly hrs
+
+        for (Sprint__c s : allProjects) {
+            String nm = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
+            displayName.put(s.Id, nm);
+            if (s.Contract_Type__c == 'Block') {
+                blockIds.add(s.Id);
+            } else if (s.Weekly_Pace_Estimate__c != null && s.Weekly_Pace_Estimate__c > 0) {
+                retainerIds.add(s.Id);
+                weeklyCommit.put(s.Id, s.Weekly_Pace_Estimate__c);
+            } else {
+                missingData.add(nm);
+            }
         }
 
-        String status = totalProj == 0 ? 'neutral'
-            : onTimePct >= 90 ? 'good'
-            : onTimePct >= 70 ? 'warning'
+        // ── 3. Hours delivered per project (last 4 weeks) ─────────────────────
+        Set<Id> trackedIds = new Set<Id>(retainerIds);
+        trackedIds.addAll(blockIds);
+
+        Map<Id, Decimal> deliveredMins = new Map<Id, Decimal>();
+        if (!trackedIds.isEmpty()) {
+            for (AggregateResult ar : [
+                SELECT Case__r.Projects__c pid, SUM(Minutes_Logged__c) m
+                FROM   Time__c
+                WHERE  Logged_Date__c       >= :w4Ago
+                  AND  Case__r.Projects__c  IN :trackedIds
+                GROUP BY Case__r.Projects__c
+            ]) {
+                String  pid = (String) ar.get('pid');
+                Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
+                if (pid != null) deliveredMins.put((Id) pid, m);
+            }
+        }
+
+        // ── 4. Commitment vs delivery roll-up (retainer projects only) ────────
+        Decimal totalCommittedHrs = 0;
+        Decimal totalDeliveredHrs = 0;
+        Integer atPace            = 0;
+        List<String> underProjs   = new List<String>(); // < 70% of commitment
+        List<String> overProjs    = new List<String>();  // > 120% of commitment
+
+        for (Id pid : retainerIds) {
+            Decimal committed4Wk = weeklyCommit.get(pid) * 4;
+            Decimal delivered    = deliveredMins.containsKey(pid) ? deliveredMins.get(pid) / 60 : 0;
+            totalCommittedHrs   += committed4Wk;
+            totalDeliveredHrs   += delivered;
+            if ((delivered / 4) >= weeklyCommit.get(pid)) atPace++;
+            if (committed4Wk > 0) {
+                Integer pct = Integer.valueOf(((delivered / committed4Wk) * 100).setScale(0, RoundingMode.HALF_UP));
+                if (pct < 70)  underProjs.add(displayName.get(pid) + ' (' + pct + '%)');
+                if (pct > 120) overProjs.add(displayName.get(pid)  + ' (' + pct + '%)');
+            }
+        }
+
+        Integer deliveryRate = totalCommittedHrs > 0
+            ? Integer.valueOf(((totalDeliveredHrs / totalCommittedHrs) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        // ── 5. Weekly trend (retainer projects, last 4 weeks) ─────────────────
+        Map<Date, Decimal> wkMins = new Map<Date, Decimal>();
+        if (!retainerIds.isEmpty()) {
+            for (AggregateResult ar : [
+                SELECT Logged_Date__c dt, SUM(Minutes_Logged__c) m
+                FROM   Time__c
+                WHERE  Logged_Date__c      >= :w4Ago
+                  AND  Case__r.Projects__c IN :retainerIds
+                GROUP BY Logged_Date__c
+            ]) {
+                Date    day = (Date)    ar.get('dt');
+                Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
+                Date wk = day.toStartOfWeek();
+                wkMins.put(wk, (wkMins.containsKey(wk) ? wkMins.get(wk) : 0) + m);
+            }
+        }
+        List<Decimal> weeklyHrs = new List<Decimal>();
+        for (Integer i = 3; i >= 0; i--) {
+            Date    wk = ws.addDays(-i * 7);
+            Decimal h  = wkMins.containsKey(wk) ? (wkMins.get(wk) / 60).setScale(1, RoundingMode.HALF_UP) : 0;
+            weeklyHrs.add(h);
+        }
+        Boolean improving = weeklyHrs.size() == 4 && weeklyHrs[0] > 0 && weeklyHrs[3] > weeklyHrs[0];
+        Boolean declining = weeklyHrs.size() == 4 && weeklyHrs[0] > 0 && weeklyHrs[3] < weeklyHrs[0] * 0.8;
+
+        // ── 6. Status ──────────────────────────────────────────────────────────
+        String status = retainerIds.isEmpty() ? 'neutral'
+            : deliveryRate >= 95 ? 'good'
+            : deliveryRate >= 80 ? 'warning'
             : 'critical';
 
+        // ── 7. Chart: grouped bar — Delivered vs Committed per project ─────────
+        // Retainer projects (ordered by weekly pace desc) then Block projects
+        List<String>  chartLabels   = new List<String>();
+        List<Decimal> deliveredData = new List<Decimal>();
+        List<Decimal> committedData = new List<Decimal>(); // 0 for Block projects
+
+        for (Sprint__c s : allProjects) {
+            Boolean isRetainer = retainerIds.contains(s.Id);
+            Boolean isBlock    = blockIds.contains(s.Id);
+            if (!isRetainer && !isBlock) continue;
+            String lbl = displayName.get(s.Id);
+            // Mark Block projects with a dot in the label
+            chartLabels.add((lbl.length() > 15 ? lbl.substring(0, 15) + '…' : lbl) + (isBlock ? ' ●' : ''));
+            Decimal delivered = deliveredMins.containsKey(s.Id)
+                ? (deliveredMins.get(s.Id) / 60).setScale(1, RoundingMode.HALF_UP) : 0;
+            deliveredData.add(delivered);
+            committedData.add(isRetainer ? (weeklyCommit.get(s.Id) * 4).setScale(1, RoundingMode.HALF_UP) : 0);
+        }
+
+        // ── 8. Insights ────────────────────────────────────────────────────────
+        List<String> insights = new List<String>();
+        Decimal gapHrs = (totalCommittedHrs - totalDeliveredHrs).setScale(0, RoundingMode.HALF_UP);
+        if (deliveryRate >= 95) {
+            insights.add(deliveryRate + '% delivery rate — ' + totalDeliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h of ' + totalCommittedHrs.setScale(0, RoundingMode.HALF_UP) + 'h committed — all commitments met');
+        } else {
+            insights.add(deliveryRate + '% delivery rate — ' + gapHrs + 'h below commitment (' + totalDeliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h of ' + totalCommittedHrs.setScale(0, RoundingMode.HALF_UP) + 'h)');
+        }
+        if (!underProjs.isEmpty()) {
+            List<String> top = new List<String>();
+            for (Integer i = 0; i < underProjs.size() && i < 3; i++) top.add(underProjs[i]);
+            insights.add('Significantly underdelivered (< 70%): ' + String.join(top, ', '));
+        }
+        if (!overProjs.isEmpty()) {
+            List<String> top = new List<String>();
+            for (Integer i = 0; i < overProjs.size() && i < 2; i++) top.add(overProjs[i]);
+            insights.add('Potential scope creep (> 120%): ' + String.join(top, ', ') + ' — review with client');
+        }
+        if (improving) {
+            insights.add('Delivery trending up week over week — positive momentum');
+        } else if (declining) {
+            insights.add('Delivery declined over the period — review staffing and priorities');
+        }
+        if (!missingData.isEmpty()) {
+            Integer n = missingData.size();
+            insights.add(n + ' active project' + (n == 1 ? '' : 's') + ' missing Weekly Retained Hours — update project records to include in tracking');
+        }
+
         CardData cd = new CardData();
-        cd.title    = 'Client Delivery';
-        cd.subtitle = 'Last 4 Weeks';
+        cd.title      = 'Client Delivery';
+        cd.subtitle   = 'Last 4 Weeks';
         cd.question   = 'Did we deliver on our commitments?';
         cd.status     = status;
-        cd.benchmarks = bm('< 70% on time', '70–90% on time', '> 90% on time');
+        cd.benchmarks = bm('< 80% delivery rate', '80–95% delivery rate', '> 95% delivery rate');
         cd.kpis = new List<KPI>{
-            kpi('On-Time Rate',    onTimePct + '%',             onTimePct >= 90 ? 'up' : 'down',   'active projects'),
-            kpi('Hours Delivered', deliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h',
-                                                                deliveryPct >= 90 ? 'up' : 'down', 'vs ' + committedHrs.setScale(0, RoundingMode.HALF_UP) + 'h pace'),
-            kpi('Scope Changes',   String.valueOf(scopeChanges), scopeChanges == 0 ? 'up' : 'down', 'last 4 weeks')
+            kpi('Hours Delivered',
+                totalDeliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h / ' + totalCommittedHrs.setScale(0, RoundingMode.HALF_UP) + 'h',
+                deliveryRate >= 95 ? 'up' : 'down', 'vs committed (4 wk)'),
+            kpi('Delivery Rate',
+                deliveryRate + '%',
+                deliveryRate >= 95 ? 'up' : deliveryRate >= 80 ? 'neutral' : 'down',
+                'hours delivered vs committed'),
+            kpi('Projects at Pace',
+                atPace + ' / ' + retainerIds.size(),
+                atPace == retainerIds.size() ? 'up' : 'down',
+                'avg wkly hrs ≥ commitment')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = chartLabels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hours', chartData, '#0096c7') };
-        cd.insights    = new List<String>{
-            onTimePct + '% of active projects on track to deliver on time',
-            deliveredHrs.setScale(0, RoundingMode.HALF_UP) + 'h delivered vs ' + committedHrs.setScale(0, RoundingMode.HALF_UP) + 'h committed pace (' + deliveryPct + '%)',
-            scopeChanges + ' scope change' + (scopeChanges == 1 ? '' : 's') + ' raised in the past 4 weeks'
+        cd.datasets    = new List<ChartDataset>{
+            ds('Delivered (4wk)', deliveredData, '#00b4d8'),
+            ds('Committed (4wk)', committedData, '#ef4444')
         };
+        cd.insights = insights;
         return cd;
     }
 
