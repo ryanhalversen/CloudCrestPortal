@@ -101,7 +101,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Delivery Performance';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question = 'Are we delivering at pace?';
+        cd.question = 'Did we deliver at pace?';
         cd.status   = status;
         cd.kpis = new List<KPI>{
             kpi('Hours Logged',      hrs(totalMins),             'neutral',                     '4-week total'),
@@ -164,7 +164,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Client Billing';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question = 'Who are we billing and how much?';
+        cd.question = 'Who did we bill and how much?';
         cd.status   = totalMins > 0 ? 'good' : 'warning';
         cd.kpis = new List<KPI>{
             kpi('Billable Hours',   hrs(totalMins),              'neutral', '4-week total'),
@@ -221,7 +221,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Team Utilization';
         cd.subtitle = 'Last 4 Weeks';
-        cd.question = 'Is the team working at full capacity?';
+        cd.question = 'Did the team work at full capacity?';
         cd.status   = utilPct >= 75 ? 'good' : utilPct >= 50 ? 'warning' : 'critical';
         cd.kpis = new List<KPI>{
             kpi('Team Total',    hrs(totalMins),              'neutral',                  '4-week total'),
