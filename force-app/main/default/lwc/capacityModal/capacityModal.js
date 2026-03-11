@@ -265,13 +265,14 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!this._chart) return;
                 const { chartArea, scales } = this._chart;
                 if (!scales.x || e.offsetY <= chartArea.bottom) return;
-                let closest = -1, closestDist = Infinity;
-                for (let i = 0; i < scales.x.ticks.length; i++) {
-                    const dist = Math.abs(e.offsetX - scales.x.getPixelForTick(i));
-                    if (dist < closestDist) { closestDist = dist; closest = i; }
-                }
-                if (closest >= 0 && closestDist < 60 && projectIds[closest]) {
-                    this._navigateToProject(projectIds[closest]);
+                // Divide the x-axis into equal slots — avoids off-by-one from rotated labels
+                const xScale = scales.x;
+                const n = xScale.ticks.length;
+                if (!n) return;
+                const segW = (xScale.right - xScale.left) / n;
+                const idx  = Math.floor((e.offsetX - xScale.left) / segW);
+                if (idx >= 0 && idx < n && projectIds[idx]) {
+                    this._navigateToProject(projectIds[idx]);
                 }
             };
             canvas.addEventListener('click', this._canvasClickHandler);
@@ -388,13 +389,12 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         if (!this._chart || event.x == null || event.y == null) return -1;
         const { chartArea, scales } = this._chart;
         if (!scales.x || event.y <= chartArea.bottom) return -1;
-        let closest = -1;
-        let closestDist = Infinity;
-        for (let i = 0; i < scales.x.ticks.length; i++) {
-            const dist = Math.abs(event.x - scales.x.getPixelForTick(i));
-            if (dist < closestDist) { closestDist = dist; closest = i; }
-        }
-        return closestDist < 60 ? closest : -1;
+        const xScale = scales.x;
+        const n = xScale.ticks.length;
+        if (!n) return -1;
+        const segW = (xScale.right - xScale.left) / n;
+        const idx  = Math.floor((event.x - xScale.left) / segW);
+        return (idx >= 0 && idx < n) ? idx : -1;
     }
 
     _navigateToProject(projectId) {
