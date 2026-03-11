@@ -90,7 +90,7 @@
 .matrix-grid {
     display: grid;
     grid-template-columns: 80px 1fr 1fr 1fr;
-    grid-template-rows: 68px 1fr 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr 1fr;
     gap: 12px;
 }
 
@@ -126,12 +126,10 @@
 .col-label-commentary {
     font-size: 11px;
     font-style: italic;
-    color: #64748b;
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+    color: #94a3b8;
+    margin-top: 3px;
+    text-align: center;
+    line-height: 1.4;
 }
 
 /* Time axis colors — a progression left to right */
