@@ -380,12 +380,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     _navigateToProject(projectId) {
-        this[NavigationMixin.GenerateUrl]({
-            type:       'standard__recordPage',
-            attributes: { recordId: projectId, actionName: 'view' }
-        }).then(url => {
-            window.open(url, '_blank');
-        });
+        window.open(`${window.location.origin}/lightning/r/Sprint__c/${projectId}/view`, '_blank');
     }
 
     _destroyChart() {
@@ -400,12 +395,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     handleProjectClick(event) {
         const id = event.currentTarget.dataset.id;
         if (!id) return;
-        this[NavigationMixin.GenerateUrl]({
-            type:       'standard__recordPage',
-            attributes: { recordId: id, actionName: 'view' }
-        }).then(url => {
-            window.open(url, '_blank');
-        });
+        window.open(`${window.location.origin}/lightning/r/Sprint__c/${id}/view`, '_blank');
     }
 
     handleClose() {
