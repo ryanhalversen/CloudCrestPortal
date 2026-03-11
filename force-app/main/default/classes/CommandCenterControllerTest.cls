@@ -82,9 +82,26 @@ private class CommandCenterControllerTest {
         System.assertNotEquals(null, cd, 'CardData should not be null');
         System.assertEquals('Team Performance', cd.title);
         System.assertEquals(3, cd.kpis.size(), 'Should have 3 KPIs');
-        System.assertEquals('bar', cd.chartType);
+        System.assertEquals('line', cd.chartType);
         System.assertEquals(4, cd.chartLabels.size(), 'Should have 4 week labels');
+        System.assertEquals(2, cd.datasets.size(), 'Should have Hours Logged + Target datasets');
+        // Target dataset should be dashed
+        Boolean foundDashed = false;
+        for (CommandCenterController.ChartDataset ds : cd.datasets) {
+            if (ds.isDashed == true) foundDashed = true;
+        }
+        System.assert(foundDashed, 'Target line should be dashed');
         System.assertNotEquals(0, cd.insights.size(), 'Should have insights');
+        // Verify KPI labels match spec
+        Boolean foundOnTrack = false, foundHoursTarget = false, foundUtil = false;
+        for (CommandCenterController.KPI k : cd.kpis) {
+            if (k.label == 'Projects On Track') foundOnTrack = true;
+            if (k.label == 'Hours vs Target')   foundHoursTarget = true;
+            if (k.label == 'Utilization')        foundUtil = true;
+        }
+        System.assert(foundOnTrack,     'Should have Projects On Track KPI');
+        System.assert(foundHoursTarget, 'Should have Hours vs Target KPI');
+        System.assert(foundUtil,         'Should have Utilization KPI');
     }
 
     @IsTest

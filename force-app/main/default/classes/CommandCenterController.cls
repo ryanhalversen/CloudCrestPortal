@@ -38,6 +38,12 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>       insights;
     }
 
+    // ── FTE Capacity Constants ────────────────────────────────────────────────
+    // 3 FTEs × 35h + Delivery Manager (Alec Hampton) × 20h = 125h/wk
+    // Update these if team composition changes
+    private static final Decimal FTE_WEEKLY_TARGET_HRS = 125;
+    private static final Decimal FTE_4WK_TARGET_HRS    = 500;  // FTE_WEEKLY_TARGET_HRS × 4
+
     // ── Private Helpers ───────────────────────────────────────────────────────
 
     private static KPI kpi(String lbl, String val, String trend, String sub) {
@@ -75,81 +81,117 @@ public with sharing class CommandCenterController {
         Date w4Ago = Date.today().addDays(-28);
         Date ws    = Date.today().toStartOfWeek();
 
-        // Contractor capacity (weekly hours × 4 weeks, in minutes)
-        Decimal contractorWeeklyHrs = 0;
+        // Contractor names — excluded from FTE hour calculation
+        Set<String> contractorNames = new Set<String>();
         for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
-            WHERE  Account.Name = 'CloudCrest Contractors'
-              AND  Available_Hours__c != null AND Available_Hours__c > 0
+            SELECT Name FROM Contact WHERE Account.Name = 'CloudCrest Contractors'
         ]) {
-            contractorWeeklyHrs += c.Available_Hours__c;
+            contractorNames.add(c.Name);
         }
-        Decimal capacityMins = contractorWeeklyHrs * 60 * 4;
+        // Prevent empty-set SOQL edge case — dummy value has no match
+        if (contractorNames.isEmpty()) contractorNames.add('__NO_MATCH__');
 
-        // Sum minutes per day → bucket into weeks
+        // FTE time entries (all users except contractors) bucketed by week
         Map<Date, Decimal> byWeek = new Map<Date, Decimal>();
+        Decimal totalFteMins = 0;
         for (AggregateResult ar : [
             SELECT Logged_Date__c dt, SUM(Minutes_Logged__c) m
             FROM   Time__c
-            WHERE  Logged_Date__c >= :w4Ago
+            WHERE  Logged_Date__c   >= :w4Ago
+              AND  CreatedBy.Name NOT IN :contractorNames
             GROUP BY Logged_Date__c
         ]) {
-            Date day  = (Date) ar.get('dt');
-            Decimal m = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
-            Date wk   = day.toStartOfWeek();
+            Date    day = (Date)    ar.get('dt');
+            Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
+            Date wk = day.toStartOfWeek();
             byWeek.put(wk, (byWeek.containsKey(wk) ? byWeek.get(wk) : 0) + m);
+            totalFteMins += m;
         }
 
-        List<String>  labels   = new List<String>();
-        List<Decimal> data     = new List<Decimal>();
-        Decimal       totalMins = 0;
+        // Build 4-week chart: weekly FTE hours + 125h/wk target reference line
+        List<String>  labels     = new List<String>();
+        List<Decimal> loggedData = new List<Decimal>();
+        List<Decimal> targetData = new List<Decimal>();
+        Decimal maxWkHrs  = -1;
+        Decimal minWkHrs  = -1;
+        String  maxWkLabel = '';
+        String  minWkLabel = '';
+
         for (Integer i = 3; i >= 0; i--) {
-            Date wk = ws.addDays(-i * 7);
-            labels.add(weekLabel(wk));
-            Decimal m = byWeek.containsKey(wk) ? byWeek.get(wk) : 0;
-            totalMins += m;
-            data.add((m / 60).setScale(1, RoundingMode.HALF_UP));
+            Date    wk  = ws.addDays(-i * 7);
+            String  lbl = weekLabel(wk);
+            Decimal h   = ((byWeek.containsKey(wk) ? byWeek.get(wk) : 0) / 60).setScale(1, RoundingMode.HALF_UP);
+            labels.add(lbl);
+            loggedData.add(h);
+            targetData.add(FTE_WEEKLY_TARGET_HRS);
+            if (h > maxWkHrs || maxWkHrs < 0) { maxWkHrs = h; maxWkLabel = lbl; }
+            if (h < minWkHrs || minWkHrs < 0) { minWkHrs = h; minWkLabel = lbl; }
         }
 
-        Integer utilPct = capacityMins > 0
-            ? Integer.valueOf(((totalMins / capacityMins) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
+        Decimal totalFteHrs = (totalFteMins / 60).setScale(1, RoundingMode.HALF_UP);
+        Integer utilPct     = Integer.valueOf(((totalFteHrs / FTE_4WK_TARGET_HRS) * 100).setScale(0, RoundingMode.HALF_UP));
 
+        // Projects on track vs slipped (active projects by pace status)
         Integer onTrack   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c = 'On Track'];
+        Integer slipped   = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress' AND Pace_Status__c IN ('At Risk', 'Behind', 'Critical')];
         Integer totalProj = [SELECT COUNT() FROM Sprint__c WHERE Status__c = 'In Progress'];
-        Integer onTimePct = totalProj > 0 ? (onTrack * 100) / totalProj : 0;
+        // TODO: milestones missed — no dedicated milestone/deadline object in schema;
+        //       would require a Milestone__c object or Case Type='Milestone' to track properly
 
-        Integer completed = [
-            SELECT COUNT() FROM Case
-            WHERE  Status IN ('Completed','Closed')
-              AND  LastModifiedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
-        ];
-
-        // Neutral when no data exists; otherwise base status on utilization vs planned capacity
-        String status = (totalMins == 0 && totalProj == 0) ? 'neutral'
+        // Neutral only when there is truly no data; otherwise threshold on utilization
+        String status = (totalFteMins == 0 && totalProj == 0) ? 'neutral'
             : utilPct >= 75 ? 'good'
             : utilPct >= 60 ? 'warning'
             : 'critical';
 
+        // Chart: actual weekly FTE hours (line) + 125h/wk target (dashed line)
+        ChartDataset logDs = ds('Hours Logged',      loggedData, '#00b4d8');
+        ChartDataset tgtDs = ds('Target (125h/wk)',  targetData, '#334155');
+        tgtDs.isDashed = true;
+
+        // Dynamic insights: gap, slippage, outlier week
+        List<String> insights = new List<String>();
+        Decimal gapHrs = (FTE_4WK_TARGET_HRS - totalFteHrs).setScale(0, RoundingMode.HALF_UP);
+        if (utilPct >= 75) {
+            insights.add(utilPct + '% utilization — ' + totalFteHrs.setScale(0, RoundingMode.HALF_UP) + 'h of ' + FTE_4WK_TARGET_HRS.setScale(0, RoundingMode.HALF_UP) + 'h target logged over 4 weeks');
+        } else {
+            insights.add(utilPct + '% utilization — ' + gapHrs + 'h below the ' + FTE_4WK_TARGET_HRS.setScale(0, RoundingMode.HALF_UP) + 'h target (' + totalFteHrs.setScale(0, RoundingMode.HALF_UP) + 'h logged)');
+        }
+        if (slipped > 0) {
+            insights.add(slipped + ' project' + (slipped == 1 ? '' : 's') + ' slipped off track this period — review pacing and commitments');
+        } else if (totalProj > 0) {
+            insights.add('All ' + totalProj + ' active project' + (totalProj == 1 ? '' : 's') + ' on track');
+        }
+        // Outlier week callout (only if 4 weeks of data are available)
+        if (loggedData.size() == 4 && minWkHrs >= 0) {
+            if (maxWkHrs >= FTE_WEEKLY_TARGET_HRS * 1.1) {
+                insights.add('Strong week: ' + maxWkLabel + ' logged ' + maxWkHrs + 'h (above 125h target)');
+            } else if (minWkHrs < FTE_WEEKLY_TARGET_HRS * 0.6) {
+                insights.add('Low-output week: ' + minWkLabel + ' logged only ' + minWkHrs + 'h — investigate cause');
+            }
+        }
+
         CardData cd = new CardData();
-        cd.title    = 'Team Performance';
-        cd.subtitle = 'Last 4 Weeks';
-        cd.question    = 'Did the team perform as expected?';
-        cd.status      = status;
-        cd.benchmarks  = bm('< 60% utilization', '60–75% utilization', '> 75% utilization');
+        cd.title     = 'Team Performance';
+        cd.subtitle  = 'Last 4 Weeks';
+        cd.question  = 'Did the team perform as expected?';
+        cd.status    = status;
+        cd.benchmarks = bm('< 60% utilization', '60–75% utilization', '> 75% utilization');
         cd.kpis = new List<KPI>{
-            kpi('Utilization',       utilPct + '%',              utilPct >= 75 ? 'up' : 'down', 'vs planned capacity'),
-            kpi('Projects On Track', onTrack + '/' + totalProj, onTimePct >= 70 ? 'up' : 'down', 'on-time rate'),
-            kpi('Stories Closed',    String.valueOf(completed),  'neutral',                       '4-week total')
+            kpi('Projects On Track', onTrack + ' / ' + totalProj,
+                                     onTrack == totalProj ? 'up' : slipped > 0 ? 'down' : 'neutral',
+                                     'active projects'),
+            kpi('Hours vs Target',   totalFteHrs.setScale(0, RoundingMode.HALF_UP) + 'h / ' + FTE_4WK_TARGET_HRS.setScale(0, RoundingMode.HALF_UP) + 'h',
+                                     totalFteHrs >= FTE_4WK_TARGET_HRS * 0.75 ? 'up' : 'down',
+                                     '4-week FTE total'),
+            kpi('Utilization',       utilPct + '%',
+                                     utilPct >= 75 ? 'up' : 'down',
+                                     'vs 500h target')
         };
-        cd.chartType   = 'bar';
+        cd.chartType   = 'line';
         cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hours', data, '#00b4d8') };
-        cd.insights    = new List<String>{
-            utilPct + '% team utilization over the last 4 weeks (' + hrs(totalMins) + ' logged)',
-            onTrack + ' of ' + totalProj + ' active projects currently on track (' + onTimePct + '%)',
-            completed + ' stories closed in the period'
-        };
+        cd.datasets    = new List<ChartDataset>{ logDs, tgtDs };
+        cd.insights    = insights;
         return cd;
     }
 
