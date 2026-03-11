@@ -322,110 +322,158 @@ public with sharing class CommandCenterController {
 
     @AuraEnabled(cacheable=true)
     public static CardData getPresentManagement() {
+        // Team capacity this week
+        Decimal contractorWeeklyHrs = 0;
+        for (Contact c : [
+            SELECT Available_Hours__c FROM Contact
+            WHERE  Account.Name = 'CloudCrest Contractors'
+              AND  Available_Hours__c != null AND Available_Hours__c > 0
+        ]) {
+            contractorWeeklyHrs += c.Available_Hours__c;
+        }
+
+        // Weekly demand from active projects (sum of on-pace hourly requirement)
+        Decimal weeklyDemand   = 0;
+        Integer activeProjects = 0;
+        for (Sprint__c s : [
+            SELECT On_Time_Weekly_Pace__c
+            FROM   Sprint__c
+            WHERE  Status__c = 'In Progress'
+        ]) {
+            activeProjects++;
+            if (s.On_Time_Weekly_Pace__c != null) weeklyDemand += s.On_Time_Weekly_Pace__c;
+        }
+
+        // Story readiness — "workable" statuses vs total active
         Map<String, Integer> sCounts = new Map<String, Integer>();
-        Integer total = 0;
         for (AggregateResult ar : [
             SELECT Status s, COUNT(Id) c
             FROM   Case
-            WHERE  Status NOT IN ('Cancelled','Completed','Closed')
+            WHERE  Status NOT IN ('Completed','Closed','Cancelled')
             GROUP BY Status
         ]) {
-            String  s = (String)  ar.get('s');
-            Integer c = (Integer) ar.get('c');
-            sCounts.put(s, c);
-            total += c;
+            sCounts.put((String) ar.get('s'), (Integer) ar.get('c'));
         }
-
-        Integer wip     = sCounts.containsKey('Work In Progress (WIP)') ? sCounts.get('Work In Progress (WIP)') : 0;
-        Integer blocked = sCounts.containsKey('Blocked')    ? sCounts.get('Blocked')    : 0;
-        Integer review  = sCounts.containsKey('In Review')  ? sCounts.get('In Review')  : 0;
-
-        List<String>  statusKeys   = new List<String>{ 'Work In Progress (WIP)', 'Blocked', 'In Review', 'In UAT', 'New', 'Scheduled', 'Waiting for User', 'Backlog', 'On Hold' };
-        List<String>  statusLabels = new List<String>{ 'WIP', 'Blocked', 'In Review', 'In UAT', 'New', 'Scheduled', 'Waiting', 'Backlog', 'On Hold' };
-        List<String>  statusColors = new List<String>{ '#00b4d8', '#ef4444', '#0096c7', '#0077b6', '#caf0f8', '#ade8f4', '#48cae4', '#023e5a', '#012a3d' };
-        List<Decimal> slices       = new List<Decimal>();
-        for (String k : statusKeys) {
-            slices.add(sCounts.containsKey(k) ? sCounts.get(k) : 0);
+        Integer totalActive  = 0;
+        Integer readyStories = 0;
+        Integer blocked      = 0;
+        Set<String> readyStatuses = new Set<String>{
+            'New', 'Scheduled', 'Work In Progress (WIP)', 'In Review', 'In UAT'
+        };
+        for (String st : sCounts.keySet()) {
+            Integer cnt = sCounts.get(st);
+            totalActive += cnt;
+            if (readyStatuses.contains(st)) readyStories += cnt;
+            if (st == 'Blocked') blocked = cnt;
         }
+        Integer readyPct = totalActive > 0 ? (readyStories * 100) / totalActive : 0;
 
-        ChartDataset donut   = new ChartDataset();
-        donut.label          = 'Stories';
-        donut.data           = slices;
-        donut.colors         = statusColors;
-        donut.borderColor    = '#1e293b';
+        // Status: demand vs capacity — demand > capacity by 10%+ = critical
+        Decimal demandRatio = contractorWeeklyHrs > 0 ? weeklyDemand / contractorWeeklyHrs : 0;
+        String  status      = activeProjects == 0 ? 'neutral'
+            : demandRatio > 1.1 ? 'critical'
+            : demandRatio > 1.0 ? 'warning'
+            : 'good';
+
+        // Chart: grouped Capacity vs Demand bars
+        Decimal capH = contractorWeeklyHrs.setScale(1, RoundingMode.HALF_UP);
+        Decimal demH = weeklyDemand.setScale(1, RoundingMode.HALF_UP);
+        String demandColor = demandRatio > 1.0 ? '#ef4444' : '#00b4d8';
 
         CardData cd = new CardData();
-        cd.title    = 'Story Pipeline';
-        cd.subtitle = 'Active Stories by Status';
-        cd.question   = 'What\'s blocking delivery right now?';
-        cd.status     = blocked > 5 ? 'critical' : blocked > 2 ? 'warning' : 'good';
-        cd.benchmarks = bm('> 5 blocked', '1–5 blocked', '0 blocked');
+        cd.title    = 'Delivery Readiness';
+        cd.subtitle = 'This Week';
+        cd.question   = 'Is delivery set up to execute this week?';
+        cd.status     = status;
+        cd.benchmarks = bm('Demand > capacity', 'Demand ≈ capacity', 'Capacity covers demand');
         cd.kpis = new List<KPI>{
-            kpi('In Progress',  String.valueOf(wip),     'neutral',                          'stories'),
-            kpi('Blocked',      String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral',  'need attention'),
-            kpi('Total Active', String.valueOf(total),   'neutral',                          'across all stages')
+            kpi('Capacity / Demand', capH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h',
+                                                 demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
+            kpi('Work Ready',  readyPct + '%',   readyPct >= 80 ? 'up' : 'down',  readyStories + ' of ' + totalActive + ' stories'),
+            kpi('Blocked',     String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
         };
-        cd.chartType   = 'doughnut';
-        cd.chartLabels = statusLabels;
-        cd.datasets    = new List<ChartDataset>{ donut };
+        cd.chartType   = 'bar';
+        cd.chartLabels = new List<String>{ 'This Week' };
+        cd.datasets    = new List<ChartDataset>{
+            ds('Capacity', new List<Decimal>{ capH }, '#22c55e'),
+            ds('Demand',   new List<Decimal>{ demH }, demandColor)
+        };
         cd.insights    = new List<String>{
-            total + ' active stories across ' + sCounts.size() + ' status stages',
-            blocked > 0 ? blocked + ' blocked stories need immediate attention' : 'No blocked stories — pipeline is flowing',
-            review + ' stories currently in review — prioritize sign-off'
+            capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
+            readyPct + '% of active stories are in a workable state (' + readyStories + ' of ' + totalActive + ')',
+            blocked > 0 ? blocked + ' blocked stories need immediate unblocking' : 'No blocked stories — team can execute'
         };
         return cd;
     }
 
     @AuraEnabled(cacheable=true)
     public static CardData getPresentCustomer() {
+        // Contractor capacity
+        Decimal contractorWeeklyHrs = 0;
+        for (Contact c : [
+            SELECT Available_Hours__c FROM Contact
+            WHERE  Account.Name = 'CloudCrest Contractors'
+              AND  Available_Hours__c != null AND Available_Hours__c > 0
+        ]) {
+            contractorWeeklyHrs += c.Available_Hours__c;
+        }
+
+        // Active client engagements
         List<Sprint__c> projects = [
-            SELECT Id, Name, Pace_Status__c,
-                   Contracted_Hours_Sprint__c, Hours_Delivered__c,
-                   Accountlu__r.Name
+            SELECT Id, Name, On_Time_Weekly_Pace__c, Pace_Status__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-            ORDER BY Pace_Status__c NULLS LAST, Name
+            ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
             LIMIT  15
         ];
 
-        Integer onTrack = 0, atRisk = 0, critical = 0;
-        List<String>  labels     = new List<String>();
-        List<Decimal> contracted = new List<Decimal>();
-        List<Decimal> delivered  = new List<Decimal>();
+        Decimal weeklyCommitted = 0;
+        Integer underserved     = 0;
+        List<String>  chartLabels = new List<String>();
+        List<Decimal> chartData   = new List<Decimal>();
 
         for (Sprint__c s : projects) {
+            Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            weeklyCommitted += pace;
             String ps = s.Pace_Status__c != null ? s.Pace_Status__c : '';
-            if      (ps == 'On Track')                  onTrack++;
-            else if (ps == 'At Risk')                   atRisk++;
-            else if (ps == 'Critical' || ps == 'Behind') critical++;
-
+            if (ps == 'Behind' || ps == 'Critical') underserved++;
             String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
-            labels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-            contracted.add(s.Contracted_Hours_Sprint__c != null ? s.Contracted_Hours_Sprint__c : 0);
-            delivered.add(s.Hours_Delivered__c != null ? s.Hours_Delivered__c : 0);
+            chartLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
+            chartData.add(pace.setScale(1, RoundingMode.HALF_UP));
         }
 
+        Integer activeEngagements = projects.size();
+        Integer coveragePct = contractorWeeklyHrs > 0
+            ? Integer.valueOf(((weeklyCommitted / contractorWeeklyHrs) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        // Status: underserved clients = critical; book-of-business gaps = warning/critical
+        String status = activeEngagements == 0 ? 'neutral'
+            : underserved > 0   ? 'critical'
+            : coveragePct >= 80 ? 'good'
+            : coveragePct >= 60 ? 'warning'
+            : 'critical';
+
         CardData cd = new CardData();
-        cd.title    = 'Project Health';
-        cd.subtitle = 'Active Projects';
-        cd.question   = 'Are client projects on track?';
-        cd.status     = critical > 0 ? 'critical' : atRisk > 0 ? 'warning' : 'good';
-        cd.benchmarks = bm('Any critical', 'Some at risk', 'All on track');
+        cd.title    = 'Client Coverage';
+        cd.subtitle = 'This Week';
+        cd.question   = 'Are we fully committed and fully covered?';
+        cd.status     = status;
+        cd.benchmarks = bm('< 60% capacity booked', '60–80% capacity booked', '> 80% capacity booked');
         cd.kpis = new List<KPI>{
-            kpi('On Track',  String.valueOf(onTrack),  'up',                          'projects'),
-            kpi('At Risk',   String.valueOf(atRisk),   atRisk   > 0 ? 'down' : 'neutral', 'projects'),
-            kpi('Critical',  String.valueOf(critical), critical > 0 ? 'down' : 'neutral', 'projects')
+            kpi('Active Engagements', String.valueOf(activeEngagements), 'neutral', 'client projects'),
+            kpi('Book of Business',   coveragePct + '%',                 coveragePct >= 80 ? 'up' : 'down', 'of capacity committed'),
+            kpi('Underserved',        String.valueOf(underserved),       underserved > 0 ? 'down' : 'neutral', 'projects behind pace')
         };
         cd.chartType   = 'bar';
-        cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{
-            ds('Contracted', contracted, '#90e0ef'),
-            ds('Delivered',  delivered,  '#0096c7')
-        };
-        cd.insights = new List<String>{
-            projects.size() + ' active projects under delivery management',
-            critical > 0 ? critical + ' project(s) critical — immediate intervention needed' : 'No critical projects',
-            atRisk   > 0 ? atRisk   + ' project(s) at risk — review and adjust pacing'       : 'All tracked projects on track'
+        cd.chartLabels = chartLabels;
+        cd.datasets    = new List<ChartDataset>{ ds('Hrs/Week', chartData, '#0096c7') };
+        cd.insights    = new List<String>{
+            activeEngagements + ' active client engagement' + (activeEngagements == 1 ? '' : 's') + ' this week',
+            weeklyCommitted.setScale(0, RoundingMode.HALF_UP) + 'h committed vs ' + contractorWeeklyHrs.setScale(0, RoundingMode.HALF_UP) + 'h available (' + coveragePct + '% booked)',
+            underserved > 0
+                ? underserved + ' project' + (underserved == 1 ? '' : 's') + ' behind pace — client commitments at risk'
+                : 'All active projects on track to meet client commitments'
         };
         return cd;
     }
@@ -434,57 +482,82 @@ public with sharing class CommandCenterController {
     public static CardData getPresentEmployee() {
         Date weekStart = Date.today().toStartOfWeek();
 
-        List<String>  labels    = new List<String>();
-        List<Decimal> loggedH   = new List<Decimal>();
-        Decimal       totalLogged = 0;
+        // Days elapsed in the current work week (1 = Mon, 5 = Fri, capped at 5)
+        Integer daysElapsed = weekStart.daysBetween(Date.today()) + 1;
+        if (daysElapsed > 5) daysElapsed = 5;
+        if (daysElapsed < 1) daysElapsed = 1;
 
+        // Hours logged this week per person (keyed by creator name)
+        Map<String, Decimal> loggedMins = new Map<String, Decimal>();
         for (AggregateResult ar : [
             SELECT CreatedBy.Name nm, SUM(Minutes_Logged__c) m
             FROM   Time__c
             WHERE  Logged_Date__c >= :weekStart
             GROUP BY CreatedBy.Name
-            ORDER BY SUM(Minutes_Logged__c) DESC
-            LIMIT  10
         ]) {
             String  nm = (String)  ar.get('nm');
             Decimal m  = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
-            labels.add(nm);
-            loggedH.add((m / 60).setScale(1, RoundingMode.HALF_UP));
-            totalLogged += m;
+            loggedMins.put(nm, m);
         }
 
-        Decimal totalCapHrs = 0;
+        // Per-contractor readiness: compare logged to pro-rated weekly target
+        Integer overloaded    = 0;
+        Integer underutilized = 0;
+        Integer withWork      = 0;
+        Integer teamSize      = 0;
+        List<String>  chartLabels = new List<String>();
+        List<Decimal> loggedData  = new List<Decimal>();
+        List<Decimal> targetData  = new List<Decimal>();
+
         for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
+            SELECT Name, Available_Hours__c FROM Contact
             WHERE  Account.Name = 'CloudCrest Contractors'
               AND  Available_Hours__c != null AND Available_Hours__c > 0
+            ORDER BY Name
         ]) {
-            totalCapHrs += c.Available_Hours__c;
+            teamSize++;
+            Decimal dailyCapMins  = (c.Available_Hours__c / 5) * 60;
+            Decimal proRatedMins  = dailyCapMins * daysElapsed;
+            Decimal weeklyCapMins = c.Available_Hours__c * 60;
+            Decimal logged        = loggedMins.containsKey(c.Name) ? loggedMins.get(c.Name) : 0;
+
+            if (logged > 0)                   withWork++;
+            if (logged > weeklyCapMins * 1.1) overloaded++;
+            if (logged < proRatedMins  * 0.5) underutilized++;
+
+            String nm = c.Name.length() > 16 ? c.Name.substring(0, 16) + '…' : c.Name;
+            chartLabels.add(nm);
+            loggedData.add((logged       / 60).setScale(1, RoundingMode.HALF_UP));
+            targetData.add((proRatedMins / 60).setScale(1, RoundingMode.HALF_UP));
         }
 
-        Integer utilPct   = totalCapHrs > 0
-            ? Integer.valueOf((((totalLogged / 60) / totalCapHrs) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
-        Decimal available = totalCapHrs - (totalLogged / 60);
+        // Status: any overloaded = critical; any underutilized = warning; else good
+        String status = teamSize == 0 ? 'neutral'
+            : overloaded    > 0 ? 'critical'
+            : underutilized > 0 ? 'warning'
+            : 'good';
 
         CardData cd = new CardData();
-        cd.title    = 'Weekly Utilization';
-        cd.subtitle = 'This Week (Mon–Today)';
-        cd.question   = 'Is capacity being used this week?';
-        cd.status     = utilPct >= 75 ? 'good' : utilPct >= 40 ? 'warning' : 'critical';
-        cd.benchmarks = bm('< 40% of capacity', '40–75% of capacity', '> 75% of capacity');
+        cd.title    = 'Individual Readiness';
+        cd.subtitle = 'This Week';
+        cd.question   = 'Does everyone have clear work and the capacity to do it?';
+        cd.status     = status;
+        cd.benchmarks = bm('Anyone overloaded/idle', 'Some underutilized', 'Everyone balanced');
         cd.kpis = new List<KPI>{
-            kpi('Logged This Week', hrs(totalLogged),             'neutral',                  'hours'),
-            kpi('Utilization',      utilPct + '%',                utilPct >= 70 ? 'up' : 'down', 'of capacity'),
-            kpi('Capacity Left',    hrs(available * 60), available > 0 ? 'neutral' : 'down', 'hours remaining')
+            kpi('With Work',     withWork + '/' + teamSize,    withWork == teamSize ? 'up' : 'down', 'logged time this week'),
+            kpi('Overloaded',    String.valueOf(overloaded),   overloaded    > 0 ? 'down' : 'neutral', '>110% of capacity'),
+            kpi('Underutilized', String.valueOf(underutilized), underutilized > 0 ? 'down' : 'neutral', '<50% of pro-rated hrs')
         };
         cd.chartType   = 'bar';
-        cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hours This Week', loggedH, '#48cae4') };
+        cd.chartLabels = chartLabels;
+        cd.datasets    = new List<ChartDataset>{
+            ds('Logged',           loggedData, '#48cae4'),
+            ds('Target (pro-rated)', targetData, '#334155')
+        };
         cd.insights    = new List<String>{
-            hrs(totalLogged) + ' logged by ' + labels.size() + ' team members so far this week',
-            utilPct + '% of total contractor capacity utilized this week',
-            available > 0 ? hrs(available * 60) + ' contractor capacity remains available' : 'Team fully allocated this week'
+            withWork + ' of ' + teamSize + ' contractors have logged time this week',
+            overloaded    > 0 ? overloaded    + ' contractor' + (overloaded    == 1 ? '' : 's') + ' tracking over capacity this week'    : 'No contractors overloaded this week',
+            underutilized > 0 ? underutilized + ' contractor' + (underutilized == 1 ? '' : 's') + ' below 50% of pro-rated hours' : 'All contractors on pace this week'
         };
         return cd;
     }

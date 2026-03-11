@@ -122,12 +122,11 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Story Pipeline', cd.title);
+        System.assertEquals('Delivery Readiness', cd.title);
         System.assertEquals(3, cd.kpis.size());
-        System.assertEquals('doughnut', cd.chartType);
-        System.assertEquals(1, cd.datasets.size());
-        System.assertNotEquals(null, cd.datasets[0].colors, 'Doughnut should have per-slice colors');
-        // Blocked story in test data → Blocked KPI value should be '1'
+        System.assertEquals('bar', cd.chartType);
+        System.assertEquals(2, cd.datasets.size(), 'Should have Capacity + Demand datasets');
+        // Blocked story in test data → Blocked KPI should be present
         Boolean foundBlocked = false;
         for (CommandCenterController.KPI k : cd.kpis) {
             if (k.label == 'Blocked') foundBlocked = true;
@@ -142,10 +141,10 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Project Health', cd.title);
+        System.assertEquals('Client Coverage', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
-        System.assertEquals(2, cd.datasets.size(), 'Should have Contracted + Delivered datasets');
+        System.assertEquals(1, cd.datasets.size(), 'Should have single weekly pace dataset');
         // Our test project is In Progress
         System.assertNotEquals(0, cd.chartLabels.size(), 'Should show active projects');
     }
@@ -157,9 +156,12 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Weekly Utilization', cd.title);
+        System.assertEquals('Individual Readiness', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
+        System.assertEquals(2, cd.datasets.size(), 'Should have Logged + Target datasets');
+        // Test contractor should appear in chart
+        System.assertNotEquals(0, cd.chartLabels.size(), 'Should show contractor');
     }
 
     // ── Future Row Tests ──────────────────────────────────────────────────────
