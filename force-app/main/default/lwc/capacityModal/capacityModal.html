@@ -15,7 +15,7 @@
                 <button class="modal-close" onclick={handleClose} title="Close">&times;</button>
             </div>
 
-            <!-- KPIs -->
+            <!-- KPIs (full width) -->
             <div class="modal-kpis">
                 <template for:each={enrichedKpis} for:item="k">
                     <div key={k.label} class="modal-kpi">
@@ -29,29 +29,67 @@
                 </template>
             </div>
 
-            <!-- Chart -->
-            <div class="chart-section">
-                <template if:true={chartError}>
-                    <p class="chart-error">{chartError}</p>
-                </template>
-                <template if:false={chartError}>
-                    <div class="chart-wrap">
-                        <canvas lwc:ref="canvas"></canvas>
+            <!-- Body: chart + insights on left, project list on right (if present) -->
+            <div class="modal-body">
+
+                <div class="modal-main">
+                    <!-- Chart -->
+                    <div class="chart-section">
+
+                        <!-- Drilldown header (back button + project name) -->
+                        <template if:true={isDrilldown}>
+                            <div class="drilldown-header">
+                                <button class="drilldown-back" onclick={closeDrilldown}>&#8592; Back</button>
+                                <span class="drilldown-title">{drilldownTitle} — Weekly Hours</span>
+                            </div>
+                        </template>
+
+                        <!-- Drilldown hint (bar charts with project IDs) -->
+                        <template if:true={hasBarDrilldown}>
+                            <template if:false={isDrilldown}>
+                                <p class="chart-hint">Click any bar to see week-over-week trend</p>
+                            </template>
+                        </template>
+
+                        <template if:true={chartError}>
+                            <p class="chart-error">{chartError}</p>
+                        </template>
+                        <template if:false={chartError}>
+                            <div class="chart-wrap">
+                                <canvas lwc:ref="canvas"></canvas>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Insights -->
+                    <template if:true={hasInsights}>
+                        <div class="insights-section">
+                            <h4 class="insights-heading">Insights</h4>
+                            <ul class="insights-list">
+                                <template for:each={cardData.insights} for:item="line">
+                                    <li key={line} class="insight-item">{line}</li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Project list sidebar -->
+                <template if:true={hasProjects}>
+                    <div class="modal-sidebar">
+                        <h4 class="insights-heading sidebar-heading">Project Status</h4>
+                        <ul class="project-list">
+                            <template for:each={enrichedProjects} for:item="p">
+                                <li key={p.name} class="project-row">
+                                    <span class="project-name project-name--link" data-id={p.id} onclick={handleProjectClick}>{p.name}</span>
+                                    <span class={p.statusClass}>{p.statusLabel}</span>
+                                </li>
+                            </template>
+                        </ul>
                     </div>
                 </template>
-            </div>
 
-            <!-- Insights -->
-            <template if:true={hasInsights}>
-                <div class="insights-section">
-                    <h4 class="insights-heading">Insights</h4>
-                    <ul class="insights-list">
-                        <template for:each={cardData.insights} for:item="line">
-                            <li key={line} class="insight-item">{line}</li>
-                        </template>
-                    </ul>
-                </div>
-            </template>
+            </div>
 
         </div>
     </div>

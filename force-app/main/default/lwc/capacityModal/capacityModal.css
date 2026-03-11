@@ -17,7 +17,7 @@
     border-radius: 16px;
     border: 1px solid #334155;
     width: 100%;
-    max-width: 680px;
+    max-width: 920px;
     max-height: 90vh;
     overflow-y: auto;
     display: flex;
@@ -143,6 +143,73 @@
     color: #475569;
 }
 
+/* Body: two-column layout when project list is present */
+.modal-body {
+    display: flex;
+    align-items: flex-start;
+}
+
+.modal-main {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Project list sidebar */
+.modal-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    border-left: 1px solid #334155;
+    padding: 16px 20px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.sidebar-heading {
+    margin-bottom: 12px;
+}
+
+.project-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.project-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.project-name {
+    font-size: 12px;
+    color: #cbd5e1;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.proj-status {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.proj-status--good     { background: rgba(34,197,94,.15);   color: #22c55e; }
+.proj-status--warning  { background: rgba(245,158,11,.15);  color: #f59e0b; }
+.proj-status--critical { background: rgba(239,68,68,.15);   color: #ef4444; }
+.proj-status--neutral  { background: rgba(148,163,184,.12); color: #64748b; }
+
 /* Chart */
 .chart-section {
     padding: 20px 24px;
@@ -195,4 +262,55 @@
     position: absolute;
     left: 0;
     color: #00b4d8;
+}
+
+/* Clickable project names */
+.project-name--link {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.project-name--link:hover {
+    color: #e2e8f0;
+    text-decoration: underline;
+}
+
+/* Drilldown header (back button + title) */
+.drilldown-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.drilldown-back {
+    background: rgba(0, 180, 216, 0.1);
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    color: #00b4d8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.drilldown-back:hover {
+    background: rgba(0, 180, 216, 0.2);
+}
+
+.drilldown-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hint text above drilldown-capable bar charts */
+.chart-hint {
+    font-size: 11px;
+    color: #475569;
+    margin: 0 0 6px;
+    font-style: italic;
 }

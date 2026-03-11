@@ -251,6 +251,20 @@ private class CommandCenterControllerTest {
         System.assertEquals(20, cd.datasets[0].data[0], 'Contractor should have 20h available');
     }
 
+    // ── Drilldown Tests ───────────────────────────────────────────────────────
+
+    @IsTest
+    static void testGetProjectWeeklyHours() {
+        Sprint__c proj = [SELECT Id FROM Sprint__c LIMIT 1];
+        Test.startTest();
+        CommandCenterController.DrilldownData dd = CommandCenterController.getProjectWeeklyHours(proj.Id);
+        Test.stopTest();
+        System.assertNotEquals(null, dd, 'DrilldownData should not be null');
+        System.assertEquals(8, dd.labels.size(), 'Should have 8-week labels');
+        System.assertNotEquals(null, dd.delivered, 'Should have delivered data');
+        System.assertEquals(8, dd.delivered.size(), 'Delivered array should have 8 entries');
+    }
+
     // ── No-Data Edge Cases ────────────────────────────────────────────────────
 
     @IsTest

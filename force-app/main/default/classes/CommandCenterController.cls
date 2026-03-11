@@ -34,14 +34,23 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<KPI>          kpis;
         @AuraEnabled public String             chartType; // 'bar','line','doughnut'
         @AuraEnabled public List<String>       chartLabels;
+        @AuraEnabled public List<String>       chartProjectIds; // optional: Sprint__c IDs parallel to chartLabels for bar click drilldown
         @AuraEnabled public List<ChartDataset> datasets;
         @AuraEnabled public List<String>       insights;
         @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
     }
 
+    public class DrilldownData {
+        @AuraEnabled public String        projectName;
+        @AuraEnabled public List<String>  labels;
+        @AuraEnabled public List<Decimal> delivered;
+        @AuraEnabled public List<Decimal> committed; // null for Block projects
+    }
+
     public class ProjectRow {
         @AuraEnabled public String name;
         @AuraEnabled public String paceStatus;
+        @AuraEnabled public String id;
     }
 
     // ── FTE Capacity Constants ────────────────────────────────────────────────
@@ -157,6 +166,7 @@ public with sharing class CommandCenterController {
             if      (ps.contains('Ahead') || ps.contains('On Pace')) onTrack++;
             else if (ps.contains('Behind') || ps.contains('Problem') || ps.contains('Houston')) slipped++;
             ProjectRow pr = new ProjectRow();
+            pr.id         = s.Id;
             pr.name       = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
             pr.paceStatus = ps.length() > 0 ? ps : '—';
             projectRows.add(pr);
@@ -330,9 +340,10 @@ public with sharing class CommandCenterController {
 
         // ── 7. Chart: grouped bar — Delivered vs Committed per project ─────────
         // Retainer projects (ordered by weekly pace desc) then Block projects
-        List<String>  chartLabels   = new List<String>();
-        List<Decimal> deliveredData = new List<Decimal>();
-        List<Decimal> committedData = new List<Decimal>(); // 0 for Block projects
+        List<String>  chartLabels      = new List<String>();
+        List<String>  chartProjectIds  = new List<String>();
+        List<Decimal> deliveredData    = new List<Decimal>();
+        List<Decimal> committedData    = new List<Decimal>(); // 0 for Block projects
 
         for (Sprint__c s : allProjects) {
             Boolean isRetainer = retainerIds.contains(s.Id);
@@ -341,6 +352,7 @@ public with sharing class CommandCenterController {
             String lbl = displayName.get(s.Id);
             // Mark Block projects with a dot in the label
             chartLabels.add((lbl.length() > 15 ? lbl.substring(0, 15) + '…' : lbl) + (isBlock ? ' ●' : ''));
+            chartProjectIds.add(s.Id);
             Decimal delivered = deliveredMins.containsKey(s.Id)
                 ? (deliveredMins.get(s.Id) / 60).setScale(1, RoundingMode.HALF_UP) : 0;
             deliveredData.add(delivered);
@@ -394,9 +406,10 @@ public with sharing class CommandCenterController {
                 atPace == retainerIds.size() ? 'up' : 'down',
                 'avg wkly hrs ≥ commitment')
         };
-        cd.chartType   = 'bar';
-        cd.chartLabels = chartLabels;
-        cd.datasets    = new List<ChartDataset>{
+        cd.chartType       = 'bar';
+        cd.chartLabels     = chartLabels;
+        cd.chartProjectIds = chartProjectIds;
+        cd.datasets        = new List<ChartDataset>{
             ds('Delivered (4wk)', deliveredData, '#00b4d8'),
             ds('Committed (4wk)', committedData, '#ef4444')
         };
@@ -982,5 +995,52 @@ public with sharing class CommandCenterController {
                 : 'Forecasted demand accounts for all contractor capacity at week 4'
         };
         return cd;
+    }
+
+    // ── Drilldown: per-project week-over-week trend ───────────────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static DrilldownData getProjectWeeklyHours(Id projectId) {
+        Date ws    = Date.today().toStartOfWeek();
+        Date w8Ago = ws.addDays(-7 * 7); // 8 weeks back (current week = wk 8)
+
+        List<Sprint__c> projs = [
+            SELECT Name, Weekly_Pace_Estimate__c, Contract_Type__c, Accountlu__r.Name
+            FROM   Sprint__c WHERE Id = :projectId LIMIT 1
+        ];
+        if (projs.isEmpty()) return null;
+        Sprint__c proj     = projs[0];
+        String    projName = proj.Accountlu__r?.Name != null ? proj.Accountlu__r.Name : proj.Name;
+        Boolean   isBlock  = proj.Contract_Type__c == 'Block';
+        Decimal   wklyHrs  = (!isBlock && proj.Weekly_Pace_Estimate__c != null) ? proj.Weekly_Pace_Estimate__c : 0;
+
+        Map<Date, Decimal> byWeek = new Map<Date, Decimal>();
+        for (AggregateResult ar : [
+            SELECT Logged_Date__c dt, SUM(Minutes_Logged__c) m
+            FROM   Time__c
+            WHERE  Case__r.Projects__c = :projectId
+              AND  Logged_Date__c >= :w8Ago
+            GROUP BY Logged_Date__c
+        ]) {
+            Date    day = (Date)    ar.get('dt');
+            Decimal m   = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
+            Date    wk  = day.toStartOfWeek();
+            byWeek.put(wk, (byWeek.containsKey(wk) ? byWeek.get(wk) : 0) + m);
+        }
+
+        DrilldownData dd = new DrilldownData();
+        dd.projectName = projName;
+        dd.labels      = new List<String>();
+        dd.delivered   = new List<Decimal>();
+        dd.committed   = isBlock ? null : new List<Decimal>();
+
+        for (Integer i = 7; i >= 0; i--) {
+            Date    wk = ws.addDays(-i * 7);
+            Decimal h  = byWeek.containsKey(wk) ? (byWeek.get(wk) / 60).setScale(1, RoundingMode.HALF_UP) : 0;
+            dd.labels.add(weekLabel(wk));
+            dd.delivered.add(h);
+            if (!isBlock) dd.committed.add(wklyHrs);
+        }
+        return dd;
     }
 }

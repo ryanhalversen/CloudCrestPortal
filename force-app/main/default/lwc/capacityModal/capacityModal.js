@@ -1,16 +1,20 @@
 // force-app/main/default/lwc/capacityModal/capacityModal.js
 import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import { loadScript } from 'lightning/platformResourceLoader';
 import CHARTJS from '@salesforce/resourceUrl/chartjs';
+import getProjectWeeklyHours from '@salesforce/apex/CommandCenterController.getProjectWeeklyHours';
 
 const CHART_COLORS = ['#00b4d8','#ef4444','#0096c7','#0077b6','#caf0f8','#ade8f4','#48cae4','#023e5a','#012a3d'];
 
-export default class CapacityModal extends LightningElement {
+export default class CapacityModal extends NavigationMixin(LightningElement) {
     @api cardData = null;
 
-    _chart       = null;
-    _chartLoaded = false;
-    chartError   = null;
+    _chart           = null;
+    _chartLoaded     = false;
+    chartError       = null;
+    _drilldownActive = false;
+    _drilldownTitle  = '';
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -29,10 +33,7 @@ export default class CapacityModal extends LightningElement {
         this._destroyChart();
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
     renderedCallback() {
-        // Re-attempt after each render in case canvas arrived late
         if (this._chartLoaded && !this._chart) {
             this._tryRender();
         }
@@ -76,15 +77,26 @@ export default class CapacityModal extends LightningElement {
             } else {
                 statusLabel = '—';        statusClass = 'proj-status proj-status--neutral';
             }
-            return { name: p.name, paceStatus: p.paceStatus, statusLabel, statusClass };
+            return { id: p.id, name: p.name, paceStatus: p.paceStatus, statusLabel, statusClass };
         });
+    }
+
+    get isDrilldown() {
+        return this._drilldownActive;
+    }
+
+    get drilldownTitle() {
+        return this._drilldownTitle;
+    }
+
+    get hasBarDrilldown() {
+        return this.cardData?.chartType === 'bar' && this.cardData?.chartProjectIds?.length > 0;
     }
 
     // ── Chart rendering ───────────────────────────────────────────────────────
 
     _tryRender() {
         if (!this._chartLoaded || !this.cardData) return;
-        // Defer to let canvas settle in DOM after render
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => this._renderChart(), 0);
     }
@@ -99,33 +111,33 @@ export default class CapacityModal extends LightningElement {
         if (!chartType || !datasets?.length) return;
 
         const chartDatasets = datasets.map((ds, idx) => {
-            const baseColor = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
-            const isLine    = chartType === 'line';
+            const baseColor  = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
+            const isLine     = chartType === 'line';
             const isDoughnut = chartType === 'doughnut';
 
             return {
-                label:                ds.label,
-                data:                 ds.data || [],
-                backgroundColor:      isDoughnut
+                label:              ds.label,
+                data:               ds.data || [],
+                backgroundColor:    isDoughnut
                     ? (ds.colors || CHART_COLORS)
                     : `${baseColor}cc`,
-                borderColor:          isDoughnut ? (ds.borderColor || '#1e293b') : baseColor,
-                borderWidth:          isDoughnut ? 2 : isLine ? 2 : 0,
-                borderDash:           ds.isDashed ? [6, 4] : undefined,
-                tension:              isLine ? 0.3 : 0,
-                pointRadius:          isLine ? 0 : undefined,
-                pointHitRadius:       isLine ? 20 : undefined,
-                pointHoverRadius:     isLine ? 5 : undefined,
-                fill:                 false,
-                hoverOffset:          isDoughnut ? 6 : undefined,
-                barPercentage:        isDoughnut ? undefined : 0.7,
-                categoryPercentage:   isDoughnut ? undefined : 0.85
+                borderColor:        isDoughnut ? (ds.borderColor || '#1e293b') : baseColor,
+                borderWidth:        isDoughnut ? 2 : isLine ? 2 : 0,
+                borderDash:         ds.isDashed ? [6, 4] : undefined,
+                tension:            isLine ? 0.3 : 0,
+                pointRadius:        isLine ? 0 : undefined,
+                pointHitRadius:     isLine ? 20 : undefined,
+                pointHoverRadius:   isLine ? 5 : undefined,
+                fill:               false,
+                hoverOffset:        isDoughnut ? 6 : undefined,
+                barPercentage:      isDoughnut ? undefined : 0.7,
+                categoryPercentage: isDoughnut ? undefined : 0.85
             };
         });
 
-        const isHorizontal = false; // bar charts are vertical
-        const isDoughnut   = chartType === 'doughnut';
-        const isLine       = chartType === 'line';
+        const isDoughnut = chartType === 'doughnut';
+        const isLine     = chartType === 'line';
+        const isBar      = chartType === 'bar';
 
         const scales = isDoughnut ? {} : {
             x: {
@@ -139,7 +151,7 @@ export default class CapacityModal extends LightningElement {
             }
         };
 
-        // Inline plugin: week-over-week % badges between x-axis ticks (line charts only)
+        // WoW badge plugin (line charts only)
         const wowPlugin = {
             id: 'wowAnnotations',
             afterDraw(chart) {
@@ -184,6 +196,10 @@ export default class CapacityModal extends LightningElement {
             }
         };
 
+        // Bar drilldown: pointer cursor and click handler
+        const projectIds = this.cardData.chartProjectIds || [];
+        const hasDrilldown = isBar && projectIds.length > 0;
+
         /* global Chart */
         this._chart = new Chart(canvas, {
             type: chartType,
@@ -197,6 +213,16 @@ export default class CapacityModal extends LightningElement {
                 interaction: isLine
                     ? { mode: 'index', intersect: false }
                     : { mode: 'nearest', intersect: true },
+                onHover: hasDrilldown ? (event, elements) => {
+                    event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                } : undefined,
+                onClick: hasDrilldown ? (event, elements) => {
+                    if (!elements.length) return;
+                    const idx       = elements[0].index;
+                    const projectId = projectIds[idx];
+                    const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
+                    if (projectId) this._handleBarClick(projectId, rawLabel);
+                } : undefined,
                 plugins: {
                     legend: {
                         display:  datasets.length > 1 || isDoughnut,
@@ -226,6 +252,111 @@ export default class CapacityModal extends LightningElement {
         });
     }
 
+    // ── Drilldown ─────────────────────────────────────────────────────────────
+
+    _handleBarClick(projectId, projectName) {
+        this._drilldownTitle  = projectName;
+        this._drilldownActive = true;
+        getProjectWeeklyHours({ projectId })
+            .then(data => {
+                this._renderDrilldownChart(data);
+            })
+            .catch(() => {
+                this._drilldownActive = false;
+                this.chartError = 'Failed to load project trend data.';
+            });
+    }
+
+    closeDrilldown() {
+        this._drilldownActive = false;
+        this._drilldownTitle  = '';
+        this._destroyChart();
+        this._tryRender();
+    }
+
+    _renderDrilldownChart(data) {
+        if (!data) return;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            const canvas = this.refs.canvas;
+            if (!canvas) return;
+            this._destroyChart();
+
+            const isBlock = !data.committed || data.committed.length === 0;
+            const chartDatasets = [
+                {
+                    label:           'Hours Delivered',
+                    data:            data.delivered || [],
+                    borderColor:     '#00b4d8',
+                    backgroundColor: 'rgba(0,180,216,0.08)',
+                    borderWidth:     2,
+                    tension:         0.3,
+                    pointRadius:     3,
+                    pointHoverRadius: 6,
+                    fill:            true
+                }
+            ];
+            if (!isBlock) {
+                chartDatasets.push({
+                    label:           'Weekly Commitment',
+                    data:            data.committed,
+                    borderColor:     '#ef4444',
+                    backgroundColor: 'transparent',
+                    borderWidth:     2,
+                    borderDash:      [6, 4],
+                    tension:         0,
+                    pointRadius:     0,
+                    pointHitRadius:  0,
+                    fill:            false
+                });
+            }
+
+            /* global Chart */
+            this._chart = new Chart(canvas, {
+                type: 'line',
+                data: { labels: data.labels || [], datasets: chartDatasets },
+                options: {
+                    responsive:          true,
+                    maintainAspectRatio: false,
+                    interaction:         { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display:  !isBlock,
+                            position: 'bottom',
+                            labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleColor:      '#e2e8f0',
+                            bodyColor:       '#94a3b8',
+                            borderColor:     '#334155',
+                            borderWidth:     1,
+                            padding:         10,
+                            callbacks: {
+                                label: (ctx) => {
+                                    const v   = ctx.parsed.y;
+                                    const fmt = Number.isInteger(v) ? v : v.toFixed(1);
+                                    return ` ${ctx.dataset.label}: ${fmt}h`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8', font: { size: 11 } },
+                            grid:  { color: 'rgba(255,255,255,0.05)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8', font: { size: 11 } },
+                            grid:  { color: 'rgba(255,255,255,0.07)' }
+                        }
+                    }
+                }
+            });
+        }, 0);
+    }
+
     _destroyChart() {
         if (this._chart) {
             this._chart.destroy();
@@ -234,6 +365,15 @@ export default class CapacityModal extends LightningElement {
     }
 
     // ── Event handlers ────────────────────────────────────────────────────────
+
+    handleProjectClick(event) {
+        const id = event.currentTarget.dataset.id;
+        if (!id) return;
+        this[NavigationMixin.Navigate]({
+            type:       'standard__recordPage',
+            attributes: { recordId: id, actionName: 'view' }
+        });
+    }
 
     handleClose() {
         this.dispatchEvent(new CustomEvent('close'));
