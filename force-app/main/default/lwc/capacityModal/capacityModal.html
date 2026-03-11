@@ -17,7 +17,7 @@
 
             <!-- KPIs (full width) -->
             <div class="modal-kpis">
-                <template for:each={enrichedKpis} for:item="k">
+                <template for:each={activeKpis} for:item="k">
                     <div key={k.label} class="modal-kpi">
                         <div class="modal-kpi-value-row">
                             <span class="modal-kpi-value">{k.value}</span>

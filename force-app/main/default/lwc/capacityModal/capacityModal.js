@@ -15,6 +15,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     chartError           = null;
     _drilldownActive     = false;
     _drilldownTitle      = '';
+    _drilldownData       = null;
     _canvasClickHandler  = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -92,6 +93,37 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
     get hasBarDrilldown() {
         return this.cardData?.chartType === 'bar' && this.cardData?.chartProjectIds?.length > 0;
+    }
+
+    get drilldownKpis() {
+        const dd = this._drilldownData;
+        if (!dd) return [];
+
+        const hoursStr  = `${dd.totalDelivered != null ? dd.totalDelivered : 0}h`;
+
+        const ratePct   = dd.deliveryRate;
+        const rateStr   = ratePct != null ? `${ratePct}%` : '—';
+        const rateTrend = ratePct == null ? 'neutral' : ratePct >= 95 ? 'up' : ratePct >= 80 ? 'neutral' : 'down';
+
+        const ps = dd.paceStatus || '';
+        let paceLabel, paceTrend;
+        if      (ps.includes('Ahead'))                              { paceLabel = 'Ahead';    paceTrend = 'up'; }
+        else if (ps.includes('On Pace'))                            { paceLabel = 'On Pace';  paceTrend = 'up'; }
+        else if (ps.includes('Problem') || ps.includes('Houston')) { paceLabel = 'Critical'; paceTrend = 'down'; }
+        else if (ps.includes('Behind'))                             { paceLabel = 'Behind';   paceTrend = 'down'; }
+        else                                                        { paceLabel = '—';        paceTrend = 'neutral'; }
+
+        const trend = (t) => `modal-kpi-trend modal-kpi-trend--${t}`;
+        const icon  = (t) => t === 'up' ? '↑' : t === 'down' ? '↓' : '';
+        return [
+            { label: 'Hours Delivered', value: hoursStr,   trendClass: trend('neutral'), trendIcon: '',           sub: '8-week total' },
+            { label: 'Delivery Rate',   value: rateStr,    trendClass: trend(rateTrend), trendIcon: icon(rateTrend), sub: 'vs committed hrs' },
+            { label: 'Pace Status',     value: paceLabel,  trendClass: trend(paceTrend), trendIcon: icon(paceTrend), sub: 'current project pace' }
+        ];
+    }
+
+    get activeKpis() {
+        return this._drilldownActive && this._drilldownData ? this.drilldownKpis : this.enrichedKpis;
     }
 
     // ── Chart rendering ───────────────────────────────────────────────────────
@@ -286,12 +318,15 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _handleBarClick(projectId, projectName) {
         this._drilldownTitle  = projectName;
         this._drilldownActive = true;
+        this._drilldownData   = null;
         getProjectWeeklyHours({ projectId })
             .then(data => {
+                this._drilldownData = data;
                 this._renderDrilldownChart(data);
             })
             .catch(() => {
                 this._drilldownActive = false;
+                this._drilldownData   = null;
                 this.chartError = 'Failed to load project trend data.';
             });
     }
@@ -299,6 +334,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     closeDrilldown() {
         this._drilldownActive = false;
         this._drilldownTitle  = '';
+        this._drilldownData   = null;
         this._destroyChart();
         this._tryRender();
     }

@@ -44,7 +44,10 @@ public with sharing class CommandCenterController {
         @AuraEnabled public String        projectName;
         @AuraEnabled public List<String>  labels;
         @AuraEnabled public List<Decimal> delivered;
-        @AuraEnabled public List<Decimal> committed; // null for Block projects
+        @AuraEnabled public List<Decimal> committed;     // null for Block projects
+        @AuraEnabled public Decimal       totalDelivered; // sum of all 8 weeks (hours)
+        @AuraEnabled public Integer       deliveryRate;   // % vs committed; null for Block
+        @AuraEnabled public String        paceStatus;     // raw Pace_Status__c value
     }
 
     public class ProjectRow {
@@ -1005,7 +1008,7 @@ public with sharing class CommandCenterController {
         Date w8Ago = ws.addDays(-7 * 7); // 8 weeks back (current week = wk 8)
 
         List<Sprint__c> projs = [
-            SELECT Name, Weekly_Pace_Estimate__c, Contract_Type__c, Accountlu__r.Name
+            SELECT Name, Weekly_Pace_Estimate__c, Contract_Type__c, Pace_Status__c, Accountlu__r.Name
             FROM   Sprint__c WHERE Id = :projectId LIMIT 1
         ];
         if (projs.isEmpty()) return null;
@@ -1040,6 +1043,16 @@ public with sharing class CommandCenterController {
             dd.labels.add(weekLabel(wk));
             dd.delivered.add(h);
             if (!isBlock) dd.committed.add(wklyHrs);
+        }
+
+        // Summary KPIs for drilldown header
+        Decimal sumDelivered = 0;
+        for (Decimal h : dd.delivered) sumDelivered += h;
+        dd.totalDelivered = sumDelivered.setScale(1, RoundingMode.HALF_UP);
+        dd.paceStatus     = proj.Pace_Status__c;
+        if (!isBlock && wklyHrs > 0) {
+            Decimal committed8wk = wklyHrs * 8;
+            dd.deliveryRate = Integer.valueOf(((sumDelivered / committed8wk) * 100).setScale(0, RoundingMode.HALF_UP));
         }
         return dd;
     }
