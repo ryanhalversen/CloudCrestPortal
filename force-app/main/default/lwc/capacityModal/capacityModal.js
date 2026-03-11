@@ -380,9 +380,11 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     _navigateToProject(projectId) {
-        this[NavigationMixin.Navigate]({
+        this[NavigationMixin.GenerateUrl]({
             type:       'standard__recordPage',
             attributes: { recordId: projectId, actionName: 'view' }
+        }).then(url => {
+            window.open(url, '_blank');
         });
     }
 
@@ -398,9 +400,11 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     handleProjectClick(event) {
         const id = event.currentTarget.dataset.id;
         if (!id) return;
-        this[NavigationMixin.Navigate]({
+        this[NavigationMixin.GenerateUrl]({
             type:       'standard__recordPage',
             attributes: { recordId: id, actionName: 'view' }
+        }).then(url => {
+            window.open(url, '_blank');
         });
     }
 
