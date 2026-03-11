@@ -173,7 +173,7 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Demand Forecast', cd.title);
+        System.assertEquals('Utilization Forecast', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('line', cd.chartType);
         System.assertEquals(8, cd.chartLabels.size(), 'Should have 8-week labels');
@@ -193,11 +193,18 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Upcoming Deliverables', cd.title);
+        System.assertEquals('Client Transitions', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
-        // Our test project ends in 45 days → should be in "Due 31-60 Days"
-        System.assertEquals(1, cd.chartLabels.size(), 'Should track 1 upcoming project');
+        // Chart now shows weekly demand shape for 8 weeks
+        System.assertEquals(8, cd.chartLabels.size(), 'Should have 8-week labels');
+        System.assertEquals(1, cd.datasets.size(), 'Should have single demand dataset');
+        // Test project ends in 45 days → within 8 weeks → should appear in endings count
+        Boolean endingsKpiFound = false;
+        for (CommandCenterController.KPI k : cd.kpis) {
+            if (k.label == 'Endings in 8 wks') endingsKpiFound = true;
+        }
+        System.assert(endingsKpiFound, 'Should have Endings in 8 wks KPI');
     }
 
     @IsTest
@@ -207,7 +214,7 @@ private class CommandCenterControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
-        System.assertEquals('Capacity Planning', cd.title);
+        System.assertEquals('Assignment Forecast', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
         // Our test contractor with 20h/week

@@ -569,10 +569,9 @@ public with sharing class CommandCenterController {
         Date ws = Date.today().toStartOfWeek();
 
         List<Sprint__c> projects = [
-            SELECT Name, On_Time_Weekly_Pace__c, Project_End_Date__c
+            SELECT On_Time_Weekly_Pace__c, Project_End_Date__c
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-              AND  On_Time_Weekly_Pace__c > 0
         ];
 
         Decimal contractorCap = 0;
@@ -583,12 +582,14 @@ public with sharing class CommandCenterController {
         ]) {
             contractorCap += c.Available_Hours__c;
         }
-        Decimal totalCap = 105 + contractorCap; // 3 FTEs × 35h + contractors
+        // TODO: FTE capacity is hardcoded (3 × 35h = 105h/wk); make configurable if headcount changes
+        Decimal totalCap = 105 + contractorCap;
 
         List<String>  labels     = new List<String>();
         List<Decimal> demandData = new List<Decimal>();
         List<Decimal> capLine    = new List<Decimal>();
-        Decimal       next4Demand = 0;
+        Decimal wk4Demand = 0;
+        Decimal wk8Demand = 0;
 
         for (Integer i = 0; i < 8; i++) {
             Date wk = ws.addDays(i * 7);
@@ -601,95 +602,139 @@ public with sharing class CommandCenterController {
             }
             demandData.add(d.setScale(1, RoundingMode.HALF_UP));
             capLine.add(totalCap);
-            if (i < 4) next4Demand += d;
+            if (i == 3) wk4Demand = d;  // 4th week in forecast
+            if (i == 7) wk8Demand = d;  // 8th week in forecast
         }
 
-        Decimal avgDemand = (next4Demand / 4).setScale(1, RoundingMode.HALF_UP);
-        Decimal surplus   = (totalCap - avgDemand).setScale(1, RoundingMode.HALF_UP);
+        Integer wk4Util = totalCap > 0
+            ? Integer.valueOf(((wk4Demand / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+        Integer wk8Util = totalCap > 0
+            ? Integer.valueOf(((wk8Demand / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+        Decimal surplus = (totalCap - wk4Demand).setScale(1, RoundingMode.HALF_UP);
+
+        // Sweet spot: 80–95% utilization; both extremes (<60% or >95%) are poor
+        String status = totalCap == 0 ? 'neutral'
+            : (wk4Util < 60 || wk4Util > 95) ? 'critical'
+            : wk4Util >= 80                    ? 'good'
+            : 'warning'; // 60–79%
 
         ChartDataset demDs = ds('Demand',   demandData, '#f59e0b');
         ChartDataset capDs = ds('Capacity', capLine,    '#0e7490');
         capDs.isDashed = true;
 
         CardData cd = new CardData();
-        cd.title    = 'Demand Forecast';
+        cd.title    = 'Utilization Forecast';
         cd.subtitle = 'Next 8 Weeks';
-        cd.question   = 'Will capacity cover upcoming demand?';
-        cd.status     = surplus < -10 ? 'critical' : surplus < 0 ? 'warning' : 'good';
-        cd.benchmarks = bm('> 10h over cap', 'Within 10h of cap', '10h+ surplus');
+        cd.question   = 'Is our forecasted utilization balanced?';
+        cd.status     = status;
+        cd.benchmarks = bm('< 60% or > 95% util', '60–80% utilization', '80–95% utilization');
         cd.kpis = new List<KPI>{
-            kpi('4-Wk Avg Demand', avgDemand + 'h/wk', 'neutral',                  'projected weekly'),
-            kpi('Team Capacity',   totalCap  + 'h/wk', 'neutral',                  'FTE + contractors'),
-            kpi('Weekly Balance',  (surplus >= 0 ? '+' : '') + surplus + 'h', surplus >= 0 ? 'up' : 'down', surplus >= 0 ? 'surplus' : 'over capacity')
+            kpi('Wk 4 Forecast', wk4Util + '%', (wk4Util >= 80 && wk4Util <= 95) ? 'up' : 'down', 'projected utilization'),
+            kpi('Wk 8 Forecast', wk8Util + '%', (wk8Util >= 80 && wk8Util <= 95) ? 'up' : 'down', 'projected utilization'),
+            kpi('Net Balance',   (surplus >= 0 ? '+' : '') + surplus + 'h', surplus >= 0 ? 'up' : 'down', surplus >= 0 ? 'surplus at wk 4' : 'deficit at wk 4')
         };
         cd.chartType   = 'line';
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ demDs, capDs };
         cd.insights    = new List<String>{
-            'Projected avg demand of ' + avgDemand + 'h/week over next 4 weeks',
-            surplus >= 0 ? 'Capacity surplus of ' + surplus + 'h/week — room to grow' : 'Team over capacity by ' + Math.abs(surplus) + 'h/wk — review resourcing',
-            projects.size() + ' active projects contributing to demand forecast'
+            'Week 4: ' + wk4Util + '% utilization (' + wk4Demand.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalCap.setScale(0, RoundingMode.HALF_UP) + 'h capacity)',
+            'Week 8: ' + wk8Util + '% utilization — demand trending ' + (wk8Demand <= wk4Demand ? 'down as projects close' : 'up as work ramps'),
+            surplus >= 0 ? surplus + 'h/week surplus at week 4 — room to take on new work' : Math.abs(surplus) + 'h/week over capacity at week 4 — review resourcing'
         };
         return cd;
     }
 
     @AuraEnabled(cacheable=true)
     public static CardData getFutureCustomer() {
-        Date today = Date.today();
-        Date d30   = today.addDays(30);
-        Date d60   = today.addDays(60);
+        Date today   = Date.today();
+        Date w8Ahead = today.addDays(56); // 8 weeks
+        Date ws      = today.toStartOfWeek();
 
-        List<Sprint__c> upcoming = [
-            SELECT Name, Project_End_Date__c, Contracted_Hours_Sprint__c,
-                   Hours_Delivered__c, Pace_Status__c, Accountlu__r.Name
+        // Active projects ending in the next 8 weeks
+        List<Sprint__c> ending = [
+            SELECT Name, Project_End_Date__c, cc_Renewal_Notes__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c          = 'In Progress'
               AND  Project_End_Date__c != null
               AND  Project_End_Date__c >= :today
+              AND  Project_End_Date__c <= :w8Ahead
             ORDER BY Project_End_Date__c ASC
-            LIMIT  12
+            LIMIT  20
         ];
 
-        Integer in30 = 0, in3160 = 0;
-        List<String>  labels = new List<String>();
-        List<Decimal> remHrs = new List<Decimal>();
+        Integer endingCount = ending.size();
+        Integer withPlan    = 0;
+        for (Sprint__c s : ending) {
+            // Proxy for transition plan: cc_Renewal_Notes__c has content
+            if (s.cc_Renewal_Notes__c != null && s.cc_Renewal_Notes__c.trim() != '') withPlan++;
+        }
+        Integer unplanned = endingCount - withPlan;
 
-        for (Sprint__c s : upcoming) {
-            if      (s.Project_End_Date__c <= d30) in30++;
-            else if (s.Project_End_Date__c <= d60) in3160++;
+        // Incoming pipeline: Not Started projects
+        Integer incoming = [
+            SELECT COUNT() FROM Sprint__c WHERE Status__c = 'Not Started'
+        ];
 
-            String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
-            labels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-            Decimal rem = Math.max(
-                (s.Contracted_Hours_Sprint__c != null ? s.Contracted_Hours_Sprint__c : 0)
-                - (s.Hours_Delivered__c != null ? s.Hours_Delivered__c : 0), 0);
-            remHrs.add(rem);
+        // Weekly demand shape for all active projects (8-week bar chart)
+        List<Sprint__c> active = [
+            SELECT On_Time_Weekly_Pace__c, Project_End_Date__c
+            FROM   Sprint__c
+            WHERE  Status__c = 'In Progress'
+        ];
+        List<String>  labels     = new List<String>();
+        List<Decimal> demandData = new List<Decimal>();
+        for (Integer i = 0; i < 8; i++) {
+            Date wk = ws.addDays(i * 7);
+            labels.add(weekLabel(wk));
+            Decimal d = 0;
+            for (Sprint__c s : active) {
+                if (s.Project_End_Date__c == null || wk <= s.Project_End_Date__c) {
+                    d += s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+                }
+            }
+            demandData.add(d.setScale(1, RoundingMode.HALF_UP));
         }
 
+        // Status: any ending project without a transition plan = critical
+        String status = endingCount == 0 ? 'neutral'
+            : (unplanned > 0 && unplanned == endingCount) ? 'critical'
+            : unplanned > 0                               ? 'warning'
+            : 'good';
+
         CardData cd = new CardData();
-        cd.title    = 'Upcoming Deliverables';
-        cd.subtitle = 'Project End Dates';
-        cd.question   = 'Which client deadlines are approaching?';
-        cd.status     = in30 > 2 ? 'critical' : in30 > 0 ? 'warning' : 'good';
-        cd.benchmarks = bm('3+ due in 30 days', '1–2 due in 30 days', '0 due in 30 days');
+        cd.title    = 'Client Transitions';
+        cd.subtitle = 'Next 8 Weeks';
+        cd.question   = 'Are client transitions and forecasts accounted for?';
+        cd.status     = status;
+        cd.benchmarks = bm('Endings w/o notes', 'Some transitions noted', 'All transitions noted');
         cd.kpis = new List<KPI>{
-            kpi('Due ≤ 30 Days',  String.valueOf(in30),    in30   > 0 ? 'down' : 'neutral', 'projects'),
-            kpi('Due 31–60 Days', String.valueOf(in3160),  'neutral',                        'projects'),
-            kpi('Total Tracked',  String.valueOf(upcoming.size()), 'neutral',               'active projects')
+            kpi('Endings in 8 wks',   String.valueOf(endingCount), endingCount > 0 ? 'down' : 'neutral', 'projects closing'),
+            kpi('Transition Notes',   withPlan + '/' + endingCount, withPlan == endingCount ? 'up' : 'down', 'renewals documented'),
+            kpi('Incoming Pipeline',  String.valueOf(incoming),     incoming > 0 ? 'up' : 'neutral', 'not-started projects')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ ds('Remaining Hours', remHrs, '#f59e0b') };
+        cd.datasets    = new List<ChartDataset>{ ds('Demand h/wk', demandData, '#f59e0b') };
         cd.insights    = new List<String>{
-            in30   > 0 ? in30   + ' project(s) due within 30 days — verify delivery pace' : 'No projects due within 30 days',
-            in3160 > 0 ? in3160 + ' project(s) due in 31–60 day window — monitor closely'  : 'No projects due in 31–60 day window',
-            upcoming.size() + ' active projects with defined end dates being tracked'
+            endingCount + ' project' + (endingCount == 1 ? '' : 's') + ' ending in the next 8 weeks',
+            unplanned > 0
+                ? unplanned + ' ending project' + (unplanned == 1 ? '' : 's') + ' have no renewal or transition notes — act now'
+                : 'All ending projects have transition notes on file',
+            incoming + ' not-started project' + (incoming == 1 ? '' : 's') + ' in the pipeline'
         };
         return cd;
     }
 
     @AuraEnabled(cacheable=true)
     public static CardData getFutureEmployee() {
+        Date ws         = Date.today().toStartOfWeek();
+        Date twoWksAgo  = Date.today().addDays(-14);
+        Date wk4Date    = ws.addDays(3 * 7); // 4th week from now
+
+        // Contractor roster and available capacity
+        Map<String, Decimal> contractorMap = new Map<String, Decimal>();
         List<String>  labels    = new List<String>();
         List<Decimal> available = new List<Decimal>();
         Decimal totalContractor = 0;
@@ -701,48 +746,75 @@ public with sharing class CommandCenterController {
             ORDER BY Name ASC
             LIMIT  10
         ]) {
+            contractorMap.put(c.Name, c.Available_Hours__c);
             labels.add(c.Name);
             available.add(c.Available_Hours__c);
             totalContractor += c.Available_Hours__c;
         }
 
-        Decimal fteHrs   = 105;
-        Decimal totalHrs = fteHrs + totalContractor;
+        // Active contractors: logged time in the last 14 days
+        Set<String> recentNames = new Set<String>();
+        for (AggregateResult ar : [
+            SELECT CreatedBy.Name nm
+            FROM   Time__c
+            WHERE  Logged_Date__c >= :twoWksAgo
+            GROUP BY CreatedBy.Name
+        ]) {
+            recentNames.add((String) ar.get('nm'));
+        }
+        Integer activeNow = 0;
+        for (String nm : contractorMap.keySet()) {
+            if (recentNames.contains(nm)) activeNow++;
+        }
 
-        // Next-week demand
-        Date nextWeek = Date.today().toStartOfWeek().addDays(7);
-        Decimal weeklyDemand = 0;
+        // Week-4 demand from active projects
+        Decimal wk4Demand = 0;
         for (Sprint__c s : [
             SELECT On_Time_Weekly_Pace__c, Project_End_Date__c
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-              AND  On_Time_Weekly_Pace__c > 0
         ]) {
-            if (s.Project_End_Date__c == null || s.Project_End_Date__c >= nextWeek) {
-                weeklyDemand += s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            if (s.Project_End_Date__c == null || wk4Date <= s.Project_End_Date__c) {
+                wk4Demand += s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
             }
         }
 
-        Decimal surplus = (totalHrs - weeklyDemand).setScale(1, RoundingMode.HALF_UP);
+        Integer wk4Util = totalContractor > 0
+            ? Integer.valueOf(((wk4Demand / totalContractor) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        // Unaccounted slots: unfilled contractor capacity at week 4 expressed as headcount
+        Decimal avgContractorHrs   = contractorMap.size() > 0 ? totalContractor / contractorMap.size() : 0;
+        Decimal unaccountedHrs     = Math.max(0, totalContractor - wk4Demand);
+        Integer unaccountedSlots   = (avgContractorHrs > 0 && contractorMap.size() > 0)
+            ? Integer.valueOf((unaccountedHrs / avgContractorHrs).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+
+        String status = contractorMap.size() == 0 ? 'neutral'
+            : wk4Util < 60  ? 'critical'
+            : wk4Util >= 80 ? 'good'
+            : 'warning';
 
         CardData cd = new CardData();
-        cd.title    = 'Capacity Planning';
-        cd.subtitle = 'Contractor Availability';
-        cd.question   = 'Do we have bandwidth for what\'s ahead?';
-        cd.status     = surplus < -10 ? 'critical' : surplus < 0 ? 'warning' : 'good';
-        cd.benchmarks = bm('> 10h deficit', 'Within 10h of demand', '10h+ surplus');
+        cd.title    = 'Assignment Forecast';
+        cd.subtitle = 'Next 8 Weeks';
+        cd.question   = 'Has everyone been assigned in the forecast?';
+        cd.status     = status;
+        cd.benchmarks = bm('Unaccounted contractors', 'Gaps within 2 wks', 'All assigned 4+ wks out');
         cd.kpis = new List<KPI>{
-            kpi('Contractor Hrs', hrs(totalContractor * 60), 'neutral',                  'per week total'),
-            kpi('Full Team Cap',  hrs(totalHrs * 60),        'neutral',                  'FTE + contractors/wk'),
-            kpi('vs Demand',      (surplus >= 0 ? '+' : '') + surplus + 'h', surplus >= 0 ? 'up' : 'down', surplus >= 0 ? 'surplus' : 'over capacity')
+            kpi('Active Now',       activeNow + '/' + contractorMap.size(),  activeNow == contractorMap.size() ? 'up' : 'down', 'logged in last 14d'),
+            kpi('Wk 4 Utilization', wk4Util + '%',                           wk4Util >= 80 ? 'up' : 'down', 'forecasted demand'),
+            kpi('Unaccounted Slots', String.valueOf(unaccountedSlots),        unaccountedSlots > 0 ? 'down' : 'neutral', 'unfilled at wk 4')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ ds('Hrs / Week', available, '#0077b6') };
         cd.insights    = new List<String>{
-            hrs(totalContractor * 60) + '/week in contractor capacity across ' + labels.size() + ' contractors',
-            hrs(fteHrs * 60) + '/week FTE team (3 × 35h) + ' + hrs(totalContractor * 60) + ' contractor',
-            surplus >= 0 ? surplus + 'h/week surplus against next-week demand' : Math.abs(surplus) + 'h/week capacity deficit next week'
+            activeNow + ' of ' + contractorMap.size() + ' contractors actively engaged in the last 14 days',
+            'Week 4 forecast: ' + wk4Util + '% utilization (' + wk4Demand.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalContractor.setScale(0, RoundingMode.HALF_UP) + 'h capacity)',
+            unaccountedSlots > 0
+                ? unaccountedSlots + ' contractor slot' + (unaccountedSlots == 1 ? '' : 's') + ' unaccounted for at week 4 — assignment planning needed'
+                : 'Forecasted demand accounts for all contractor capacity at week 4'
         };
         return cd;
     }
