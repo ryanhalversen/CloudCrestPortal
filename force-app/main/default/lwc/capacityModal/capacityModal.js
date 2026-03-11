@@ -214,14 +214,22 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     ? { mode: 'index', intersect: false }
                     : { mode: 'nearest', intersect: true },
                 onHover: hasDrilldown ? (event, elements) => {
-                    event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                    const isLabel = this._getXAxisLabelIndex(event) >= 0;
+                    event.native.target.style.cursor =
+                        (elements.length || isLabel) ? 'pointer' : 'default';
                 } : undefined,
                 onClick: hasDrilldown ? (event, elements) => {
-                    if (!elements.length) return;
-                    const idx       = elements[0].index;
-                    const projectId = projectIds[idx];
-                    const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
-                    if (projectId) this._handleBarClick(projectId, rawLabel);
+                    if (elements.length) {
+                        // Bar click → drilldown
+                        const idx       = elements[0].index;
+                        const projectId = projectIds[idx];
+                        const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
+                        if (projectId) this._handleBarClick(projectId, rawLabel);
+                    } else {
+                        // X-axis label click → navigate to record
+                        const idx = this._getXAxisLabelIndex(event);
+                        if (idx >= 0 && projectIds[idx]) this._navigateToProject(projectIds[idx]);
+                    }
                 } : undefined,
                 plugins: {
                     legend: {
@@ -355,6 +363,27 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 }
             });
         }, 0);
+    }
+
+    // Returns the chart x-axis tick index under the pointer, or -1 if not over a label
+    _getXAxisLabelIndex(event) {
+        if (!this._chart || event.x == null || event.y == null) return -1;
+        const { chartArea, scales } = this._chart;
+        if (!scales.x || event.y <= chartArea.bottom) return -1;
+        let closest = -1;
+        let closestDist = Infinity;
+        for (let i = 0; i < scales.x.ticks.length; i++) {
+            const dist = Math.abs(event.x - scales.x.getPixelForTick(i));
+            if (dist < closestDist) { closestDist = dist; closest = i; }
+        }
+        return closestDist < 60 ? closest : -1;
+    }
+
+    _navigateToProject(projectId) {
+        this[NavigationMixin.Navigate]({
+            type:       'standard__recordPage',
+            attributes: { recordId: projectId, actionName: 'view' }
+        });
     }
 
     _destroyChart() {
