@@ -1,0 +1,42 @@
+<!-- force-app/main/default/lwc/capacityCard/capacityCard.html -->
+<template>
+    <div class={cardClass} onclick={handleClick}>
+
+        <!-- Loading skeleton -->
+        <template if:false={hasData}>
+            <div class="card-skeleton">
+                <div class="skeleton-bar"></div>
+                <div class="skeleton-bar sk-short"></div>
+                <div class="skeleton-kpis">
+                    <div class="skeleton-kpi"></div>
+                    <div class="skeleton-kpi"></div>
+                    <div class="skeleton-kpi"></div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Card content -->
+        <template if:true={hasData}>
+            <div class="card-top">
+                <span class={statusDotClass}></span>
+                <span class="card-title">{cardData.title}</span>
+                <span class="card-expand" title="View details">↗</span>
+            </div>
+            <p class="card-subtitle">{cardData.subtitle}</p>
+
+            <div class="card-kpis">
+                <template for:each={cardData.kpis} for:item="k">
+                    <div key={k.label} class="kpi-item">
+                        <div class="kpi-value-row">
+                            <span class="kpi-value">{k.value}</span>
+                            <span class={k.trendClass}>{k.trendIcon}</span>
+                        </div>
+                        <span class="kpi-label">{k.label}</span>
+                        <span class="kpi-sub">{k.sub}</span>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+    </div>
+</template>

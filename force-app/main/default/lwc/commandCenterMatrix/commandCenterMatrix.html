@@ -1,0 +1,78 @@
+<!-- force-app/main/default/lwc/commandCenterMatrix/commandCenterMatrix.html -->
+<template>
+    <div class="matrix-wrapper">
+
+        <!-- ── Header ── -->
+        <div class="matrix-header">
+            <div class="header-icon">
+                <lightning-icon icon-name="utility:matrix" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+            </div>
+            <div>
+                <h2 class="header-title">Command Center</h2>
+                <p class="header-sub">Delivery Capacity Overview</p>
+            </div>
+            <div class="header-refresh">
+                <button class="btn-refresh" onclick={handleRefresh} title="Refresh">↺ Refresh</button>
+                <span class="header-updated">Updated: {currentTime}</span>
+            </div>
+        </div>
+
+        <!-- ── Error banner ── -->
+        <template if:true={hasError}>
+            <div class="error-banner">
+                <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                Some data failed to load. Check your connection and try refreshing.
+            </div>
+        </template>
+
+        <!-- ── 3×3 Grid ── -->
+        <div class="matrix-grid">
+
+            <!-- Column headers -->
+            <div class="grid-corner"></div>
+            <div class="col-label col-mgmt">
+                <span class="col-icon">🏛</span>Management
+            </div>
+            <div class="col-label col-cust">
+                <span class="col-icon">🤝</span>Customer
+            </div>
+            <div class="col-label col-emp">
+                <span class="col-icon">👥</span>Employee
+            </div>
+
+            <!-- Past row -->
+            <div class="row-label row-past">
+                <span class="row-label-text">Past</span>
+                <span class="row-label-sub">Last 4 wks</span>
+            </div>
+            <c-capacity-card card-data={pastMgmtData}    oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={pastCustData}    oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={pastEmpData}     oncardclick={handleCardClick}></c-capacity-card>
+
+            <!-- Present row -->
+            <div class="row-label row-present">
+                <span class="row-label-text">Present</span>
+                <span class="row-label-sub">This week</span>
+            </div>
+            <c-capacity-card card-data={presentMgmtData} oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={presentCustData}  oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={presentEmpData}   oncardclick={handleCardClick}></c-capacity-card>
+
+            <!-- Future row -->
+            <div class="row-label row-future">
+                <span class="row-label-text">Future</span>
+                <span class="row-label-sub">Next 8 wks</span>
+            </div>
+            <c-capacity-card card-data={futureMgmtData} oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={futureCustData}  oncardclick={handleCardClick}></c-capacity-card>
+            <c-capacity-card card-data={futureEmpData}   oncardclick={handleCardClick}></c-capacity-card>
+
+        </div>
+
+        <!-- ── Detail Modal ── -->
+        <template if:true={activeCard}>
+            <c-capacity-modal card-data={activeCard} onclose={handleCloseModal}></c-capacity-modal>
+        </template>
+
+    </div>
+</template>

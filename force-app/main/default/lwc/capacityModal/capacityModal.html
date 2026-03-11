@@ -1,0 +1,58 @@
+<!-- force-app/main/default/lwc/capacityModal/capacityModal.html -->
+<template>
+    <div class="modal-backdrop" onclick={handleBackdropClick}>
+        <div class="modal-container" onclick={stopProp}>
+
+            <!-- Header -->
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <span class={statusBadgeClass}>{cardData.status}</span>
+                    <div>
+                        <h2 class="modal-title">{cardData.title}</h2>
+                        <p class="modal-subtitle">{cardData.subtitle}</p>
+                    </div>
+                </div>
+                <button class="modal-close" onclick={handleClose} title="Close">&times;</button>
+            </div>
+
+            <!-- KPIs -->
+            <div class="modal-kpis">
+                <template for:each={enrichedKpis} for:item="k">
+                    <div key={k.label} class="modal-kpi">
+                        <div class="modal-kpi-value-row">
+                            <span class="modal-kpi-value">{k.value}</span>
+                            <span class={k.trendClass}>{k.trendIcon}</span>
+                        </div>
+                        <span class="modal-kpi-label">{k.label}</span>
+                        <span class="modal-kpi-sub">{k.sub}</span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Chart -->
+            <div class="chart-section">
+                <template if:true={chartError}>
+                    <p class="chart-error">{chartError}</p>
+                </template>
+                <template if:false={chartError}>
+                    <div class="chart-wrap">
+                        <canvas lwc:ref="canvas"></canvas>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Insights -->
+            <template if:true={hasInsights}>
+                <div class="insights-section">
+                    <h4 class="insights-heading">Insights</h4>
+                    <ul class="insights-list">
+                        <template for:each={cardData.insights} for:item="line">
+                            <li key={line} class="insight-item">{line}</li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+
+        </div>
+    </div>
+</template>
