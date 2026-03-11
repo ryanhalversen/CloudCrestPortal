@@ -22,6 +22,7 @@ public with sharing class CommandCenterController {
     public class CardData {
         @AuraEnabled public String             title;
         @AuraEnabled public String             subtitle;
+        @AuraEnabled public String             question;  // The key question this card answers
         @AuraEnabled public String             status;    // 'good','warning','critical','neutral'
         @AuraEnabled public List<KPI>          kpis;
         @AuraEnabled public String             chartType; // 'bar','line','doughnut'
@@ -100,6 +101,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Delivery Performance';
         cd.subtitle = 'Last 4 Weeks';
+        cd.question = 'Are we delivering at pace?';
         cd.status   = status;
         cd.kpis = new List<KPI>{
             kpi('Hours Logged',      hrs(totalMins),             'neutral',                     '4-week total'),
@@ -162,6 +164,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Client Billing';
         cd.subtitle = 'Last 4 Weeks';
+        cd.question = 'Who are we billing and how much?';
         cd.status   = totalMins > 0 ? 'good' : 'warning';
         cd.kpis = new List<KPI>{
             kpi('Billable Hours',   hrs(totalMins),              'neutral', '4-week total'),
@@ -218,6 +221,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Team Utilization';
         cd.subtitle = 'Last 4 Weeks';
+        cd.question = 'Is the team working at full capacity?';
         cd.status   = utilPct >= 75 ? 'good' : utilPct >= 50 ? 'warning' : 'critical';
         cd.kpis = new List<KPI>{
             kpi('Team Total',    hrs(totalMins),              'neutral',                  '4-week total'),
@@ -274,6 +278,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Story Pipeline';
         cd.subtitle = 'Active Stories by Status';
+        cd.question = 'What\'s blocking delivery right now?';
         cd.status   = blocked > 5 ? 'critical' : blocked > 2 ? 'warning' : 'good';
         cd.kpis = new List<KPI>{
             kpi('In Progress',  String.valueOf(wip),     'neutral',                          'stories'),
@@ -323,6 +328,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Project Health';
         cd.subtitle = 'Active Projects';
+        cd.question = 'Are client projects on track?';
         cd.status   = critical > 0 ? 'critical' : atRisk > 0 ? 'warning' : 'good';
         cd.kpis = new List<KPI>{
             kpi('On Track',  String.valueOf(onTrack),  'up',                          'projects'),
@@ -383,6 +389,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Weekly Utilization';
         cd.subtitle = 'This Week (Mon–Today)';
+        cd.question = 'Is capacity being used this week?';
         cd.status   = utilPct >= 75 ? 'good' : utilPct >= 40 ? 'warning' : 'critical';
         cd.kpis = new List<KPI>{
             kpi('Logged This Week', hrs(totalLogged),             'neutral',                  'hours'),
@@ -452,6 +459,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Demand Forecast';
         cd.subtitle = 'Next 8 Weeks';
+        cd.question = 'Will capacity cover upcoming demand?';
         cd.status   = surplus < -10 ? 'critical' : surplus < 0 ? 'warning' : 'good';
         cd.kpis = new List<KPI>{
             kpi('4-Wk Avg Demand', avgDemand + 'h/wk', 'neutral',                  'projected weekly'),
@@ -505,6 +513,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Upcoming Deliverables';
         cd.subtitle = 'Project End Dates';
+        cd.question = 'Which client deadlines are approaching?';
         cd.status   = in30 > 2 ? 'critical' : in30 > 0 ? 'warning' : 'good';
         cd.kpis = new List<KPI>{
             kpi('Due ≤ 30 Days',  String.valueOf(in30),    in30   > 0 ? 'down' : 'neutral', 'projects'),
@@ -562,6 +571,7 @@ public with sharing class CommandCenterController {
         CardData cd = new CardData();
         cd.title    = 'Capacity Planning';
         cd.subtitle = 'Contractor Availability';
+        cd.question = 'Do we have bandwidth for what\'s ahead?';
         cd.status   = surplus < -10 ? 'critical' : surplus < 0 ? 'warning' : 'good';
         cd.kpis = new List<KPI>{
             kpi('Contractor Hrs', hrs(totalContractor * 60), 'neutral',                  'per week total'),

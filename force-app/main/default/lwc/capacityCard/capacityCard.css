@@ -3,14 +3,14 @@
 .capacity-card {
     background: #1e293b;
     border-radius: 12px;
-    padding: 20px 22px 18px;
+    padding: 18px 20px 16px;
     cursor: pointer;
-    border: 1px solid #334155;
+    border: 1px solid #2d3f55;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     min-height: 180px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
 }
 
 .capacity-card:hover {
@@ -24,22 +24,23 @@
 .capacity-card--critical { border-left: 3px solid #ef4444; }
 .capacity-card--neutral  { border-left: 3px solid #475569; }
 
-/* ── Top row ── */
+/* ── Context label row ── */
 .card-top {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
+    margin-bottom: 12px;
 }
 
 .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
 }
-.status-dot--good     { background: #22c55e; box-shadow: 0 0 6px #22c55e80; }
-.status-dot--warning  { background: #f59e0b; box-shadow: 0 0 6px #f59e0b80; }
-.status-dot--critical { background: #ef4444; box-shadow: 0 0 6px #ef444480; animation: pulse 1.5s infinite; }
+.status-dot--good     { background: #22c55e; box-shadow: 0 0 5px #22c55e80; }
+.status-dot--warning  { background: #f59e0b; box-shadow: 0 0 5px #f59e0b80; }
+.status-dot--critical { background: #ef4444; box-shadow: 0 0 5px #ef444480; animation: pulse 1.5s infinite; }
 .status-dot--neutral  { background: #475569; }
 
 @keyframes pulse {
@@ -48,40 +49,41 @@
 }
 
 .card-title {
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 700;
-    color: #f1f5f9;
+    color: #475569;
     flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: 0.01em;
 }
 
 .card-expand {
-    font-size: 13px;
-    color: #475569;
+    font-size: 12px;
+    color: #334155;
     opacity: 0;
     transition: opacity 0.15s;
     flex-shrink: 0;
 }
 .capacity-card:hover .card-expand { opacity: 1; color: #00b4d8; }
 
-/* ── Subtitle ── */
-.card-subtitle {
-    margin: 0;
-    font-size: 11px;
-    color: #475569;
-    font-weight: 400;
-    margin-top: -6px;
+/* ── Question ── */
+.card-question {
+    margin: 0 0 auto;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1.4;
+    padding-bottom: 14px;
 }
 
-/* ── KPI block ── */
+/* ── KPIs ── */
 .card-kpis {
     display: flex;
     gap: 0;
-    margin-top: auto;
-    padding-top: 10px;
+    padding-top: 12px;
     border-top: 1px solid #2d3f55;
 }
 
@@ -90,7 +92,7 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 0 14px;
+    padding: 0 12px;
     border-left: 1px solid #2d3f55;
 }
 .kpi-item:first-child {
@@ -101,21 +103,20 @@
 .kpi-value-row {
     display: flex;
     align-items: baseline;
-    gap: 4px;
-    flex-wrap: nowrap;
+    gap: 3px;
 }
 
 .kpi-value {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: #f1f5f9;
     line-height: 1;
-    white-space: nowrap;
     letter-spacing: -0.02em;
+    white-space: nowrap;
 }
 
 .kpi-trend {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1;
 }
@@ -125,18 +126,10 @@
 
 .kpi-label {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.kpi-sub {
-    font-size: 10px;
-    color: #3d5166;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -146,18 +139,19 @@
 .card-skeleton {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     flex: 1;
 }
 
 .skeleton-bar {
-    height: 13px;
-    border-radius: 6px;
+    height: 11px;
+    border-radius: 5px;
     background: linear-gradient(90deg, #243044 25%, #2e3e56 50%, #243044 75%);
     background-size: 200% 100%;
     animation: shimmer 1.6s infinite linear;
 }
-.sk-short { width: 55%; }
+.sk-short    { width: 45%; }
+.sk-question { height: 16px; width: 90%; }
 
 .skeleton-kpis {
     display: flex;
@@ -169,7 +163,7 @@
 
 .skeleton-kpi {
     flex: 1;
-    height: 48px;
+    height: 44px;
     border-radius: 6px;
     background: linear-gradient(90deg, #243044 25%, #2e3e56 50%, #243044 75%);
     background-size: 200% 100%;

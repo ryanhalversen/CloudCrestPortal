@@ -5,8 +5,8 @@
         <!-- Loading skeleton -->
         <template if:false={hasData}>
             <div class="card-skeleton">
-                <div class="skeleton-bar"></div>
                 <div class="skeleton-bar sk-short"></div>
+                <div class="skeleton-bar sk-question"></div>
                 <div class="skeleton-kpis">
                     <div class="skeleton-kpi"></div>
                     <div class="skeleton-kpi"></div>
@@ -17,13 +17,18 @@
 
         <!-- Card content -->
         <template if:true={hasData}>
+
+            <!-- Context label row -->
             <div class="card-top">
                 <span class={statusDotClass}></span>
                 <span class="card-title">{cardData.title}</span>
                 <span class="card-expand" title="View details">↗</span>
             </div>
-            <p class="card-subtitle">{cardData.subtitle}</p>
 
+            <!-- The question this card answers -->
+            <p class="card-question">{cardData.question}</p>
+
+            <!-- Supporting KPIs -->
             <div class="card-kpis">
                 <template for:each={cardData.kpis} for:item="k">
                     <div key={k.label} class="kpi-item">
@@ -32,10 +37,10 @@
                             <span class={k.trendClass}>{k.trendIcon}</span>
                         </div>
                         <span class="kpi-label">{k.label}</span>
-                        <span class="kpi-sub">{k.sub}</span>
                     </div>
                 </template>
             </div>
+
         </template>
 
     </div>
