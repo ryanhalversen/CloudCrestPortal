@@ -12,20 +12,25 @@
                     <div class="skeleton-kpi"></div>
                     <div class="skeleton-kpi"></div>
                 </div>
+                <div class="skeleton-benchmarks">
+                    <div class="skeleton-bm"></div>
+                    <div class="skeleton-bm"></div>
+                    <div class="skeleton-bm"></div>
+                </div>
             </div>
         </template>
 
         <!-- Card content -->
         <template if:true={hasData}>
 
-            <!-- Context label row -->
+            <!-- Context label -->
             <div class="card-top">
                 <span class={statusDotClass}></span>
                 <span class="card-title">{cardData.title}</span>
                 <span class="card-expand" title="View details">↗</span>
             </div>
 
-            <!-- The question this card answers -->
+            <!-- Key question -->
             <p class="card-question">{cardData.question}</p>
 
             <!-- Supporting KPIs -->
@@ -39,6 +44,25 @@
                         <span class="kpi-label">{k.label}</span>
                     </div>
                 </template>
+            </div>
+
+            <!-- Performance benchmarks -->
+            <div class="benchmarks">
+                <div class={poorClass}>
+                    <span class="bm-dot bm-dot--poor"></span>
+                    <span class="bm-level">Poor</span>
+                    <span class="bm-desc">{cardData.benchmarks.poor}</span>
+                </div>
+                <div class={goodClass}>
+                    <span class="bm-dot bm-dot--good"></span>
+                    <span class="bm-level">Good</span>
+                    <span class="bm-desc">{cardData.benchmarks.good}</span>
+                </div>
+                <div class={greatClass}>
+                    <span class="bm-dot bm-dot--great"></span>
+                    <span class="bm-level">Great</span>
+                    <span class="bm-desc">{cardData.benchmarks.great}</span>
+                </div>
             </div>
 
         </template>
