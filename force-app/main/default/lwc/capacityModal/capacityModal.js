@@ -424,14 +424,25 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const pillGap = 3;
                 const font    = 'bold 11px -apple-system,BlinkMacSystemFont,sans-serif';
 
-                const drawPills = (markers, suffix, lineColor, bgColor, textColor) => {
-                    for (let i = 0; i < markers.length; i++) {
-                        const entry = markers[i];
-                        if (!entry) continue;
-                        const names = entry.split('\n');
-                        const x = sc.x.getPixelForTick(i);
-                        // Dotted vertical line
-                        ctx.strokeStyle = lineColor;
+                // Build per-week pill lists, then draw each week's combined stack
+                const maxLen = Math.max(endMarkers.length, startMarkers.length);
+                for (let i = 0; i < maxLen; i++) {
+                    // Collect: ends first (red), then starts (green) — stacked bottom-to-top
+                    const pills = [];
+                    (endMarkers[i]   || '').split('\n').filter(Boolean).forEach(n =>
+                        pills.push({ text: n + ' ends',   bg: 'rgba(239,68,68,0.18)',  fg: 'rgba(239,68,68,0.95)',  line: 'rgba(239,68,68,0.6)'  })
+                    );
+                    (startMarkers[i] || '').split('\n').filter(Boolean).forEach(n =>
+                        pills.push({ text: n + ' starts', bg: 'rgba(34,197,94,0.18)', fg: 'rgba(34,197,94,0.95)', line: 'rgba(34,197,94,0.5)' })
+                    );
+                    if (!pills.length) continue;
+
+                    const x = sc.x.getPixelForTick(i);
+
+                    // Draw one dotted line per unique line color at this tick
+                    const lineColors = [...new Set(pills.map(p => p.line))];
+                    lineColors.forEach(lc => {
+                        ctx.strokeStyle = lc;
                         ctx.lineWidth   = 1.5;
                         ctx.setLineDash([3, 4]);
                         ctx.beginPath();
@@ -439,32 +450,28 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         ctx.lineTo(x, chartArea.bottom);
                         ctx.stroke();
                         ctx.setLineDash([]);
-                        // Stack pills
-                        ctx.font         = font;
-                        ctx.textAlign    = 'center';
-                        ctx.textBaseline = 'middle';
-                        for (let j = 0; j < names.length; j++) {
-                            const text       = names[j] + suffix;
-                            const tw         = ctx.measureText(text).width + 10;
-                            const pillBottom = chartArea.top - 10 - j * (pillH + pillGap);
-                            const pillTop    = pillBottom - pillH;
-                            const midY       = pillTop + pillH / 2;
-                            const rawLeft    = x - tw / 2;
-                            const pillLeft   = Math.max(chartArea.left, Math.min(rawLeft, chartArea.right - tw));
-                            const textX      = pillLeft + tw / 2;
-                            ctx.fillStyle = bgColor;
-                            ctx.beginPath();
-                            if (ctx.roundRect) ctx.roundRect(pillLeft, pillTop, tw, pillH, 4);
-                            else               ctx.rect(pillLeft, pillTop, tw, pillH);
-                            ctx.fill();
-                            ctx.fillStyle = textColor;
-                            ctx.fillText(text, textX, midY);
-                        }
-                    }
-                };
+                    });
 
-                drawPills(endMarkers,   ' ends',   'rgba(239,68,68,0.6)',  'rgba(239,68,68,0.18)',  'rgba(239,68,68,0.95)');
-                drawPills(startMarkers, ' starts', 'rgba(34,197,94,0.5)', 'rgba(34,197,94,0.18)', 'rgba(34,197,94,0.95)');
+                    ctx.font         = font;
+                    ctx.textAlign    = 'center';
+                    ctx.textBaseline = 'middle';
+                    pills.forEach((pill, j) => {
+                        const tw         = ctx.measureText(pill.text).width + 10;
+                        const pillBottom = chartArea.top - 10 - j * (pillH + pillGap);
+                        const pillTop    = pillBottom - pillH;
+                        const midY       = pillTop + pillH / 2;
+                        const rawLeft    = x - tw / 2;
+                        const pillLeft   = Math.max(chartArea.left, Math.min(rawLeft, chartArea.right - tw));
+                        const textX      = pillLeft + tw / 2;
+                        ctx.fillStyle = pill.bg;
+                        ctx.beginPath();
+                        if (ctx.roundRect) ctx.roundRect(pillLeft, pillTop, tw, pillH, 4);
+                        else               ctx.rect(pillLeft, pillTop, tw, pillH);
+                        ctx.fill();
+                        ctx.fillStyle = pill.fg;
+                        ctx.fillText(pill.text, textX, midY);
+                    });
+                }
                 ctx.restore();
             }
         };
@@ -487,7 +494,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 layout: {
                     padding: {
                         // Reserve space above chart area for project end/start marker pills
-                        top: (endMarkers.some(m => m) || startMarkers.some(m => m)) ? 52 : 0
+                        top: (endMarkers.some(m => m) || startMarkers.some(m => m)) ? 70 : 0
                     }
                 },
                 interaction: (isLine || hasMixedTypes)
