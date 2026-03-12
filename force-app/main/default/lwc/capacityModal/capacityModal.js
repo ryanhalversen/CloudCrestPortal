@@ -432,16 +432,26 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Rotated label — drawn along the line, text reads bottom-to-top
-                    ctx.save();
-                    ctx.translate(x - 9, chartArea.top + 6);
-                    ctx.rotate(-Math.PI / 2);
+                    // Horizontal label centered on the line just above chart area
                     ctx.font = 'bold 9px -apple-system,BlinkMacSystemFont,sans-serif';
-                    ctx.fillStyle = 'rgba(239,68,68,0.85)';
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(label + ' ends', 0, 0);
-                    ctx.restore();
+                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    const text = label + ' ends';
+                    const tw = ctx.measureText(text).width + 8;
+                    const th = 13;
+                    const ty = chartArea.top - 3;
+                    // Background pill
+                    ctx.fillStyle = 'rgba(239,68,68,0.15)';
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(x - tw / 2, ty - th, tw, th, 3);
+                    } else {
+                        ctx.rect(x - tw / 2, ty - th, tw, th);
+                    }
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
+                    ctx.fillText(text, x, ty);
                 }
                 ctx.restore();
             }
