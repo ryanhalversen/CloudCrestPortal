@@ -635,15 +635,34 @@ public with sharing class CommandCenterController {
         List<Decimal> projPace     = new List<Decimal>();
         List<Decimal> projRetained = new List<Decimal>();
         List<String>  projIds      = new List<String>();
+
+        // Collect retainers (sorted by assignee) and blocks separately, then combine
+        List<Sprint__c> retainerProjs = new List<Sprint__c>();
+        List<Sprint__c> blockProjs    = new List<Sprint__c>();
         for (Sprint__c s : [
-            SELECT Id, Name, On_Time_Weekly_Pace__c, Weekly_Pace_Estimate__c, Accountlu__r.Name
+            SELECT Id, Name, Contract_Type__c, On_Time_Weekly_Pace__c, Weekly_Pace_Estimate__c,
+                   Accountlu__r.Name, CloudCrest_Assignee__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-            ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
-            LIMIT  25
+            ORDER BY CloudCrest_Assignee__r.Name ASC NULLS LAST, On_Time_Weekly_Pace__c DESC NULLS LAST
+            LIMIT  50
         ]) {
             String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
             if (s.Name.containsIgnoreCase('CloudCrest') || acctName.containsIgnoreCase('CloudCrest')) continue;
+            if (s.Contract_Type__c == 'Block') {
+                blockProjs.add(s);
+            } else {
+                retainerProjs.add(s);
+            }
+        }
+
+        // Build ordered list: retainers first, then blocks
+        List<Sprint__c> orderedProjs = new List<Sprint__c>();
+        orderedProjs.addAll(retainerProjs);
+        orderedProjs.addAll(blockProjs);
+
+        for (Sprint__c s : orderedProjs) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
             activeProjects++;
             Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
             weeklyDemand += pace;
