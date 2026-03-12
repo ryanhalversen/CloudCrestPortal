@@ -136,10 +136,16 @@ private class CommandCenterControllerTest {
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
         System.assertEquals('Individual Performance', cd.title);
-        System.assertEquals(3, cd.kpis.size());
+        System.assertEquals(3, cd.kpis.size(), 'Card should have 3 KPIs');
+        System.assertEquals(6, cd.modalKpis.size(), 'Modal should have 6 KPIs');
         System.assertEquals('bar', cd.chartType);
-        // Should have at least 1 contributor (from @TestSetup time entries)
-        System.assertNotEquals(0, cd.chartLabels.size(), 'Should show at least one contributor');
+        // Always shows all 4 team members
+        System.assertEquals(4, cd.chartLabels.size(), 'Should show 4 team members');
+        // 3 datasets: bars + 2 reference lines
+        System.assertEquals(3, cd.datasets.size(), 'Should have bars + 2 reference line datasets');
+        // Second chart present
+        System.assertNotEquals(null, cd.datasets2, 'Should have second chart datasets');
+        System.assertEquals(4, cd.chartLabels2.size(), 'Second chart should have 4 week labels');
     }
 
     // ── Present Row Tests ─────────────────────────────────────────────────────

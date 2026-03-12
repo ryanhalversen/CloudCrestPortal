@@ -314,3 +314,17 @@
     margin: 0 0 6px;
     font-style: italic;
 }
+
+/* Second chart section */
+.chart-section--secondary {
+    border-top: 1px solid #334155;
+}
+
+.chart-section-label {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}

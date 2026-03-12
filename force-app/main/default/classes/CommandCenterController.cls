@@ -17,6 +17,8 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>  colors;      // per-slice (doughnut)
         @AuraEnabled public String        borderColor;
         @AuraEnabled public Boolean       isDashed;
+        @AuraEnabled public String  chartDatasetType; // 'line' for mixed charts (per-dataset type override)
+        @AuraEnabled public Boolean isRef;            // true = reference/target line styling
     }
 
     public class Benchmark {
@@ -37,6 +39,10 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>       chartProjectIds; // optional: Sprint__c IDs parallel to chartLabels for bar click drilldown
         @AuraEnabled public List<ChartDataset> datasets;
         @AuraEnabled public List<String>       insights;
+        @AuraEnabled public List<KPI>          modalKpis;    // optional extended KPIs for popup (replaces kpis in modal)
+        @AuraEnabled public String             chartType2;   // second chart type
+        @AuraEnabled public List<String>       chartLabels2; // second chart x-axis labels
+        @AuraEnabled public List<ChartDataset> datasets2;    // second chart datasets
         @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
     }
 
@@ -430,80 +436,229 @@ public with sharing class CommandCenterController {
 
     @AuraEnabled(cacheable=true)
     public static CardData getPastEmployee() {
-        Date w4Ago = Date.today().addDays(-28);
+        Date ws    = Date.today().toStartOfWeek();
+        Date w4Ago = ws.addDays(-28);
 
-        // Hours logged per person
-        Map<String, Decimal> personMins = new Map<String, Decimal>();
-        List<String>  labels = new List<String>();
-        List<Decimal> data   = new List<Decimal>();
+        // ── Team configuration: name → weekly target (hours) ──────────────────
+        // FTE = 35h/wk (140h/4wk), Head of Delivery = 20h/wk (80h/4wk)
+        List<String>         teamOrder  = new List<String>{ 'Chris Manring', 'Holly Worz', 'Terri Lee', 'Alec Hampton' };
+        Map<String, Decimal> weeklyTgt  = new Map<String, Decimal>{
+            'Chris Manring' => 35, 'Holly Worz' => 35, 'Terri Lee' => 35, 'Alec Hampton' => 20
+        };
+        Set<String> teamSet = weeklyTgt.keySet();
+
+        // ── 1. Build week-start list ──────────────────────────────────────────
+        List<Date> weekStarts = new List<Date>();
+        for (Integer i = 3; i >= 0; i--) weekStarts.add(ws.addDays(-i * 7));
+
+        // ── 2. Query per-day totals and bucket into weeks ─────────────────────
+        Map<String, Map<Date, Decimal>> personWeekMins = new Map<String, Map<Date, Decimal>>();
+        for (String nm : teamOrder) {
+            Map<Date, Decimal> wkMap = new Map<Date, Decimal>();
+            for (Date wk : weekStarts) wkMap.put(wk, 0);
+            personWeekMins.put(nm, wkMap);
+        }
         for (AggregateResult ar : [
-            SELECT CreatedBy.Name nm, SUM(Minutes_Logged__c) m
+            SELECT CreatedBy.Name nm, Logged_Date__c dt, SUM(Minutes_Logged__c) m
             FROM   Time__c
-            WHERE  Logged_Date__c >= :w4Ago
-            GROUP BY CreatedBy.Name
-            ORDER BY SUM(Minutes_Logged__c) DESC
-            LIMIT  10
+            WHERE  CreatedBy.Name IN :teamSet
+              AND  Logged_Date__c >= :w4Ago
+            GROUP BY CreatedBy.Name, Logged_Date__c
         ]) {
             String  nm = (String)  ar.get('nm');
+            Date    dt = (Date)    ar.get('dt');
             Decimal m  = ar.get('m') != null ? (Decimal) ar.get('m') : 0;
-            personMins.put(nm, m);
-            labels.add(nm);
-            data.add((m / 60).setScale(1, RoundingMode.HALF_UP));
+            if (!personWeekMins.containsKey(nm)) continue;
+            Date wk = dt.toStartOfWeek();
+            Map<Date, Decimal> wkMap = personWeekMins.get(nm);
+            wkMap.put(wk, (wkMap.containsKey(wk) ? wkMap.get(wk) : 0) + m);
         }
 
-        // Contractor targets: Available_Hours__c/week × 4 weeks × 60 min, match by name
-        Map<String, Decimal> targets = new Map<String, Decimal>();
-        for (Contact c : [
-            SELECT Name, Available_Hours__c FROM Contact
-            WHERE  Account.Name = 'CloudCrest Contractors'
-              AND  Available_Hours__c != null AND Available_Hours__c > 0
-        ]) {
-            targets.put(c.Name, c.Available_Hours__c * 4 * 60);
+        // ── 3. Per-person 4-week totals ───────────────────────────────────────
+        Map<String, Decimal> personTotalMins = new Map<String, Decimal>();
+        for (String nm : teamOrder) {
+            Decimal total = 0;
+            for (Decimal m : personWeekMins.get(nm).values()) total += m;
+            personTotalMins.put(nm, total);
         }
 
-        // Members who logged ≥80% of their 4-week allocation
-        Integer metTarget = 0;
-        Integer teamSize  = targets.size();
-        for (String name : targets.keySet()) {
-            Decimal logged = personMins.containsKey(name) ? personMins.get(name) : 0;
-            if (logged >= targets.get(name) * 0.8) metTarget++;
+        // ── 4. KPI calculations ───────────────────────────────────────────────
+        Integer metTarget       = 0;
+        Decimal totalLoggedMins = 0;
+        Decimal sumUtilPct      = 0;
+        Decimal highPct = -1, lowPct = 999;
+        String  highName = '', lowName = '';
+        Map<String, Integer> personUtil = new Map<String, Integer>();
+
+        for (String nm : teamOrder) {
+            Decimal targetMins = weeklyTgt.get(nm) * 4 * 60;
+            Decimal loggedMins = personTotalMins.get(nm);
+            totalLoggedMins += loggedMins;
+            Decimal utilDecimal = targetMins > 0 ? (loggedMins / targetMins) * 100 : 0;
+            Integer utilInt     = Integer.valueOf(utilDecimal.setScale(0, RoundingMode.HALF_UP));
+            personUtil.put(nm, utilInt);
+            sumUtilPct += utilDecimal;
+            if (loggedMins >= targetMins) metTarget++;
+            if (utilDecimal > highPct) { highPct = utilDecimal; highName = nm; }
+            if (utilDecimal < lowPct)  { lowPct  = utilDecimal; lowName  = nm; }
         }
-        Integer metPct = teamSize > 0 ? (metTarget * 100) / teamSize : 0;
 
-        Integer completed = [
-            SELECT COUNT() FROM Case
-            WHERE  Status IN ('Completed','Closed')
-              AND  LastModifiedDate >= :DateTime.newInstance(w4Ago, Time.newInstance(0,0,0,0))
-        ];
+        Integer avgUtil     = Integer.valueOf((sumUtilPct / 4).setScale(0, RoundingMode.HALF_UP));
+        Decimal totalLogHrs = (totalLoggedMins / 60).setScale(0, RoundingMode.HALF_UP);
+        Decimal totalTgtHrs = 500; // (3×35 + 20) × 4
+        Integer highInt     = Integer.valueOf(highPct.setScale(0, RoundingMode.HALF_UP));
+        Integer lowInt      = Integer.valueOf(lowPct.setScale(0, RoundingMode.HALF_UP));
+        Integer spread      = highInt - lowInt;
 
-        Decimal totalMins = 0;
-        for (Decimal m : personMins.values()) totalMins += m;
-        Decimal avgMins = personMins.size() > 0 ? totalMins / personMins.size() : 0;
+        String status = metTarget >= 4 ? 'good'
+                      : metTarget >= 2 ? 'warning'
+                      : 'critical';
 
-        String status = teamSize == 0 ? 'neutral'
-            : metPct >= 80 ? 'good'
-            : metPct >= 50 ? 'warning'
-            : 'critical';
+        // ── 5. Card KPIs (3) ──────────────────────────────────────────────────
+        List<KPI> cardKpis = new List<KPI>{
+            kpi('Met Hour Targets',       metTarget + ' / 4',
+                                          metTarget == 4 ? 'up' : metTarget >= 2 ? 'neutral' : 'down',
+                                          '4-week period'),
+            kpi('Hours Logged vs Target', totalLogHrs.setScale(0, RoundingMode.HALF_UP) + 'h / ' + totalTgtHrs.setScale(0, RoundingMode.HALF_UP) + 'h',
+                                          totalLoggedMins >= totalTgtHrs * 60 ? 'up' : 'down',
+                                          'team total'),
+            kpi('Avg Utilization',        avgUtil + '%',
+                                          avgUtil >= 90 ? 'up' : avgUtil >= 75 ? 'neutral' : 'down',
+                                          'avg of individuals')
+        };
 
+        // ── 6. Modal KPIs (6: 3 summary + high/low/spread) ───────────────────
+        List<KPI> modalKpiList = new List<KPI>(cardKpis);
+        modalKpiList.add(kpi('Highest Util',     highName + ' ' + highInt + '%', 'up',                    'top individual'));
+        modalKpiList.add(kpi('Lowest Util',      lowName  + ' ' + lowInt  + '%', lowInt < 75 ? 'down' : 'neutral', 'bottom individual'));
+        modalKpiList.add(kpi('Util Spread',      spread + '%',                    spread > 30 ? 'down' : 'neutral', 'high vs low'));
+
+        // ── 7. Chart 1: Individual 4-week totals (bar + reference lines) ──────
+        // Sort by hours logged DESC (simple bubble sort)
+        List<String> sortedNames = new List<String>(teamOrder);
+        for (Integer i = 0; i < sortedNames.size() - 1; i++) {
+            for (Integer j = 0; j < sortedNames.size() - 1 - i; j++) {
+                if (personTotalMins.get(sortedNames[j]) < personTotalMins.get(sortedNames[j + 1])) {
+                    String tmp       = sortedNames[j];
+                    sortedNames[j]   = sortedNames[j + 1];
+                    sortedNames[j+1] = tmp;
+                }
+            }
+        }
+
+        List<String>  ch1Labels = new List<String>();
+        List<Decimal> ch1Bars   = new List<Decimal>();
+        List<Decimal> fteRef    = new List<Decimal>();  // 140h at FTE positions, null at Alec
+        List<Decimal> alecRef   = new List<Decimal>();  // 80h at Alec position, null at FTEs
+
+        for (String nm : sortedNames) {
+            ch1Labels.add(nm == 'Alec Hampton' ? 'Alec (Head of Delivery)' : nm);
+            ch1Bars.add((personTotalMins.get(nm) / 60).setScale(1, RoundingMode.HALF_UP));
+            if (nm == 'Alec Hampton') {
+                fteRef.add(null);
+                alecRef.add(80);
+            } else {
+                fteRef.add(140);
+                alecRef.add(null);
+            }
+        }
+
+        ChartDataset barDs = ds('Hours Logged', ch1Bars, '#00b4d8');
+
+        ChartDataset fteDs = new ChartDataset();
+        fteDs.label           = 'FTE Target (140h)';
+        fteDs.data            = fteRef;
+        fteDs.color           = '#ef4444';
+        fteDs.borderColor     = '#ef4444';
+        fteDs.chartDatasetType = 'line';
+        fteDs.isRef           = true;
+
+        ChartDataset alecDs = new ChartDataset();
+        alecDs.label           = 'HoD Target (80h)';
+        alecDs.data            = alecRef;
+        alecDs.color           = '#f97316';
+        alecDs.borderColor     = '#f97316';
+        alecDs.chartDatasetType = 'line';
+        alecDs.isRef           = true;
+
+        // ── 8. Chart 2: Weekly hours per person (grouped bar) ─────────────────
+        List<String> ch2Labels = new List<String>();
+        for (Date wk : weekStarts) ch2Labels.add(weekLabel(wk));
+
+        Map<String, String> personColors = new Map<String, String>{
+            'Chris Manring' => '#00b4d8', 'Holly Worz' => '#22c55e',
+            'Terri Lee'     => '#f59e0b', 'Alec Hampton' => '#a78bfa'
+        };
+
+        List<ChartDataset> ch2Datasets = new List<ChartDataset>();
+        for (String nm : sortedNames) {
+            List<Decimal> wkHrs = new List<Decimal>();
+            Map<Date, Decimal> wkMap = personWeekMins.get(nm);
+            for (Date wk : weekStarts) {
+                Decimal m = wkMap.containsKey(wk) ? wkMap.get(wk) : 0;
+                wkHrs.add((m / 60).setScale(1, RoundingMode.HALF_UP));
+            }
+            ch2Datasets.add(ds(nm, wkHrs, personColors.get(nm)));
+        }
+
+        // FTE weekly target reference line
+        ChartDataset wkFteRef = new ChartDataset();
+        wkFteRef.label           = 'FTE Target (35h)';
+        wkFteRef.data            = new List<Decimal>{ 35, 35, 35, 35 };
+        wkFteRef.color           = '#ef4444';
+        wkFteRef.borderColor     = '#ef4444';
+        wkFteRef.chartDatasetType = 'line';
+        wkFteRef.isRef           = true;
+
+        // Alec weekly target reference line
+        ChartDataset wkAlecRef = new ChartDataset();
+        wkAlecRef.label           = 'HoD Target (20h)';
+        wkAlecRef.data            = new List<Decimal>{ 20, 20, 20, 20 };
+        wkAlecRef.color           = '#f97316';
+        wkAlecRef.borderColor     = '#f97316';
+        wkAlecRef.chartDatasetType = 'line';
+        wkAlecRef.isRef           = true;
+
+        ch2Datasets.add(wkFteRef);
+        ch2Datasets.add(wkAlecRef);
+
+        // ── 9. Insights ───────────────────────────────────────────────────────
+        List<String> insights = new List<String>();
+        for (String nm : teamOrder) {
+            Decimal targetMins = weeklyTgt.get(nm) * 4 * 60;
+            Decimal loggedMins = personTotalMins.get(nm);
+            Integer pct        = personUtil.get(nm);
+            if (pct < 80) {
+                Decimal gap = ((targetMins - loggedMins) / 60).setScale(0, RoundingMode.HALF_UP);
+                insights.add(nm + ' at ' + pct + '% — ' + gap + 'h below target');
+            } else if (pct > 110) {
+                Decimal over = ((loggedMins - targetMins) / 60).setScale(0, RoundingMode.HALF_UP);
+                insights.add(nm + ' at ' + pct + '% — ' + over + 'h above target (check for sustained overwork)');
+            }
+        }
+        if (insights.isEmpty()) {
+            insights.add('All 4 team members within expected utilization range (' + lowInt + '–' + highInt + '%)');
+        }
+        if (spread > 30) {
+            insights.add('High utilization spread: ' + highName + ' at ' + highInt + '% vs ' + lowName + ' at ' + lowInt + '% — review workload balance');
+        }
+
+        // ── 10. Assemble CardData ─────────────────────────────────────────────
         CardData cd = new CardData();
-        cd.title    = 'Individual Performance';
-        cd.subtitle = 'Last 4 Weeks';
-        cd.question   = 'Did everyone meet their objectives?';
-        cd.status     = status;
-        cd.benchmarks = bm('< 50% met targets', '50–80% met targets', '> 80% met targets');
-        cd.kpis = new List<KPI>{
-            kpi('Met Hour Targets', metTarget + '/' + teamSize,   metPct >= 80 ? 'up' : 'down', '≥80% of allocation'),
-            kpi('Stories Closed',   String.valueOf(completed),    'neutral',                     '4-week total'),
-            kpi('Avg Hours/Person', hrs(avgMins),                 'neutral',                     'per active member')
-        };
+        cd.title       = 'Individual Performance';
+        cd.subtitle    = 'Last 4 Weeks';
+        cd.question    = 'Did everyone meet their objectives?';
+        cd.status      = status;
+        cd.benchmarks  = bm('< 50% met targets', '50–80% met targets', '> 80% met targets');
+        cd.kpis        = cardKpis;
+        cd.modalKpis   = modalKpiList;
         cd.chartType   = 'bar';
-        cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hours', data, '#0077b6') };
-        cd.insights    = new List<String>{
-            metTarget + ' of ' + teamSize + ' contractors met their hour targets (' + metPct + '%)',
-            completed + ' stories completed across the team in 4 weeks',
-            'Average ' + hrs(avgMins) + ' per active member over the period'
-        };
+        cd.chartLabels = ch1Labels;
+        cd.datasets    = new List<ChartDataset>{ barDs, fteDs, alecDs };
+        cd.chartType2  = 'bar';
+        cd.chartLabels2 = ch2Labels;
+        cd.datasets2   = ch2Datasets;
+        cd.insights    = insights;
         return cd;
     }
 

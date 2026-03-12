@@ -61,6 +61,16 @@
                         </template>
                     </div>
 
+                    <!-- Second chart: weekly breakdown (e.g. employee card) -->
+                    <template if:true={hasSecondChart}>
+                        <div class="chart-section chart-section--secondary">
+                            <h4 class="chart-section-label">Weekly Hours by Team Member</h4>
+                            <div class="chart-wrap">
+                                <canvas lwc:ref="canvas2"></canvas>
+                            </div>
+                        </div>
+                    </template>
+
                     <!-- Insights -->
                     <template if:true={hasInsights}>
                         <div class="insights-section">

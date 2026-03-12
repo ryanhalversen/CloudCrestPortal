@@ -17,6 +17,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _drilldownTitle      = '';
     _drilldownData       = null;
     _canvasClickHandler  = null;
+    _chart2              = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -36,7 +37,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     renderedCallback() {
-        if (this._chartLoaded && !this._chart) {
+        if (!this._chartLoaded) return;
+        const needsChart1 = !this._chart;
+        const needsChart2 = !this._drilldownActive && !this._chart2 && this.cardData?.datasets2?.length > 0;
+        if (needsChart1 || needsChart2) {
             this._tryRender();
         }
     }
@@ -49,7 +53,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     get enrichedKpis() {
-        return (this.cardData?.kpis || []).map(k => ({
+        const kpis = this.cardData?.modalKpis?.length > 0
+            ? this.cardData.modalKpis
+            : (this.cardData?.kpis || []);
+        return kpis.map(k => ({
             ...k,
             trendClass: `modal-kpi-trend modal-kpi-trend--${k.trend || 'neutral'}`,
             trendIcon:  k.trend === 'up' ? '↑' : k.trend === 'down' ? '↓' : ''
@@ -95,6 +102,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         return this.cardData?.chartType === 'bar' && this.cardData?.chartProjectIds?.length > 0;
     }
 
+    get hasSecondChart() {
+        return !this._drilldownActive && (this.cardData?.datasets2?.length > 0);
+    }
+
     get drilldownKpis() {
         const dd = this._drilldownData;
         if (!dd) return [];
@@ -131,41 +142,58 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _tryRender() {
         if (!this._chartLoaded || !this.cardData) return;
         // eslint-disable-next-line @lwc/lwc/no-async-operation
-        setTimeout(() => this._renderChart(), 0);
+        setTimeout(() => {
+            this._renderChart();
+            if (!this._drilldownActive && this.cardData?.datasets2?.length > 0) {
+                this._renderChart2();
+            }
+        }, 0);
     }
 
     _renderChart() {
         const canvas = this.refs.canvas;
         if (!canvas) return;
 
-        this._destroyChart();
+        // Destroy chart 1 only
+        if (this._canvasClickHandler) {
+            canvas.removeEventListener('click', this._canvasClickHandler);
+            this._canvasClickHandler = null;
+        }
+        if (this._chart) { this._chart.destroy(); this._chart = null; }
 
         const { chartType, chartLabels, datasets } = this.cardData;
         if (!chartType || !datasets?.length) return;
 
-        const chartDatasets = datasets.map((ds, idx) => {
-            const baseColor  = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
-            const isLine     = chartType === 'line';
-            const isDoughnut = chartType === 'doughnut';
+        const hasMixedTypes = datasets.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
 
-            return {
+        const chartDatasets = datasets.map((ds, idx) => {
+            const baseColor   = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
+            const dsType      = ds.chartDatasetType || chartType;
+            const isLine      = dsType === 'line';
+            const isDoughnut  = chartType === 'doughnut';
+            const isRef       = ds.isRef === true;
+
+            const obj = {
                 label:              ds.label,
                 data:               ds.data || [],
                 backgroundColor:    isDoughnut
                     ? (ds.colors || CHART_COLORS)
-                    : `${baseColor}cc`,
+                    : isRef ? 'transparent' : `${baseColor}cc`,
                 borderColor:        isDoughnut ? (ds.borderColor || '#1e293b') : baseColor,
-                borderWidth:        isDoughnut ? 2 : isLine ? 2 : 0,
+                borderWidth:        isDoughnut ? 2 : (isLine || isRef) ? 2 : 0,
                 borderDash:         ds.isDashed ? [6, 4] : undefined,
-                tension:            isLine ? 0.3 : 0,
-                pointRadius:        isLine ? 0 : undefined,
-                pointHitRadius:     isLine ? 20 : undefined,
-                pointHoverRadius:   isLine ? 5 : undefined,
+                tension:            isLine && !isRef ? 0.3 : 0,
+                pointRadius:        isLine ? (isRef ? 0 : 3) : undefined,
+                pointHitRadius:     isLine ? (isRef ? 0 : 20) : undefined,
+                pointHoverRadius:   isLine ? (isRef ? 0 : 5) : undefined,
                 fill:               false,
                 hoverOffset:        isDoughnut ? 6 : undefined,
-                barPercentage:      isDoughnut ? undefined : 0.7,
-                categoryPercentage: isDoughnut ? undefined : 0.85
+                barPercentage:      (!isDoughnut && !isRef && !isLine) ? 0.7 : undefined,
+                categoryPercentage: (!isDoughnut && !isRef && !isLine) ? 0.85 : undefined,
+                isRef:              isRef
             };
+            if (ds.chartDatasetType) obj.type = ds.chartDatasetType;
+            return obj;
         });
 
         const isDoughnut = chartType === 'doughnut';
@@ -243,7 +271,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             options: {
                 responsive:          true,
                 maintainAspectRatio: false,
-                interaction: isLine
+                interaction: (isLine || hasMixedTypes)
                     ? { mode: 'index', intersect: false }
                     : { mode: 'nearest', intersect: true },
                 onHover: hasDrilldown ? (event, elements) => {
@@ -253,7 +281,6 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 } : undefined,
                 onClick: hasDrilldown ? (event, elements) => {
                     if (!elements.length) return;
-                    // Bar click → drilldown
                     const idx       = elements[0].index;
                     const projectId = projectIds[idx];
                     const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
@@ -272,7 +299,8 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderColor:     '#334155',
                         borderWidth:     1,
                         padding:         10,
-                        callbacks: isLine ? {
+                        filter: (item) => !item.dataset.isRef,
+                        callbacks: (isLine || hasMixedTypes) ? {
                             label: (context) => {
                                 const v     = context.parsed.y;
                                 const label = context.dataset.label || '';
@@ -288,7 +316,6 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         });
 
         // Native click listener for x-axis label → open record in new tab
-        // (Chart.js onClick does not reliably fire in the axis area below chartArea.bottom)
         if (hasDrilldown) {
             if (this._canvasClickHandler) {
                 canvas.removeEventListener('click', this._canvasClickHandler);
@@ -297,8 +324,6 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!this._chart) return;
                 const { chartArea, scales } = this._chart;
                 if (!scales.x || e.offsetY <= chartArea.bottom) return;
-                // Rotated labels anchor at their tick mark (right end of text), so the
-                // visible text sits one slot to the LEFT of the tick — shift +1 to correct.
                 const xScale = scales.x;
                 const n = xScale.ticks.length;
                 if (!n) return;
@@ -311,6 +336,82 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             };
             canvas.addEventListener('click', this._canvasClickHandler);
         }
+    }
+
+    _renderChart2() {
+        const canvas = this.refs.canvas2;
+        if (!canvas || !this.cardData?.datasets2?.length) return;
+        if (this._chart2) { this._chart2.destroy(); this._chart2 = null; }
+
+        const { chartType2: chartType, chartLabels2: chartLabels, datasets2: datasets } = this.cardData;
+        if (!chartType || !datasets?.length) return;
+
+        const chartDatasets = datasets.map((ds, idx) => {
+            const baseColor = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
+            const dsType    = ds.chartDatasetType || chartType;
+            const isLine    = dsType === 'line';
+            const isRef     = ds.isRef === true;
+            const obj = {
+                label:              ds.label,
+                data:               ds.data || [],
+                backgroundColor:    isRef ? 'transparent' : `${baseColor}cc`,
+                borderColor:        baseColor,
+                borderWidth:        isRef ? 2 : 0,
+                tension:            0,
+                pointRadius:        isRef ? 0 : undefined,
+                fill:               false,
+                barPercentage:      isRef ? undefined : 0.7,
+                categoryPercentage: isRef ? undefined : 0.85,
+                isRef:              isRef
+            };
+            if (ds.chartDatasetType) obj.type = ds.chartDatasetType;
+            return obj;
+        });
+
+        /* global Chart */
+        this._chart2 = new Chart(canvas, {
+            type: chartType,
+            data: { labels: chartLabels || [], datasets: chartDatasets },
+            options: {
+                responsive:          true,
+                maintainAspectRatio: false,
+                interaction:         { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display:  true,
+                        position: 'bottom',
+                        labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleColor:      '#e2e8f0',
+                        bodyColor:       '#94a3b8',
+                        borderColor:     '#334155',
+                        borderWidth:     1,
+                        padding:         10,
+                        filter: (item) => !item.dataset.isRef,
+                        callbacks: {
+                            label: (context) => {
+                                const v   = context.parsed.y;
+                                const fmt = Number.isInteger(v) ? v : v.toFixed(1);
+                                return ` ${context.dataset.label}: ${fmt}h`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#94a3b8', font: { size: 11 } },
+                        grid:  { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8', font: { size: 11 } },
+                        grid:  { color: 'rgba(255,255,255,0.07)' }
+                    }
+                }
+            }
+        });
     }
 
     // ── Drilldown ─────────────────────────────────────────────────────────────
@@ -445,10 +546,8 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             if (c) c.removeEventListener('click', this._canvasClickHandler);
             this._canvasClickHandler = null;
         }
-        if (this._chart) {
-            this._chart.destroy();
-            this._chart = null;
-        }
+        if (this._chart) { this._chart.destroy(); this._chart = null; }
+        if (this._chart2) { this._chart2.destroy(); this._chart2 = null; }
     }
 
     // ── Event handlers ────────────────────────────────────────────────────────
