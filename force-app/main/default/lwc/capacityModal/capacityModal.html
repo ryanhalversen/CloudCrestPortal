@@ -36,6 +36,18 @@
                     <!-- Chart -->
                     <div class="chart-section">
 
+                        <!-- HTML legend: always at the very top of the chart section -->
+                        <template if:true={hasLegend}>
+                            <div class="chart-legend-row">
+                                <template for:each={legendItems} for:item="li">
+                                    <span key={li.label} class="legend-item">
+                                        <span class="legend-swatch" style={li.swatchStyle}></span>
+                                        <span class="legend-label" style={li.labelStyle}>{li.label}</span>
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
+
                         <!-- Drilldown header (back button + project name) -->
                         <template if:true={isDrilldown}>
                             <div class="drilldown-header">

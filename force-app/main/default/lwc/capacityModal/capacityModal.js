@@ -143,6 +143,24 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         return this._drilldownActive && this._drilldownData ? this.drilldownKpis : this.enrichedKpis;
     }
 
+    get legendItems() {
+        if (this._drilldownActive || !this.cardData?.datasets?.length) return [];
+        const all = this.cardData.datasets;
+        if (all.length <= 1) return [];
+        return all.map(ds => {
+            const color = ds.borderColor || ds.color || '#94a3b8';
+            return {
+                label:       ds.label || '',
+                swatchStyle: `border-top:2px ${ds.isDashed ? 'dashed' : 'solid'} ${color};width:20px;display:inline-block;margin-right:4px;vertical-align:middle;`,
+                labelStyle:  `color:${color};`
+            };
+        });
+    }
+
+    get hasLegend() {
+        return this.legendItems.length > 0;
+    }
+
     // ── Chart rendering ───────────────────────────────────────────────────────
 
     _tryRender() {
@@ -543,11 +561,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     }
                 } : undefined,
                 plugins: {
-                    legend: {
-                        display:  mainDs.length > 1 || isDoughnut || refDs.length > 0,
-                        position: 'top',
-                        labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
-                    },
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: '#0f172a',
                         titleColor:      '#e2e8f0',
