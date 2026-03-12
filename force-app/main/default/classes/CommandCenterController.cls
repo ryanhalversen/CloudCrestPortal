@@ -1244,8 +1244,8 @@ public with sharing class CommandCenterController {
             : wk4Util >= 80                    ? 'good'
             : 'warning'; // 60–79%
 
-        ChartDataset demDs = ds('Demand',   demandData, '#f59e0b');
-        ChartDataset capDs = ds('Capacity', capLine,    '#0e7490');
+        ChartDataset demDs = ds('On Time Weekly Demand', demandData, '#f59e0b');
+        ChartDataset capDs = ds('Internal Capacity',    capLine,    '#0e7490');
         capDs.isDashed = true;
 
         CardData cd = new CardData();
@@ -1280,7 +1280,7 @@ public with sharing class CommandCenterController {
         cd.chartLabels = labels;
         List<ChartDataset> allDs = new List<ChartDataset>{ demDs, capDs };
         if (hasPipeline) {
-            ChartDataset pipeDs = ds('Projected w/ Pipeline', projectedData, '#ffffff');
+            ChartDataset pipeDs = ds('Forecasted Demand', projectedData, '#ffffff');
             pipeDs.isDashed = true;
             allDs.add(pipeDs);
         }

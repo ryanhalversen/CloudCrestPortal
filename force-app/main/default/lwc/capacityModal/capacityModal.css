@@ -219,6 +219,7 @@
 .chart-legend-row {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 4px 16px;
     margin-bottom: 12px;
 }
