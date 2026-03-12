@@ -576,53 +576,13 @@ public with sharing class CommandCenterController {
         ChartDataset alecDs = new ChartDataset();
         alecDs.label           = 'HoD Target (80h)';
         alecDs.data            = alecRef;
-        alecDs.color           = '#f97316';
-        alecDs.borderColor     = '#f97316';
+        alecDs.color           = '#ef4444';
+        alecDs.borderColor     = '#ef4444';
         alecDs.chartDatasetType = 'line';
         alecDs.isRef           = true;
+        alecDs.isDashed        = true;
 
-        // ── 8. Chart 2: Weekly hours per person (grouped bar) ─────────────────
-        List<String> ch2Labels = new List<String>();
-        for (Date wk : weekStarts) ch2Labels.add(weekLabel(wk));
-
-        Map<String, String> personColors = new Map<String, String>{
-            'Chris Manring' => '#00b4d8', 'Holly Worz' => '#22c55e',
-            'Terri Lee'     => '#f59e0b', 'Alec Hampton' => '#a78bfa'
-        };
-
-        List<ChartDataset> ch2Datasets = new List<ChartDataset>();
-        for (String nm : sortedNames) {
-            List<Decimal> wkHrs = new List<Decimal>();
-            Map<Date, Decimal> wkMap = personWeekMins.get(nm);
-            for (Date wk : weekStarts) {
-                Decimal m = wkMap.containsKey(wk) ? wkMap.get(wk) : 0;
-                wkHrs.add((m / 60).setScale(1, RoundingMode.HALF_UP));
-            }
-            ch2Datasets.add(ds(nm, wkHrs, personColors.get(nm)));
-        }
-
-        // FTE weekly target reference line
-        ChartDataset wkFteRef = new ChartDataset();
-        wkFteRef.label           = 'FTE Target (35h)';
-        wkFteRef.data            = new List<Decimal>{ 35, 35, 35, 35 };
-        wkFteRef.color           = '#ef4444';
-        wkFteRef.borderColor     = '#ef4444';
-        wkFteRef.chartDatasetType = 'line';
-        wkFteRef.isRef           = true;
-
-        // Alec weekly target reference line
-        ChartDataset wkAlecRef = new ChartDataset();
-        wkAlecRef.label           = 'HoD Target (20h)';
-        wkAlecRef.data            = new List<Decimal>{ 20, 20, 20, 20 };
-        wkAlecRef.color           = '#f97316';
-        wkAlecRef.borderColor     = '#f97316';
-        wkAlecRef.chartDatasetType = 'line';
-        wkAlecRef.isRef           = true;
-
-        ch2Datasets.add(wkFteRef);
-        ch2Datasets.add(wkAlecRef);
-
-        // ── 9. Insights ───────────────────────────────────────────────────────
+        // ── 8. Insights ───────────────────────────────────────────────────────
         List<String> insights = new List<String>();
         for (String nm : teamOrder) {
             Decimal targetMins = weeklyTgt.get(nm) * 4 * 60;
@@ -655,9 +615,6 @@ public with sharing class CommandCenterController {
         cd.chartType   = 'bar';
         cd.chartLabels = ch1Labels;
         cd.datasets    = new List<ChartDataset>{ barDs, fteDs, alecDs };
-        cd.chartType2  = 'bar';
-        cd.chartLabels2 = ch2Labels;
-        cd.datasets2   = ch2Datasets;
         cd.insights    = insights;
         return cd;
     }

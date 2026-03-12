@@ -221,17 +221,23 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!sc.y) return;
                 const barMeta = chart.getDatasetMeta(0);
                 if (!barMeta?.data?.length) return;
+                const labels = chart.data.labels || [];
                 ctx.save();
                 for (const ref of refDs) {
+                    const targetY = (ref.data || []).find(v => v != null);
+                    if (targetY == null) continue;
+                    const lbl = (ref.label || '').toLowerCase();
+                    const isAlecLine = lbl.includes('hod') || lbl.includes('alec') || targetY < 100;
                     ctx.strokeStyle = ref.borderColor || ref.color || '#ef4444';
                     ctx.lineWidth   = 2.5;
-                    const data = ref.data || [];
-                    for (let i = 0; i < data.length; i++) {
-                        const yVal  = data[i];
-                        if (yVal == null) continue;
+                    ctx.setLineDash(ref.isDashed ? [4, 3] : []);
+                    for (let i = 0; i < barMeta.data.length; i++) {
+                        const barLabel  = String(labels[i] || '').toLowerCase();
+                        const isAlecBar = barLabel.includes('alec') || barLabel.includes('head of delivery');
+                        if (isAlecLine !== isAlecBar) continue;
                         const barEl = barMeta.data[i];
                         if (!barEl) continue;
-                        const y  = sc.y.getPixelForValue(yVal);
+                        const y  = sc.y.getPixelForValue(targetY);
                         const hw = (barEl.width || 20) / 2 + 2;
                         ctx.beginPath();
                         ctx.moveTo(barEl.x - hw, y);
@@ -239,6 +245,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         ctx.stroke();
                     }
                 }
+                ctx.setLineDash([]);
                 ctx.restore();
             }
         };

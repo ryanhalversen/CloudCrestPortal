@@ -143,9 +143,8 @@ private class CommandCenterControllerTest {
         System.assertEquals(4, cd.chartLabels.size(), 'Should show 4 team members');
         // 3 datasets: bars + 2 reference lines
         System.assertEquals(3, cd.datasets.size(), 'Should have bars + 2 reference line datasets');
-        // Second chart present
-        System.assertNotEquals(null, cd.datasets2, 'Should have second chart datasets');
-        System.assertEquals(4, cd.chartLabels2.size(), 'Second chart should have 4 week labels');
+        // No second chart
+        System.assertEquals(null, cd.datasets2, 'Second chart should not be present');
     }
 
     // ── Present Row Tests ─────────────────────────────────────────────────────
