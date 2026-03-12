@@ -638,29 +638,19 @@ public with sharing class CommandCenterController {
             if (s.On_Time_Weekly_Pace__c != null) weeklyDemand += s.On_Time_Weekly_Pace__c;
         }
 
-        // Story readiness — "workable" statuses vs total active
-        Map<String, Integer> sCounts = new Map<String, Integer>();
+        // Story hours estimate + blocked count
+        Decimal totalEstHrs = 0;
+        Integer blocked     = 0;
         for (AggregateResult ar : [
-            SELECT Status s, COUNT(Id) c
+            SELECT Status s, SUM(Hours_Estimate_to_Complete__c) hrs, COUNT(Id) c
             FROM   Case
             WHERE  Status NOT IN ('Completed','Closed','Cancelled')
             GROUP BY Status
         ]) {
-            sCounts.put((String) ar.get('s'), (Integer) ar.get('c'));
+            Decimal hrs = (Decimal) ar.get('hrs');
+            if (hrs != null) totalEstHrs += hrs;
+            if ((String) ar.get('s') == 'Blocked') blocked = (Integer) ar.get('c');
         }
-        Integer totalActive  = 0;
-        Integer readyStories = 0;
-        Integer blocked      = 0;
-        Set<String> readyStatuses = new Set<String>{
-            'New', 'Scheduled', 'Work In Progress (WIP)', 'In Review', 'In UAT'
-        };
-        for (String st : sCounts.keySet()) {
-            Integer cnt = sCounts.get(st);
-            totalActive += cnt;
-            if (readyStatuses.contains(st)) readyStories += cnt;
-            if (st == 'Blocked') blocked = cnt;
-        }
-        Integer readyPct = totalActive > 0 ? (readyStories * 100) / totalActive : 0;
 
         // Status: demand vs capacity — demand > capacity by 10%+ = critical
         Decimal demandRatio = contractorWeeklyHrs > 0 ? weeklyDemand / contractorWeeklyHrs : 0;
@@ -683,7 +673,7 @@ public with sharing class CommandCenterController {
         cd.kpis = new List<KPI>{
             kpi('Demand / Internal Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
                                                  demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
-            kpi('Work Ready',  readyPct + '%',   readyPct >= 80 ? 'up' : 'down',  readyStories + ' of ' + totalActive + ' stories'),
+            kpi('Est. Hours to Complete', totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h', 'neutral', 'across active stories'),
             kpi('Blocked',     String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
         };
         cd.chartType   = 'bar';
@@ -694,7 +684,7 @@ public with sharing class CommandCenterController {
         };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
-            readyPct + '% of active stories are in a workable state (' + readyStories + ' of ' + totalActive + ')',
+            totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h total estimated to complete across all active stories',
             blocked > 0 ? blocked + ' blocked stories need immediate unblocking' : 'No blocked stories — team can execute'
         };
         return cd;

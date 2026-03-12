@@ -161,11 +161,13 @@ private class CommandCenterControllerTest {
         System.assertEquals('bar', cd.chartType);
         System.assertEquals(2, cd.datasets.size(), 'Should have Capacity + Demand datasets');
         // Blocked story in test data → Blocked KPI should be present
-        Boolean foundBlocked = false;
+        Boolean foundBlocked = false, foundEstHrs = false;
         for (CommandCenterController.KPI k : cd.kpis) {
             if (k.label == 'Blocked') foundBlocked = true;
+            if (k.label == 'Est. Hours to Complete') foundEstHrs = true;
         }
         System.assert(foundBlocked, 'Should have a Blocked KPI');
+        System.assert(foundEstHrs,  'Should have Est. Hours to Complete KPI');
     }
 
     @IsTest
