@@ -99,7 +99,9 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     get hasBarDrilldown() {
-        return this.cardData?.chartType === 'bar' && this.cardData?.chartProjectIds?.length > 0;
+        return this.cardData?.chartType === 'bar'
+            && this.cardData?.chartProjectIds?.length > 0
+            && this.cardData?.chartClickNavigate !== true;
     }
 
     get hasSecondChart() {
@@ -407,7 +409,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!n) return;
                 const segW = (xScale.right - xScale.left) / n;
                 const raw  = Math.floor((e.offsetX - xScale.left) / segW);
-                const idx  = clickNavigate ? raw : raw + 1;
+                const idx  = raw + 1;
                 if (idx >= 0 && idx < n && projectIds[idx]) {
                     this._navigateToProject(projectIds[idx]);
                 }
