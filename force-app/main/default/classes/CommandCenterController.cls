@@ -55,6 +55,7 @@ public with sharing class CommandCenterController {
         @AuraEnabled public String             chart2RefLabel;     // legend label for the chart 2 reference line
         @AuraEnabled public List<String>       chartEndMarkers;    // parallel to chartLabels; non-null = client name(s) ending that week (for line chart annotations)
         @AuraEnabled public List<String>       chartStartMarkers;  // parallel to chartLabels; non-null = opp name(s) starting that week (green annotation)
+        @AuraEnabled public List<List<String>> chartPointBreakdowns; // [datasetIdx][weekIdx] = newline-separated breakdown lines for point click popup
     }
 
     public class DrilldownData {
@@ -1275,6 +1276,40 @@ public with sharing class CommandCenterController {
         }
         cd.chartEndMarkers   = endMarkers;
         if (hasPipeline) cd.chartStartMarkers = startMarkers;
+
+        // ── Point breakdown data for click popup ────────────────────────────────
+        // Dataset 0: On Time Weekly Demand — per-project contribution per week
+        List<String> demBreak = new List<String>();
+        for (Integer i = 0; i < 8; i++) {
+            Date wk = ws.addDays(i * 7);
+            List<String> lines = new List<String>();
+            for (Sprint__c s : projects) {
+                if (s.Project_End_Date__c == null || wk <= s.Project_End_Date__c) {
+                    Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+                    if (pace > 0) {
+                        String nm = (s.Accountlu__r != null && s.Accountlu__r.Name != null ? s.Accountlu__r.Name : s.Name);
+                        lines.add(nm + ': ' + pace.setScale(1, RoundingMode.HALF_UP) + 'h');
+                    }
+                }
+            }
+            demBreak.add(String.join(lines, '\n'));
+        }
+        // Dataset 1: Internal Capacity — same each week
+        String capBreakStr = 'FTE (3 × 35h): 105.0h\nContractors: ' + contractorCap.setScale(1, RoundingMode.HALF_UP) + 'h\nTotal: ' + totalCap.setScale(1, RoundingMode.HALF_UP) + 'h';
+        List<String> capBreak = new List<String>();
+        for (Integer i = 0; i < 8; i++) capBreak.add(capBreakStr);
+        // Dataset 2 (if pipeline): Forecasted Demand — active projects + pipeline per week
+        List<List<String>> breakdowns = new List<List<String>>{ demBreak, capBreak };
+        if (hasPipeline) {
+            List<String> fcastBreak = new List<String>();
+            for (Integer i = 0; i < 8; i++) {
+                Decimal dem = demandData.get(i);
+                Decimal pip = pipelineData.get(i);
+                fcastBreak.add('Active Projects: ' + dem.setScale(1, RoundingMode.HALF_UP) + 'h\nPipeline: ' + pip.setScale(1, RoundingMode.HALF_UP) + 'h\nTotal: ' + projectedData.get(i).setScale(1, RoundingMode.HALF_UP) + 'h');
+            }
+            breakdowns.add(fcastBreak);
+        }
+        cd.chartPointBreakdowns = breakdowns;
 
         cd.chartType   = 'line';
         cd.chartLabels = labels;

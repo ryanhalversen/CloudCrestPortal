@@ -18,6 +18,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _drilldownData       = null;
     _canvasClickHandler  = null;
     _chart2              = null;
+    _pointPopup          = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -160,6 +161,15 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     get hasLegend() {
         return this.legendItems.length > 0;
     }
+
+    get pointPopup() { return this._pointPopup; }
+
+    get pointPopupStyle() {
+        if (!this._pointPopup) return '';
+        return `left:${this._pointPopup.x}px;top:${this._pointPopup.y}px;`;
+    }
+
+    closePointPopup() { this._pointPopup = null; }
 
     // ── Chart rendering ───────────────────────────────────────────────────────
 
@@ -661,6 +671,34 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             canvas.style.cursor = pillHitAreas.some(a => cx >= a.x1 && cx <= a.x2 && cy >= a.y1 && cy <= a.y2) ? 'pointer' : '';
         };
         canvas.addEventListener('mousemove', this._markerHoverHandler);
+
+        // Point click popup: show breakdown for whichever dot is clicked (line charts only)
+        const breakdowns = JSON.parse(JSON.stringify(this.cardData?.chartPointBreakdowns || []));
+        if (breakdowns.length) {
+            if (this._pointClickHandler) {
+                canvas.removeEventListener('click', this._pointClickHandler);
+            }
+            this._pointClickHandler = (e) => {
+                if (!this._chart) return;
+                const elements = this._chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+                if (!elements.length) {
+                    this._pointPopup = null;
+                    return;
+                }
+                const { datasetIndex: dsIdx, index: ptIdx } = elements[0];
+                const raw = breakdowns[dsIdx]?.[ptIdx];
+                if (!raw) { this._pointPopup = null; return; }
+                const lines = raw.split('\n').filter(Boolean);
+                const dsLabel  = this.cardData.datasets[dsIdx]?.label || '';
+                const weekLbl  = this.cardData.chartLabels[ptIdx] || '';
+                // Position popup relative to chart-wrap
+                const wrapRect = canvas.parentElement.getBoundingClientRect();
+                const x = Math.min(e.clientX - wrapRect.left + 12, wrapRect.width - 200);
+                const y = Math.max(e.clientY - wrapRect.top  - 12, 4);
+                this._pointPopup = { title: `${weekLbl} — ${dsLabel}`, lines, x, y };
+            };
+            canvas.addEventListener('click', this._pointClickHandler);
+        }
     }
 
     _renderChart2() {
@@ -923,6 +961,11 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             if (c) c.removeEventListener('mousemove', this._markerHoverHandler);
             this._markerHoverHandler = null;
         }
+        if (this._pointClickHandler) {
+            if (c) c.removeEventListener('click', this._pointClickHandler);
+            this._pointClickHandler = null;
+        }
+        this._pointPopup = null;
         if (this._chart) { this._chart.destroy(); this._chart = null; }
         if (this._chart2) { this._chart2.destroy(); this._chart2 = null; }
     }

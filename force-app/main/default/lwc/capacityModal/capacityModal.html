@@ -69,6 +69,17 @@
                         <template if:false={chartError}>
                             <div class="chart-wrap">
                                 <canvas lwc:ref="canvas"></canvas>
+                                <template if:true={pointPopup}>
+                                    <div class="point-popup" style={pointPopupStyle}>
+                                        <div class="point-popup-header">
+                                            <span class="point-popup-title">{pointPopup.title}</span>
+                                            <button class="point-popup-close" onclick={closePointPopup}>&times;</button>
+                                        </div>
+                                        <template for:each={pointPopup.lines} for:item="line">
+                                            <div key={line} class="point-popup-line">{line}</div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </div>
