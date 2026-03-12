@@ -479,12 +479,13 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     'rgba(34,197,94,0.5)', 'rgba(34,197,94,0.18)', 'rgba(34,197,94,0.95)',
                     (j) => chartArea.top - 8 - j * (pillH + pillGap)
                 );
-                // Red ends: inside chart bottom (above WoW badges), stack upward
-                // WoW badges sit at chartArea.bottom - 20; put pills just above them
+                // Red ends: below x-axis date labels, above legend (bottom padding zone)
+                // sc.x.bottom = bottom of the x-axis scale (includes date tick labels)
+                const xBottom = sc.x?.bottom ?? (chartArea.bottom + 28);
                 drawPillRow(
                     endMarkers, ' ends',
                     'rgba(239,68,68,0.6)', 'rgba(239,68,68,0.18)', 'rgba(239,68,68,0.95)',
-                    (j) => chartArea.bottom - 24 - j * (pillH + pillGap)
+                    (j) => xBottom + 6 + (j + 1) * (pillH + pillGap)
                 );
                 ctx.restore();
             }
@@ -507,8 +508,9 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 maintainAspectRatio: false,
                 layout: {
                     padding: {
-                        // Reserve space above chart area for green pipeline start pills only
-                        top: startMarkers.some(m => m) ? 55 : 0
+                            top:    startMarkers.some(m => m) ? 55 : 0,
+                        bottom: endMarkers.some(m => m)   ? 32 : 0,
+                        left:   40  // extra left margin so tick-0 pills aren't clipped
                     }
                 },
                 interaction: (isLine || hasMixedTypes)
