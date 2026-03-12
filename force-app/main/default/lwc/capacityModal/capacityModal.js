@@ -489,12 +489,11 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     'rgba(34,197,94,0.5)', 'rgba(34,197,94,0.18)', 'rgba(34,197,94,0.95)',
                     (j) => chartArea.top - 8 - j * (pillH + pillGap)
                 );
-                // Red ends: below the chart legend, in the bottom padding zone
-                const legendBottom = chart.legend?.bottom ?? (chart.height - 10);
+                // Red ends: right under the date labels, in the bottom padding zone
                 drawPillRow(
                     endMarkers, ' ends',
                     'rgba(239,68,68,0.6)', 'rgba(239,68,68,0.18)', 'rgba(239,68,68,0.95)',
-                    (j) => legendBottom + 6 + (j + 1) * (pillH + pillGap)
+                    (j) => sc.x.bottom + 6 + (j + 1) * (pillH + pillGap)
                 );
                 ctx.restore();
             }
@@ -546,7 +545,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 plugins: {
                     legend: {
                         display:  mainDs.length > 1 || isDoughnut || refDs.length > 0,
-                        position: 'bottom',
+                        position: endMarkers.some(m => m) ? 'top' : 'bottom',
                         labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
                     },
                     tooltip: {
