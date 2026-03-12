@@ -167,7 +167,9 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         if (!chartType || !datasets?.length) return;
 
         // Separate reference-line datasets from data datasets
-        const refDs  = datasets.filter(d => d.isRef === true);
+        // Spread data arrays out of the LWC read-only proxy into plain JS arrays
+        const refDs  = datasets.filter(d => d.isRef === true)
+                               .map(d => ({ ...d, data: Array.from(d.data || []) }));
         const mainDs = datasets.filter(d => d.isRef !== true);
 
         const hasMixedTypes = mainDs.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
