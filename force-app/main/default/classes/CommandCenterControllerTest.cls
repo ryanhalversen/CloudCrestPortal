@@ -181,14 +181,12 @@ private class CommandCenterControllerTest {
         System.assertEquals(3, cd.kpis.size(), 'Card face should have 3 KPIs');
         System.assertEquals(6, cd.modalKpis.size(), 'Modal should have 6 KPIs');
         System.assertEquals('bar', cd.chartType);
-        // Chart 1: main dataset + retained ref line
-        System.assertEquals(2, cd.datasets.size(), 'Chart 1 should have main + ref datasets');
+        // Chart 1: outstanding story count per project (single dataset, no ref line)
+        System.assertEquals(1, cd.datasets.size(), 'Chart 1 should have single dataset');
         // Our test project is In Progress (retainer, Weekly_Pace_Estimate__c = 10)
         System.assertEquals(1, cd.chartLabels.size(), 'Should show 1 active project');
-        // Story age chart 2: test stories exist → should have chart 2 data
-        System.assertNotEquals(null, cd.chartLabels2, 'Chart 2 labels should be present');
-        System.assertEquals(true, cd.chartHorizontal2, 'Chart 2 should be horizontal');
-        System.assertEquals(14, (Integer) cd.chart2RefValue, '14-day threshold');
+        // No chart 2
+        System.assertEquals(null, cd.datasets2, 'Chart 2 should not be present');
     }
 
     @IsTest

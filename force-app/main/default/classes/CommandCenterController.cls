@@ -824,7 +824,8 @@ public with sharing class CommandCenterController {
         // ── 3. Open + blocked story counts ────────────────────────────────────
         Integer totalOutstanding = 0;
         Integer totalBlocked     = 0;
-        Map<Id, Integer> blockedByProj = new Map<Id, Integer>();
+        Map<Id, Integer> blockedByProj     = new Map<Id, Integer>();
+        Map<Id, Integer> outstandingByProj = new Map<Id, Integer>();
 
         if (!allProjIds.isEmpty()) {
             for (AggregateResult ar : [
@@ -838,6 +839,7 @@ public with sharing class CommandCenterController {
                 String st   = (String) ar.get('st');
                 Integer cnt = ar.get('cnt') != null ? Integer.valueOf(ar.get('cnt')) : 0;
                 totalOutstanding += cnt;
+                outstandingByProj.put(pid, (outstandingByProj.containsKey(pid) ? outstandingByProj.get(pid) : 0) + cnt);
                 if (st == 'Blocked') {
                     totalBlocked += cnt;
                     blockedByProj.put(pid, (blockedByProj.containsKey(pid) ? blockedByProj.get(pid) : 0) + cnt);
@@ -896,54 +898,42 @@ public with sharing class CommandCenterController {
             : coveragePct >= 60 ? 'warning'
             : 'critical';
 
-        // ── 6. Chart 1: Work coverage by project (most underserved first) ─────
-        List<Sprint__c> uncoveredProjs = new List<Sprint__c>();
-        List<Sprint__c> coveredProjs   = new List<Sprint__c>();
-        for (Sprint__c s : retainerProjs) {
-            Decimal retained = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
-            Decimal ready    = readyHrsByProj.containsKey(s.Id) ? readyHrsByProj.get(s.Id) : 0;
-            if (ready < retained) uncoveredProjs.add(s); else coveredProjs.add(s);
+        // ── 6. Chart 1: Outstanding stories per project (most stories first) ───
+        // Combine all projects and sort by outstanding count DESC
+        List<Sprint__c> ch1Projs = new List<Sprint__c>();
+        ch1Projs.addAll(retainerProjs);
+        ch1Projs.addAll(blockProjs);
+        // Sort by outstanding count descending (simple insertion sort for small lists)
+        for (Integer i = 1; i < ch1Projs.size(); i++) {
+            Sprint__c cur = ch1Projs[i];
+            Integer curCnt = outstandingByProj.containsKey(cur.Id) ? outstandingByProj.get(cur.Id) : 0;
+            Integer j = i - 1;
+            while (j >= 0) {
+                Integer prevCnt = outstandingByProj.containsKey(ch1Projs[j].Id) ? outstandingByProj.get(ch1Projs[j].Id) : 0;
+                if (prevCnt >= curCnt) break;
+                ch1Projs[j + 1] = ch1Projs[j];
+                j--;
+            }
+            ch1Projs[j + 1] = cur;
         }
 
-        List<Sprint__c> ch1Projs = new List<Sprint__c>();
-        ch1Projs.addAll(uncoveredProjs);
-        ch1Projs.addAll(coveredProjs);
-        ch1Projs.addAll(blockProjs);
-
-        List<String>  ch1Labels   = new List<String>();
-        List<Decimal> ch1Data     = new List<Decimal>();
-        List<Decimal> ch1Retained = new List<Decimal>();
-        List<String>  ch1ProjIds  = new List<String>();
-        List<String>  ch1Colors   = new List<String>();
+        List<String>  ch1Labels  = new List<String>();
+        List<Decimal> ch1Data    = new List<Decimal>();
+        List<String>  ch1ProjIds = new List<String>();
+        List<String>  ch1Colors  = new List<String>();
 
         for (Sprint__c s : ch1Projs) {
             String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
-            String lbl      = acctName.length() > 0 ? acctName : s.Name;
+            String lbl = acctName.length() > 0 ? acctName : s.Name;
             ch1Labels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-            Decimal ready = readyHrsByProj.containsKey(s.Id) ? readyHrsByProj.get(s.Id) : 0;
-            ch1Data.add(ready.setScale(1, RoundingMode.HALF_UP));
+            Integer cnt = outstandingByProj.containsKey(s.Id) ? outstandingByProj.get(s.Id) : 0;
+            ch1Data.add(cnt);
             ch1ProjIds.add(s.Id);
-            if (s.Contract_Type__c == 'Block') {
-                ch1Retained.add(null);
-                ch1Colors.add('rgba(245,158,11,0.8)');
-            } else {
-                Decimal retained = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
-                ch1Retained.add(retained > 0 ? retained : null);
-                Boolean isCovered = retained > 0 && ready >= retained;
-                ch1Colors.add(isCovered ? 'rgba(34,197,94,0.75)' : 'rgba(239,68,68,0.75)');
-            }
+            ch1Colors.add(s.Contract_Type__c == 'Block' ? 'rgba(245,158,11,0.8)' : 'rgba(0,180,216,0.8)');
         }
 
-        ChartDataset ch1MainDs = ds('Ready Story Hours', ch1Data, '#00b4d8');
+        ChartDataset ch1MainDs = ds('Outstanding Stories', ch1Data, '#00b4d8');
         ch1MainDs.colors = ch1Colors;
-
-        ChartDataset ch1RetRef = new ChartDataset();
-        ch1RetRef.label       = 'Weekly Commitment (h)';
-        ch1RetRef.data        = ch1Retained;
-        ch1RetRef.color       = '#ef4444';
-        ch1RetRef.borderColor = '#ef4444';
-        ch1RetRef.isRef       = true;
-        ch1RetRef.isPerBar    = true;
 
         // ── 7. Chart 2: Avg story age by account (horizontal bar) ─────────────
         // Sort accounts by avg age DESC (worst first)
@@ -1041,15 +1031,7 @@ public with sharing class CommandCenterController {
         cd.chartLabels        = ch1Labels;
         cd.chartProjectIds    = ch1ProjIds;
         cd.chartClickNavigate = true;
-        cd.datasets           = new List<ChartDataset>{ ch1MainDs, ch1RetRef };
-
-        cd.chartType2         = 'bar';
-        cd.chartHorizontal2   = true;
-        cd.chartSectionLabel2 = 'Avg Story Age by Account (days)';
-        cd.chart2RefValue     = STORY_AGE_THRESHOLD_DAYS;
-        cd.chart2RefLabel     = STORY_AGE_THRESHOLD_DAYS + '-day healthy threshold';
-        cd.chartLabels2       = ch2Labels;
-        cd.datasets2          = ch2Labels.isEmpty() ? null : new List<ChartDataset>{ ch2MainDs };
+        cd.datasets           = new List<ChartDataset>{ ch1MainDs };
 
         cd.insights = insights;
         return cd;
