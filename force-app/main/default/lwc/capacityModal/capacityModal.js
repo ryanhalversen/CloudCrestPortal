@@ -381,8 +381,9 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                // Label Y: near bottom of canvas, below rotated tick labels
-                const labelY = chart.height - 8;
+                // Label Y: just above the legend (or near canvas bottom if no legend)
+                const legendTop = chart.legend?.top ?? chart.height;
+                const labelY = legendTop - 4;
                 ctx.font = 'bold 10px -apple-system,BlinkMacSystemFont,sans-serif';
                 ctx.textBaseline = 'bottom';
 
