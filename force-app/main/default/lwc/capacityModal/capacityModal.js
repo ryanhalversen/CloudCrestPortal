@@ -408,7 +408,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
-        // End-of-project marker plugin: vertical dotted lines + labels for projects ending that week
+        // End-of-project marker plugin: vertical dotted lines + stacked labels for projects ending that week
         const endMarkers = JSON.parse(JSON.stringify(this.cardData.chartEndMarkers || []));
         const endMarkersPlugin = {
             id: 'endMarkers',
@@ -417,9 +417,15 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const { ctx, scales: sc, chartArea } = chart;
                 if (!sc.x) return;
                 ctx.save();
+                const pillH  = 17;
+                const pillGap = 3;
+                const font   = 'bold 11px -apple-system,BlinkMacSystemFont,sans-serif';
+                ctx.font = font;
+
                 for (let i = 0; i < endMarkers.length; i++) {
-                    const label = endMarkers[i];
-                    if (!label) continue;
+                    const entry = endMarkers[i];
+                    if (!entry) continue;
+                    const names = entry.split('\n');
                     const x = sc.x.getPixelForTick(i);
 
                     // Dotted vertical line
@@ -432,26 +438,31 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Horizontal label centered on the line just above chart area
-                    ctx.font = 'bold 9px -apple-system,BlinkMacSystemFont,sans-serif';
-                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    const text = label + ' ends';
-                    const tw = ctx.measureText(text).width + 8;
-                    const th = 13;
-                    const ty = chartArea.top - 3;
-                    // Background pill
-                    ctx.fillStyle = 'rgba(239,68,68,0.15)';
-                    ctx.beginPath();
-                    if (ctx.roundRect) {
-                        ctx.roundRect(x - tw / 2, ty - th, tw, th, 3);
-                    } else {
-                        ctx.rect(x - tw / 2, ty - th, tw, th);
+                    // Stack pills upward from just above the chart area
+                    // Bottom of lowest pill starts at chartArea.top - 10
+                    ctx.textAlign    = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = font;
+                    for (let j = 0; j < names.length; j++) {
+                        const text = names[j] + ' ends';
+                        const tw   = ctx.measureText(text).width + 10;
+                        // j=0 is closest to the chart; higher j stacks further up
+                        const pillBottom = chartArea.top - 10 - j * (pillH + pillGap);
+                        const pillTop    = pillBottom - pillH;
+                        const midY       = pillTop + pillH / 2;
+                        // Pill background
+                        ctx.fillStyle = 'rgba(239,68,68,0.18)';
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(x - tw / 2, pillTop, tw, pillH, 4);
+                        } else {
+                            ctx.rect(x - tw / 2, pillTop, tw, pillH);
+                        }
+                        ctx.fill();
+                        // Text
+                        ctx.fillStyle = 'rgba(239,68,68,0.95)';
+                        ctx.fillText(text, x, midY);
                     }
-                    ctx.fill();
-                    ctx.fillStyle = 'rgba(239,68,68,0.9)';
-                    ctx.fillText(text, x, ty);
                 }
                 ctx.restore();
             }

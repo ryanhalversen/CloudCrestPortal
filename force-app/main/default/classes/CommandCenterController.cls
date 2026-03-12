@@ -1216,7 +1216,7 @@ public with sharing class CommandCenterController {
             String label = s.Accountlu__r != null && s.Accountlu__r.Name != null
                 ? s.Accountlu__r.Name : s.Name;
             String cur = endMarkers.get(weekIdx);
-            endMarkers.set(weekIdx, cur == '' ? label : cur + ', ' + label);
+            endMarkers.set(weekIdx, cur == '' ? label : cur + '\n' + label);
         }
         cd.chartEndMarkers = endMarkers;
 
