@@ -53,6 +53,7 @@ public with sharing class CommandCenterController {
         @AuraEnabled public String             chartSectionLabel2; // title for the chart 2 section in the modal
         @AuraEnabled public Decimal            chart2RefValue;     // optional threshold value to draw a reference line on chart 2
         @AuraEnabled public String             chart2RefLabel;     // legend label for the chart 2 reference line
+        @AuraEnabled public List<String>       chartEndMarkers;    // parallel to chartLabels; non-null = client name(s) ending that week (for line chart annotations)
     }
 
     public class DrilldownData {
@@ -1136,7 +1137,8 @@ public with sharing class CommandCenterController {
         Date ws = Date.today().toStartOfWeek();
 
         List<Sprint__c> projects = [
-            SELECT On_Time_Weekly_Pace__c, Project_End_Date__c
+            SELECT On_Time_Weekly_Pace__c, Project_End_Date__c,
+                   Name, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
         ];
@@ -1202,6 +1204,22 @@ public with sharing class CommandCenterController {
             kpi('Wk 8 Forecast', wk8Util + '%', (wk8Util >= 80 && wk8Util <= 95) ? 'up' : 'down', 'projected utilization'),
             kpi('Net Balance',   (surplus >= 0 ? '+' : '') + surplus + 'h', surplus >= 0 ? 'up' : 'down', surplus >= 0 ? 'surplus at wk 4' : 'deficit at wk 4')
         };
+        // Build end-of-project markers: for each project ending within the 8-week window,
+        // record its client name at the matching week index
+        List<String> endMarkers = new List<String>{'','','','','','','',''};
+        Date wkEnd = ws.addDays(55); // end of week 8
+        for (Sprint__c s : projects) {
+            if (s.Project_End_Date__c == null) continue;
+            if (s.Project_End_Date__c < ws || s.Project_End_Date__c > wkEnd) continue;
+            Integer weekIdx = ws.daysBetween(s.Project_End_Date__c) / 7;
+            if (weekIdx < 0 || weekIdx > 7) continue;
+            String label = s.Accountlu__r != null && s.Accountlu__r.Name != null
+                ? s.Accountlu__r.Name : s.Name;
+            String cur = endMarkers.get(weekIdx);
+            endMarkers.set(weekIdx, cur == '' ? label : cur + ', ' + label);
+        }
+        cd.chartEndMarkers = endMarkers;
+
         cd.chartType   = 'line';
         cd.chartLabels = labels;
         cd.datasets    = new List<ChartDataset>{ demDs, capDs };

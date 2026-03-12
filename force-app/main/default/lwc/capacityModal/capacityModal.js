@@ -408,6 +408,45 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
+        // End-of-project marker plugin: vertical dotted lines + labels for projects ending that week
+        const endMarkers = JSON.parse(JSON.stringify(this.cardData.chartEndMarkers || []));
+        const endMarkersPlugin = {
+            id: 'endMarkers',
+            afterDraw(chart) {
+                if (!endMarkers.length) return;
+                const { ctx, scales: sc, chartArea } = chart;
+                if (!sc.x) return;
+                ctx.save();
+                for (let i = 0; i < endMarkers.length; i++) {
+                    const label = endMarkers[i];
+                    if (!label) continue;
+                    const x = sc.x.getPixelForTick(i);
+
+                    // Dotted vertical line
+                    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+                    ctx.lineWidth   = 1.5;
+                    ctx.setLineDash([3, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, chartArea.bottom);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // Rotated label — drawn along the line, text reads bottom-to-top
+                    ctx.save();
+                    ctx.translate(x - 9, chartArea.top + 6);
+                    ctx.rotate(-Math.PI / 2);
+                    ctx.font = 'bold 9px -apple-system,BlinkMacSystemFont,sans-serif';
+                    ctx.fillStyle = 'rgba(239,68,68,0.85)';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(label + ' ends', 0, 0);
+                    ctx.restore();
+                }
+                ctx.restore();
+            }
+        };
+
         // Bar click: navigate to record (chartClickNavigate) or drilldown
         const projectIds    = this.cardData.chartProjectIds || [];
         const clickNavigate = this.cardData.chartClickNavigate === true;
@@ -497,7 +536,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 },
                 scales
             },
-            plugins: [wowPlugin, refLinesPlugin, sectionLabelPlugin]
+            plugins: [wowPlugin, refLinesPlugin, sectionLabelPlugin, endMarkersPlugin]
         });
 
         // Native click listener for x-axis label → open record in new tab
