@@ -483,6 +483,12 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             options: {
                 responsive:          true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        // Reserve space above chart area for project end marker pills
+                        top: endMarkers.some(m => m) ? 52 : 0
+                    }
+                },
                 interaction: (isLine || hasMixedTypes)
                     ? { mode: 'index', intersect: false }
                     : { mode: 'nearest', intersect: true },
