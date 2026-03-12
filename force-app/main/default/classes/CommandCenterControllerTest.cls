@@ -159,7 +159,7 @@ private class CommandCenterControllerTest {
         System.assertEquals('Delivery Readiness', cd.title);
         System.assertEquals(3, cd.kpis.size());
         System.assertEquals('bar', cd.chartType);
-        System.assertEquals(2, cd.datasets.size(), 'Should have Capacity + Demand datasets');
+        System.assertEquals(1, cd.datasets.size(), 'Should have single weekly pace dataset');
         // Blocked story in test data → Blocked KPI should be present
         Boolean foundBlocked = false, foundEstHrs = false;
         for (CommandCenterController.KPI k : cd.kpis) {

@@ -629,13 +629,21 @@ public with sharing class CommandCenterController {
         // Weekly demand from active projects (sum of on-pace hourly requirement)
         Decimal weeklyDemand   = 0;
         Integer activeProjects = 0;
+        List<String>  projLabels = new List<String>();
+        List<Decimal> projPace   = new List<Decimal>();
         for (Sprint__c s : [
-            SELECT On_Time_Weekly_Pace__c
+            SELECT Name, On_Time_Weekly_Pace__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
+            ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
+            LIMIT  20
         ]) {
             activeProjects++;
-            if (s.On_Time_Weekly_Pace__c != null) weeklyDemand += s.On_Time_Weekly_Pace__c;
+            Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            weeklyDemand += pace;
+            String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
+            projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
+            projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
         }
 
         // Story hours estimate
@@ -659,29 +667,24 @@ public with sharing class CommandCenterController {
             : demandRatio > 1.0 ? 'warning'
             : 'good';
 
-        // Chart: grouped Capacity vs Demand bars
         Decimal capH = contractorWeeklyHrs.setScale(1, RoundingMode.HALF_UP);
         Decimal demH = weeklyDemand.setScale(1, RoundingMode.HALF_UP);
-        String demandColor = demandRatio > 1.0 ? '#ef4444' : '#00b4d8';
 
         CardData cd = new CardData();
-        cd.title    = 'Delivery Readiness';
-        cd.subtitle = 'This Week';
+        cd.title      = 'Delivery Readiness';
+        cd.subtitle   = 'This Week';
         cd.question   = 'Is delivery set up to execute this week?';
         cd.status     = status;
         cd.benchmarks = bm('Demand > capacity', 'Demand ≈ capacity', 'Capacity covers demand');
         cd.kpis = new List<KPI>{
             kpi('Demand / Internal Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
-                                                 demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
+                                              demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
             kpi('Est. Hours to Complete', totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h', 'neutral', 'across active stories'),
             kpi('Blocked Stories', String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
         };
         cd.chartType   = 'bar';
-        cd.chartLabels = new List<String>{ 'This Week' };
-        cd.datasets    = new List<ChartDataset>{
-            ds('Capacity', new List<Decimal>{ capH }, '#22c55e'),
-            ds('Demand',   new List<Decimal>{ demH }, demandColor)
-        };
+        cd.chartLabels = projLabels;
+        cd.datasets    = new List<ChartDataset>{ ds('Weekly Pace (h)', projPace, '#00b4d8') };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
             totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h total estimated to complete across all active stories',
