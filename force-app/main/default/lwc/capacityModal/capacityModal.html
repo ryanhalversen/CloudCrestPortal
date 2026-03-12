@@ -12,7 +12,12 @@
                         <p class="modal-subtitle">{cardData.subtitle}</p>
                     </div>
                 </div>
-                <button class="modal-close" onclick={handleClose} title="Close">&times;</button>
+                <div class="modal-header-actions">
+                    <template if:true={isUtilizationForecast}>
+                        <button class="modal-detail-btn" onclick={handleViewDetails}>View Details</button>
+                    </template>
+                    <button class="modal-close" onclick={handleClose} title="Close">&times;</button>
+                </div>
             </div>
 
             <!-- KPIs (full width) -->
@@ -126,4 +131,10 @@
 
         </div>
     </div>
+
+    <!-- Utilization Detail Modal -->
+    <template if:true={_showDetail}>
+        <c-utilization-detail-modal onclose={handleDetailClose}></c-utilization-detail-modal>
+    </template>
+
 </template>

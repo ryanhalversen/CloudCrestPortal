@@ -19,6 +19,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _canvasClickHandler  = null;
     _chart2              = null;
     _pointPopup          = null;
+    _showDetail          = false;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -979,6 +980,19 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         const id = event.currentTarget.dataset.id;
         if (!id) return;
         window.open(`${window.location.origin}/lightning/r/Sprint__c/${id}/view`, '_blank');
+    }
+
+    get isUtilizationForecast() {
+        return this.cardData?.title === 'Utilization Forecast';
+    }
+
+    handleViewDetails(e) {
+        e.stopPropagation();
+        this._showDetail = true;
+    }
+
+    handleDetailClose() {
+        this._showDetail = false;
     }
 
     handleClose() {

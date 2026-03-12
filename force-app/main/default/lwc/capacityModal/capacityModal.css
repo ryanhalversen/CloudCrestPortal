@@ -88,6 +88,29 @@
 }
 .modal-close:hover { color: #f1f5f9; }
 
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.modal-detail-btn {
+    background: rgba(0, 180, 216, 0.1);
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    color: #00b4d8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.modal-detail-btn:hover {
+    background: rgba(0, 180, 216, 0.2);
+}
+
 /* KPI row */
 .modal-kpis {
     display: flex;

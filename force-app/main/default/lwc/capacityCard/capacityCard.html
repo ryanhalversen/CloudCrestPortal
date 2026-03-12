@@ -27,12 +27,7 @@
             <div class="card-top">
                 <span class={statusDotClass}></span>
                 <span class="card-title">{cardData.title}</span>
-                <template if:true={isUtilizationForecast}>
-                    <button class="card-detail-btn" onclick={handleViewDetails} title="View capacity detail">View Details</button>
-                </template>
-                <template if:false={isUtilizationForecast}>
-                    <span class="card-expand" title="View details">↗</span>
-                </template>
+                <span class="card-expand" title="View details">↗</span>
             </div>
 
             <!-- Key question -->
@@ -73,10 +68,4 @@
         </template>
 
     </div>
-
-    <!-- Utilization Detail Modal -->
-    <template if:true={_showDetail}>
-        <c-utilization-detail-modal onclose={handleDetailClose}></c-utilization-detail-modal>
-    </template>
-
 </template>
