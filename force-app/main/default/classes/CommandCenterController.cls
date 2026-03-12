@@ -623,15 +623,8 @@ public with sharing class CommandCenterController {
 
     @AuraEnabled(cacheable=true)
     public static CardData getPresentManagement() {
-        // Team capacity this week
-        Decimal contractorWeeklyHrs = 0;
-        for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
-            WHERE  Account.Name = 'CloudCrest Contractors'
-              AND  Available_Hours__c != null AND Available_Hours__c > 0
-        ]) {
-            contractorWeeklyHrs += c.Available_Hours__c;
-        }
+        // Team capacity: 3 FTEs at 35h/wk + Head of Delivery at 20h/wk = 125h/wk
+        Decimal contractorWeeklyHrs = (3 * 35) + 20; // 125h
 
         // Weekly demand from active projects (sum of on-pace hourly requirement)
         Decimal weeklyDemand   = 0;
@@ -688,7 +681,7 @@ public with sharing class CommandCenterController {
         cd.status     = status;
         cd.benchmarks = bm('Demand > capacity', 'Demand ≈ capacity', 'Capacity covers demand');
         cd.kpis = new List<KPI>{
-            kpi('Capacity / Demand', capH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h',
+            kpi('Demand / Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
                                                  demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
             kpi('Work Ready',  readyPct + '%',   readyPct >= 80 ? 'up' : 'down',  readyStories + ' of ' + totalActive + ' stories'),
             kpi('Blocked',     String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
