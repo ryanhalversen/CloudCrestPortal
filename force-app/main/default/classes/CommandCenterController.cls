@@ -19,6 +19,7 @@ public with sharing class CommandCenterController {
         @AuraEnabled public Boolean       isDashed;
         @AuraEnabled public String  chartDatasetType; // 'line' for mixed charts (per-dataset type override)
         @AuraEnabled public Boolean isRef;            // true = reference/target line styling
+        @AuraEnabled public Boolean isPerBar;         // true = draw ref line at each bar's own data value
     }
 
     public class Benchmark {
@@ -44,6 +45,7 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>       chartLabels2; // second chart x-axis labels
         @AuraEnabled public List<ChartDataset> datasets2;    // second chart datasets
         @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
+        @AuraEnabled public Boolean            chartClickNavigate; // true = bar click navigates to record (not drilldown)
     }
 
     public class DrilldownData {
@@ -627,12 +629,14 @@ public with sharing class CommandCenterController {
         Decimal contractorWeeklyHrs = (3 * 35) + 20; // 125h
 
         // Weekly demand from active projects (sum of on-pace hourly requirement)
-        Decimal weeklyDemand   = 0;
-        Integer activeProjects = 0;
-        List<String>  projLabels = new List<String>();
-        List<Decimal> projPace   = new List<Decimal>();
+        Decimal weeklyDemand    = 0;
+        Integer activeProjects  = 0;
+        List<String>  projLabels   = new List<String>();
+        List<Decimal> projPace     = new List<Decimal>();
+        List<Decimal> projRetained = new List<Decimal>();
+        List<String>  projIds      = new List<String>();
         for (Sprint__c s : [
-            SELECT Name, On_Time_Weekly_Pace__c, Accountlu__r.Name
+            SELECT Id, Name, On_Time_Weekly_Pace__c, Weekly_Pace_Estimate__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
             ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
@@ -644,6 +648,8 @@ public with sharing class CommandCenterController {
             String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
             projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
             projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
+            projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
+            projIds.add(s.Id);
         }
 
         // Story hours estimate
@@ -682,9 +688,19 @@ public with sharing class CommandCenterController {
             kpi('Est. Hours to Complete', totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h', 'neutral', 'across active stories'),
             kpi('Blocked Stories', String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
         };
-        cd.chartType   = 'bar';
-        cd.chartLabels = projLabels;
-        cd.datasets    = new List<ChartDataset>{ ds('Weekly Pace (h)', projPace, '#00b4d8') };
+        ChartDataset retainedRef = new ChartDataset();
+        retainedRef.label       = 'Weekly Retained (h)';
+        retainedRef.data        = projRetained;
+        retainedRef.color       = '#ef4444';
+        retainedRef.borderColor = '#ef4444';
+        retainedRef.isRef       = true;
+        retainedRef.isPerBar    = true;
+
+        cd.chartType          = 'bar';
+        cd.chartLabels        = projLabels;
+        cd.chartProjectIds    = projIds;
+        cd.chartClickNavigate = true;
+        cd.datasets           = new List<ChartDataset>{ ds('Weekly Pace (h)', projPace, '#00b4d8'), retainedRef };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
             totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h total estimated to complete across all active stories',

@@ -224,25 +224,43 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const labels = chart.data.labels || [];
                 ctx.save();
                 for (const ref of refDs) {
-                    const targetY = (ref.data || []).find(v => v != null);
-                    if (targetY == null) continue;
-                    const lbl = (ref.label || '').toLowerCase();
-                    const isAlecLine = lbl.includes('hod') || lbl.includes('alec') || targetY < 100;
                     ctx.strokeStyle = ref.borderColor || ref.color || '#ef4444';
                     ctx.lineWidth   = 2.5;
                     ctx.setLineDash(ref.isDashed ? [4, 3] : []);
-                    for (let i = 0; i < barMeta.data.length; i++) {
-                        const barLabel  = String(labels[i] || '').toLowerCase();
-                        const isAlecBar = barLabel.includes('alec') || barLabel.includes('head of delivery');
-                        if (isAlecLine !== isAlecBar) continue;
-                        const barEl = barMeta.data[i];
-                        if (!barEl) continue;
-                        const y  = sc.y.getPixelForValue(targetY);
-                        const hw = (barEl.width || 20) / 2 + 2;
-                        ctx.beginPath();
-                        ctx.moveTo(barEl.x - hw, y);
-                        ctx.lineTo(barEl.x + hw, y);
-                        ctx.stroke();
+                    if (ref.isPerBar) {
+                        // Per-bar mode: each bar gets a line at its own value
+                        const data = ref.data || [];
+                        for (let i = 0; i < barMeta.data.length; i++) {
+                            const yVal = data[i];
+                            if (yVal == null || yVal === 0) continue;
+                            const barEl = barMeta.data[i];
+                            if (!barEl) continue;
+                            const y  = sc.y.getPixelForValue(yVal);
+                            const hw = (barEl.width || 20) / 2 + 2;
+                            ctx.beginPath();
+                            ctx.moveTo(barEl.x - hw, y);
+                            ctx.lineTo(barEl.x + hw, y);
+                            ctx.stroke();
+                        }
+                    } else {
+                        // Label-match mode: single target value, drawn on matching bars
+                        const targetY = (ref.data || []).find(v => v != null);
+                        if (targetY == null) continue;
+                        const lbl = (ref.label || '').toLowerCase();
+                        const isAlecLine = lbl.includes('hod') || lbl.includes('alec') || targetY < 100;
+                        for (let i = 0; i < barMeta.data.length; i++) {
+                            const barLabel  = String(labels[i] || '').toLowerCase();
+                            const isAlecBar = barLabel.includes('alec') || barLabel.includes('head of delivery');
+                            if (isAlecLine !== isAlecBar) continue;
+                            const barEl = barMeta.data[i];
+                            if (!barEl) continue;
+                            const y  = sc.y.getPixelForValue(targetY);
+                            const hw = (barEl.width || 20) / 2 + 2;
+                            ctx.beginPath();
+                            ctx.moveTo(barEl.x - hw, y);
+                            ctx.lineTo(barEl.x + hw, y);
+                            ctx.stroke();
+                        }
                     }
                 }
                 ctx.setLineDash([]);
@@ -311,9 +329,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
-        // Bar drilldown: pointer cursor and click handler
-        const projectIds = this.cardData.chartProjectIds || [];
-        const hasDrilldown = isBar && projectIds.length > 0;
+        // Bar click: navigate to record (chartClickNavigate) or drilldown
+        const projectIds    = this.cardData.chartProjectIds || [];
+        const clickNavigate = this.cardData.chartClickNavigate === true;
+        const hasDrilldown  = isBar && projectIds.length > 0;
 
         /* global Chart */
         this._chart = new Chart(canvas, {
@@ -337,8 +356,13 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     if (!elements.length) return;
                     const idx       = elements[0].index;
                     const projectId = projectIds[idx];
-                    const rawLabel  = (chartLabels[idx] || '').replace(' ●', '').trim();
-                    if (projectId) this._handleBarClick(projectId, rawLabel);
+                    if (!projectId) return;
+                    if (clickNavigate) {
+                        this._navigateToProject(projectId);
+                    } else {
+                        const rawLabel = (chartLabels[idx] || '').replace(' ●', '').trim();
+                        this._handleBarClick(projectId, rawLabel);
+                    }
                 } : undefined,
                 plugins: {
                     legend: {
@@ -383,7 +407,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 if (!n) return;
                 const segW = (xScale.right - xScale.left) / n;
                 const raw  = Math.floor((e.offsetX - xScale.left) / segW);
-                const idx  = raw + 1;
+                const idx  = clickNavigate ? raw : raw + 1;
                 if (idx >= 0 && idx < n && projectIds[idx]) {
                     this._navigateToProject(projectIds[idx]);
                 }
