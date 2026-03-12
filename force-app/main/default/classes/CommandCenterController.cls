@@ -49,6 +49,10 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<String>       chartEndDates;      // parallel to chartLabels; non-null for Block projects (formatted end date)
         @AuraEnabled public List<String>       chartBarColors;     // per-bar background colors for the main dataset
         @AuraEnabled public Integer            chartSectionBreak;  // index where Block section starts (for drawing section labels)
+        @AuraEnabled public Boolean            chartHorizontal2;   // true = chart 2 is a horizontal bar chart (indexAxis:'y')
+        @AuraEnabled public String             chartSectionLabel2; // title for the chart 2 section in the modal
+        @AuraEnabled public Decimal            chart2RefValue;     // optional threshold value to draw a reference line on chart 2
+        @AuraEnabled public String             chart2RefLabel;     // legend label for the chart 2 reference line
     }
 
     public class DrilldownData {
@@ -760,74 +764,303 @@ public with sharing class CommandCenterController {
 
     @AuraEnabled(cacheable=true)
     public static CardData getPresentCustomer() {
-        // Contractor capacity
-        Decimal contractorWeeklyHrs = 0;
-        for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
-            WHERE  Account.Name = 'CloudCrest Contractors'
-              AND  Available_Hours__c != null AND Available_Hours__c > 0
-        ]) {
-            contractorWeeklyHrs += c.Available_Hours__c;
-        }
 
-        // Active client engagements
-        List<Sprint__c> projects = [
-            SELECT Id, Name, On_Time_Weekly_Pace__c, Pace_Status__c, Accountlu__r.Name
+        // ── Configuration ──────────────────────────────────────────────────────
+        final Integer STORY_AGE_THRESHOLD_DAYS = 14;
+        // "Ready" statuses: stories that can be worked on this week
+        final Set<String> READY_STATUSES = new Set<String>{
+            'New', 'Scheduled', 'Work In Progress (WIP)', 'In Review', 'In UAT'
+        };
+
+        // ── 1. Load active projects ────────────────────────────────────────────
+        Map<Id, Sprint__c> projMap       = new Map<Id, Sprint__c>();
+        List<Sprint__c>    retainerProjs = new List<Sprint__c>();
+        List<Sprint__c>    blockProjs    = new List<Sprint__c>();
+        Set<Id>            retainerIds   = new Set<Id>();
+
+        for (Sprint__c s : [
+            SELECT Id, Name, Contract_Type__c, Weekly_Pace_Estimate__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-            ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
-            LIMIT  15
-        ];
+            ORDER BY Weekly_Pace_Estimate__c DESC NULLS LAST
+            LIMIT  50
+        ]) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            if (s.Name.containsIgnoreCase('CloudCrest') || acctName.containsIgnoreCase('CloudCrest')) continue;
+            projMap.put(s.Id, s);
+            if (s.Contract_Type__c == 'Block') {
+                blockProjs.add(s);
+            } else {
+                retainerProjs.add(s);
+                retainerIds.add(s.Id);
+            }
+        }
+        Set<Id> allProjIds = projMap.keySet();
 
-        Decimal weeklyCommitted = 0;
-        Integer underserved     = 0;
-        List<String>  chartLabels = new List<String>();
-        List<Decimal> chartData   = new List<Decimal>();
+        // ── 2. Ready story hours per project ──────────────────────────────────
+        Map<Id, Decimal> readyHrsByProj = new Map<Id, Decimal>();
+        Integer storiesNoEstimate = 0;
 
-        for (Sprint__c s : projects) {
-            Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
-            weeklyCommitted += pace;
-            String ps = s.Pace_Status__c != null ? s.Pace_Status__c : '';
-            if (ps == 'Behind' || ps == 'Critical') underserved++;
-            String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
-            chartLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-            chartData.add(pace.setScale(1, RoundingMode.HALF_UP));
+        if (!allProjIds.isEmpty()) {
+            for (AggregateResult ar : [
+                SELECT Projects__c pid, SUM(Hours_Estimate_to_Complete__c) hrs
+                FROM   Case
+                WHERE  Status IN ('New','Scheduled','Work In Progress (WIP)','In Review','In UAT')
+                  AND  Projects__c IN :allProjIds
+                GROUP BY Projects__c
+            ]) {
+                Id pid = (Id) ar.get('pid');
+                Decimal hrs = ar.get('hrs') != null ? (Decimal) ar.get('hrs') : 0;
+                readyHrsByProj.put(pid, hrs);
+            }
+            storiesNoEstimate = [
+                SELECT COUNT() FROM Case
+                WHERE  Status IN ('New','Scheduled','Work In Progress (WIP)','In Review','In UAT')
+                  AND  Projects__c IN :allProjIds
+                  AND  Hours_Estimate_to_Complete__c = null
+            ];
         }
 
-        Integer activeEngagements = projects.size();
-        Integer coveragePct = contractorWeeklyHrs > 0
-            ? Integer.valueOf(((weeklyCommitted / contractorWeeklyHrs) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
+        // ── 3. Open + blocked story counts ────────────────────────────────────
+        Integer totalOutstanding = 0;
+        Integer totalBlocked     = 0;
+        Map<Id, Integer> blockedByProj = new Map<Id, Integer>();
 
-        // Status: underserved clients = critical; book-of-business gaps = warning/critical
-        String status = activeEngagements == 0 ? 'neutral'
-            : underserved > 0   ? 'critical'
-            : coveragePct >= 80 ? 'good'
+        if (!allProjIds.isEmpty()) {
+            for (AggregateResult ar : [
+                SELECT Projects__c pid, Status st, COUNT(Id) cnt
+                FROM   Case
+                WHERE  Status NOT IN ('Completed','Cancelled')
+                  AND  Projects__c IN :allProjIds
+                GROUP BY Projects__c, Status
+            ]) {
+                Id pid      = (Id)     ar.get('pid');
+                String st   = (String) ar.get('st');
+                Integer cnt = ar.get('cnt') != null ? Integer.valueOf(ar.get('cnt')) : 0;
+                totalOutstanding += cnt;
+                if (st == 'Blocked') {
+                    totalBlocked += cnt;
+                    blockedByProj.put(pid, (blockedByProj.containsKey(pid) ? blockedByProj.get(pid) : 0) + cnt);
+                }
+            }
+        }
+
+        // ── 4. Story ages for avg-age-by-account chart ────────────────────────
+        Map<String, List<Integer>> acctAgeDays = new Map<String, List<Integer>>();
+
+        if (!allProjIds.isEmpty()) {
+            for (Case c : [
+                SELECT Projects__c, CreatedDate
+                FROM   Case
+                WHERE  Status NOT IN ('Completed','Cancelled')
+                  AND  Projects__c IN :allProjIds
+                LIMIT  500
+            ]) {
+                Sprint__c proj = projMap.get(c.Projects__c);
+                if (proj == null) continue;
+                String acct = proj.Accountlu__r?.Name != null ? proj.Accountlu__r.Name : proj.Name;
+                if (!acctAgeDays.containsKey(acct)) acctAgeDays.put(acct, new List<Integer>());
+                acctAgeDays.get(acct).add(c.CreatedDate.date().daysBetween(Date.today()));
+            }
+        }
+
+        // ── 5. Coverage metrics ───────────────────────────────────────────────
+        Integer coveredCount   = 0;
+        Integer retainerCount  = retainerProjs.size();
+        Decimal totalCommitted = 0;
+        Decimal totalCovered   = 0;
+        Integer needMoreWork   = 0;
+        List<String> zeroReadyNames = new List<String>();
+
+        for (Sprint__c s : retainerProjs) {
+            Decimal retained = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
+            Decimal ready    = readyHrsByProj.containsKey(s.Id) ? readyHrsByProj.get(s.Id) : 0;
+            totalCommitted += retained;
+            totalCovered   += ready;
+            if (ready >= retained) {
+                coveredCount++;
+            } else {
+                needMoreWork++;
+                if (ready == 0) {
+                    String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
+                    zeroReadyNames.add(acctName);
+                }
+            }
+        }
+
+        Decimal coveragePct = retainerCount > 0
+            ? (Decimal.valueOf(coveredCount) * 100 / retainerCount).setScale(0, RoundingMode.HALF_UP)
+            : 0;
+        String status = retainerCount == 0 ? 'neutral'
+            : coveragePct >= 85 ? 'good'
             : coveragePct >= 60 ? 'warning'
             : 'critical';
 
+        // ── 6. Chart 1: Work coverage by project (most underserved first) ─────
+        List<Sprint__c> uncoveredProjs = new List<Sprint__c>();
+        List<Sprint__c> coveredProjs   = new List<Sprint__c>();
+        for (Sprint__c s : retainerProjs) {
+            Decimal retained = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
+            Decimal ready    = readyHrsByProj.containsKey(s.Id) ? readyHrsByProj.get(s.Id) : 0;
+            if (ready < retained) uncoveredProjs.add(s); else coveredProjs.add(s);
+        }
+
+        List<Sprint__c> ch1Projs = new List<Sprint__c>();
+        ch1Projs.addAll(uncoveredProjs);
+        ch1Projs.addAll(coveredProjs);
+        ch1Projs.addAll(blockProjs);
+
+        List<String>  ch1Labels   = new List<String>();
+        List<Decimal> ch1Data     = new List<Decimal>();
+        List<Decimal> ch1Retained = new List<Decimal>();
+        List<String>  ch1ProjIds  = new List<String>();
+        List<String>  ch1Colors   = new List<String>();
+
+        for (Sprint__c s : ch1Projs) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            String lbl      = acctName.length() > 0 ? acctName : s.Name;
+            ch1Labels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
+            Decimal ready = readyHrsByProj.containsKey(s.Id) ? readyHrsByProj.get(s.Id) : 0;
+            ch1Data.add(ready.setScale(1, RoundingMode.HALF_UP));
+            ch1ProjIds.add(s.Id);
+            if (s.Contract_Type__c == 'Block') {
+                ch1Retained.add(null);
+                ch1Colors.add('rgba(245,158,11,0.8)');
+            } else {
+                Decimal retained = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
+                ch1Retained.add(retained > 0 ? retained : null);
+                Boolean isCovered = retained > 0 && ready >= retained;
+                ch1Colors.add(isCovered ? 'rgba(34,197,94,0.75)' : 'rgba(239,68,68,0.75)');
+            }
+        }
+
+        ChartDataset ch1MainDs = ds('Ready Story Hours', ch1Data, '#00b4d8');
+        ch1MainDs.colors = ch1Colors;
+
+        ChartDataset ch1RetRef = new ChartDataset();
+        ch1RetRef.label       = 'Weekly Commitment (h)';
+        ch1RetRef.data        = ch1Retained;
+        ch1RetRef.color       = '#ef4444';
+        ch1RetRef.borderColor = '#ef4444';
+        ch1RetRef.isRef       = true;
+        ch1RetRef.isPerBar    = true;
+
+        // ── 7. Chart 2: Avg story age by account (horizontal bar) ─────────────
+        // Sort accounts by avg age DESC (worst first)
+        List<String> acctsSorted = new List<String>(acctAgeDays.keySet());
+        for (Integer i = 0; i < acctsSorted.size() - 1; i++) {
+            for (Integer j = i + 1; j < acctsSorted.size(); j++) {
+                if (avgDays(acctAgeDays.get(acctsSorted[j])) > avgDays(acctAgeDays.get(acctsSorted[i]))) {
+                    String tmp = acctsSorted[i]; acctsSorted[i] = acctsSorted[j]; acctsSorted[j] = tmp;
+                }
+            }
+        }
+
+        List<String>  ch2Labels = new List<String>();
+        List<Decimal> ch2Data   = new List<Decimal>();
+        for (String acct : acctsSorted) {
+            String lbl = acct.length() > 18 ? acct.substring(0, 18) + '…' : acct;
+            ch2Labels.add(lbl);
+            ch2Data.add(avgDays(acctAgeDays.get(acct)).setScale(1, RoundingMode.HALF_UP));
+        }
+
+        ChartDataset ch2MainDs = ds('Avg Story Age (days)', ch2Data, '#0096c7');
+
+        // ── 8. Overall avg story age ──────────────────────────────────────────
+        Decimal totalAge = 0; Integer totalAgeN = 0;
+        for (String acct : acctAgeDays.keySet()) {
+            for (Integer d : acctAgeDays.get(acct)) { totalAge += d; totalAgeN++; }
+        }
+        Decimal avgStoryAge = totalAgeN > 0 ? (totalAge / totalAgeN).setScale(0, RoundingMode.HALF_UP) : 0;
+
+        // ── 9. Insights ───────────────────────────────────────────────────────
+        List<String> insights = new List<String>();
+
+        // Zero-ready projects (most urgent)
+        if (!zeroReadyNames.isEmpty()) {
+            String names = zeroReadyNames.size() <= 3
+                ? String.join(zeroReadyNames, ', ')
+                : zeroReadyNames[0] + ', ' + zeroReadyNames[1] + ' +' + (zeroReadyNames.size() - 2) + ' more';
+            insights.add(zeroReadyNames.size() + ' project' + (zeroReadyNames.size() == 1 ? '' : 's') + ' with no ready stories (' + names + ') — needs immediate grooming');
+        }
+
+        // Aggregate hours gap
+        if (totalCommitted > 0) {
+            Decimal gapPct = (totalCovered / totalCommitted * 100).setScale(0, RoundingMode.HALF_UP);
+            if (gapPct < 80) {
+                Decimal gap = (totalCommitted - totalCovered).setScale(0, RoundingMode.HALF_UP);
+                insights.add(gap + 'h gap — ' + totalCovered.setScale(0, RoundingMode.HALF_UP) + 'h ready vs ' + totalCommitted.setScale(0, RoundingMode.HALF_UP) + 'h committed');
+            } else {
+                insights.add(totalCovered.setScale(0, RoundingMode.HALF_UP) + 'h ready vs ' + totalCommitted.setScale(0, RoundingMode.HALF_UP) + 'h committed — portfolio well covered');
+            }
+        }
+
+        // Worst aging account
+        if (!acctsSorted.isEmpty()) {
+            Decimal worstAge = avgDays(acctAgeDays.get(acctsSorted[0])).setScale(0, RoundingMode.HALF_UP);
+            if (worstAge > STORY_AGE_THRESHOLD_DAYS) {
+                insights.add(acctsSorted[0] + ': avg story age ' + worstAge + 'd — backlog may need attention');
+            }
+        }
+
+        // Blocked stories
+        if (totalBlocked > 0 && insights.size() < 3) {
+            insights.add(totalBlocked + ' blocked ' + (totalBlocked == 1 ? 'story' : 'stories') + ' across ' + blockedByProj.size() + ' project' + (blockedByProj.size() == 1 ? '' : 's'));
+        }
+
+        // Data quality warning
+        if (storiesNoEstimate > 0 && insights.size() < 3) {
+            insights.add(storiesNoEstimate + ' ready ' + (storiesNoEstimate == 1 ? 'story has' : 'stories have') + ' no estimate — coverage data may be incomplete');
+        }
+
+        while (insights.size() > 3) insights.remove(insights.size() - 1);
+
+        // ── 10. Build CardData ────────────────────────────────────────────────
         CardData cd = new CardData();
-        cd.title    = 'Client Coverage';
-        cd.subtitle = 'This Week';
-        cd.question   = 'Are we fully committed and fully covered?';
-        cd.status     = status;
-        cd.benchmarks = bm('< 60% capacity booked', '60–80% capacity booked', '> 80% capacity booked');
+        cd.title     = 'Client Coverage';
+        cd.subtitle  = 'This Week';
+        cd.question  = 'Are we fully committed and fully covered?';
+        cd.status    = status;
+        cd.benchmarks = bm('< 60% of projects covered', '60–85% of projects covered', '> 85% of projects covered');
+
         cd.kpis = new List<KPI>{
-            kpi('Active Engagements', String.valueOf(activeEngagements), 'neutral', 'client projects'),
-            kpi('Book of Business',   coveragePct + '%',                 coveragePct >= 80 ? 'up' : 'down', 'of capacity committed'),
-            kpi('Underserved',        String.valueOf(underserved),       underserved > 0 ? 'down' : 'neutral', 'projects behind pace')
+            kpi('Projects Covered',        coveredCount + ' / ' + retainerCount, coveredCount == retainerCount ? 'up' : 'down', 'have enough ready work'),
+            kpi('Hours Ready vs Committed', totalCovered.setScale(0, RoundingMode.HALF_UP) + 'h / ' + totalCommitted.setScale(0, RoundingMode.HALF_UP) + 'h', totalCovered >= totalCommitted ? 'up' : 'down', 'estimated vs committed'),
+            kpi('Need More Work',          String.valueOf(needMoreWork), needMoreWork > 0 ? 'down' : 'neutral', 'projects below target')
         };
-        cd.chartType   = 'bar';
-        cd.chartLabels = chartLabels;
-        cd.datasets    = new List<ChartDataset>{ ds('Hrs/Week', chartData, '#0096c7') };
-        cd.insights    = new List<String>{
-            activeEngagements + ' active client engagement' + (activeEngagements == 1 ? '' : 's') + ' this week',
-            weeklyCommitted.setScale(0, RoundingMode.HALF_UP) + 'h committed vs ' + contractorWeeklyHrs.setScale(0, RoundingMode.HALF_UP) + 'h available (' + coveragePct + '% booked)',
-            underserved > 0
-                ? underserved + ' project' + (underserved == 1 ? '' : 's') + ' behind pace — client commitments at risk'
-                : 'All active projects on track to meet client commitments'
+        cd.modalKpis = new List<KPI>{
+            kpi('Projects Covered',        coveredCount + ' / ' + retainerCount, coveredCount == retainerCount ? 'up' : 'down', 'have enough ready work'),
+            kpi('Hours Ready vs Committed', totalCovered.setScale(0, RoundingMode.HALF_UP) + 'h / ' + totalCommitted.setScale(0, RoundingMode.HALF_UP) + 'h', totalCovered >= totalCommitted ? 'up' : 'down', 'estimated vs committed'),
+            kpi('Need More Work',          String.valueOf(needMoreWork), needMoreWork > 0 ? 'down' : 'neutral', 'projects below target'),
+            kpi('Outstanding Stories',     String.valueOf(totalOutstanding), 'neutral', 'open across all projects'),
+            kpi('Blocked Stories',         String.valueOf(totalBlocked), totalBlocked > 0 ? 'down' : 'neutral', 'need unblocking'),
+            kpi('Avg Story Age',           avgStoryAge + 'd', avgStoryAge <= STORY_AGE_THRESHOLD_DAYS ? 'neutral' : 'down', 'days since creation')
         };
+
+        cd.chartType          = 'bar';
+        cd.chartLabels        = ch1Labels;
+        cd.chartProjectIds    = ch1ProjIds;
+        cd.chartClickNavigate = true;
+        cd.datasets           = new List<ChartDataset>{ ch1MainDs, ch1RetRef };
+
+        cd.chartType2         = 'bar';
+        cd.chartHorizontal2   = true;
+        cd.chartSectionLabel2 = 'Avg Story Age by Account (days)';
+        cd.chart2RefValue     = STORY_AGE_THRESHOLD_DAYS;
+        cd.chart2RefLabel     = STORY_AGE_THRESHOLD_DAYS + '-day healthy threshold';
+        cd.chartLabels2       = ch2Labels;
+        cd.datasets2          = ch2Labels.isEmpty() ? null : new List<ChartDataset>{ ch2MainDs };
+
+        cd.insights = insights;
         return cd;
+    }
+
+    // Returns average days from a list of integer day counts
+    private static Decimal avgDays(List<Integer> vals) {
+        if (vals == null || vals.isEmpty()) return 0;
+        Decimal total = 0;
+        for (Integer v : vals) total += v;
+        return total / vals.size();
     }
 
     @AuraEnabled(cacheable=true)

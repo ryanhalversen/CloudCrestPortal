@@ -178,11 +178,17 @@ private class CommandCenterControllerTest {
 
         System.assertNotEquals(null, cd, 'CardData should not be null');
         System.assertEquals('Client Coverage', cd.title);
-        System.assertEquals(3, cd.kpis.size());
+        System.assertEquals(3, cd.kpis.size(), 'Card face should have 3 KPIs');
+        System.assertEquals(6, cd.modalKpis.size(), 'Modal should have 6 KPIs');
         System.assertEquals('bar', cd.chartType);
-        System.assertEquals(1, cd.datasets.size(), 'Should have single weekly pace dataset');
-        // Our test project is In Progress
-        System.assertNotEquals(0, cd.chartLabels.size(), 'Should show active projects');
+        // Chart 1: main dataset + retained ref line
+        System.assertEquals(2, cd.datasets.size(), 'Chart 1 should have main + ref datasets');
+        // Our test project is In Progress (retainer, Weekly_Pace_Estimate__c = 10)
+        System.assertEquals(1, cd.chartLabels.size(), 'Should show 1 active project');
+        // Story age chart 2: test stories exist → should have chart 2 data
+        System.assertNotEquals(null, cd.chartLabels2, 'Chart 2 labels should be present');
+        System.assertEquals(true, cd.chartHorizontal2, 'Chart 2 should be horizontal');
+        System.assertEquals(14, (Integer) cd.chart2RefValue, '14-day threshold');
     }
 
     @IsTest

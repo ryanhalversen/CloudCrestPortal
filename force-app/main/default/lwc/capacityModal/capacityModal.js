@@ -108,6 +108,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         return !this._drilldownActive && (this.cardData?.datasets2?.length > 0);
     }
 
+    get chart2SectionLabel() {
+        return this.cardData?.chartSectionLabel2 || 'Weekly Hours by Team Member';
+    }
+
     get drilldownKpis() {
         const dd = this._drilldownData;
         if (!dd) return [];
@@ -527,53 +531,58 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         const { chartType2: chartType, chartLabels2: chartLabels, datasets2: datasets } = this.cardData;
         if (!chartType || !datasets?.length) return;
 
-        const refDs2  = datasets.filter(d => d.isRef === true);
+        const isHorizontal = this.cardData.chartHorizontal2 === true;
+        const refValue2    = this.cardData.chart2RefValue;
+        const refLabel2    = this.cardData.chart2RefLabel || 'Threshold';
+
+        // Only use non-ref datasets (ref line handled via chart2RefValue plugin)
         const mainDs2 = datasets.filter(d => d.isRef !== true);
 
-        const chartDatasets = mainDs2.map((ds, idx) => {
-            const baseColor = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
+        const chartDatasets = mainDs2.map((d2, idx) => {
+            const baseColor = d2.color || CHART_COLORS[idx % CHART_COLORS.length];
             return {
-                label:              ds.label,
-                data:               ds.data || [],
+                label:              d2.label,
+                data:               d2.data || [],
                 backgroundColor:    `${baseColor}cc`,
                 borderColor:        baseColor,
                 borderWidth:        0,
                 fill:               false,
-                barPercentage:      0.7,
+                barPercentage:      isHorizontal ? 0.6 : 0.7,
                 categoryPercentage: 0.85
             };
         });
 
-        // Invisible legend-only entries for ref lines
-        refDs2.forEach(ref => {
+        // Add a legend-only null entry for the reference line
+        if (refValue2 != null) {
             chartDatasets.push({
-                label:           ref.label,
+                label:           refLabel2,
                 data:            new Array(mainDs2[0]?.data?.length || 0).fill(null),
-                type:            'line',
                 backgroundColor: 'transparent',
-                borderColor:     ref.borderColor || ref.color || '#ef4444',
+                borderColor:     '#f59e0b',
                 borderWidth:     2,
-                pointRadius:     0,
-                fill:            false,
-                spanGaps:        false
+                fill:            false
             });
-        });
+        }
 
-        // Plugin: draw dashed horizontal lines across full chart width
-        const refLinesPlugin2 = {
+        // Plugin: draw threshold line (vertical for horizontal charts, horizontal otherwise)
+        const refPlugin2 = {
             id: 'refLines2',
-            afterDatasetsDraw(chart) {
-                if (!refDs2.length) return;
+            afterDraw(chart) {
+                if (refValue2 == null) return;
                 const { ctx, chartArea, scales: sc } = chart;
-                if (!sc.y || !chartArea) return;
+                if (!chartArea) return;
                 ctx.save();
-                for (const ref of refDs2) {
-                    const yVal = ref.data?.[0];
-                    if (yVal == null) continue;
-                    const y = sc.y.getPixelForValue(yVal);
-                    ctx.strokeStyle = ref.borderColor || ref.color || '#ef4444';
-                    ctx.lineWidth   = 1.5;
-                    ctx.setLineDash([5, 3]);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth   = 1.5;
+                ctx.setLineDash([5, 3]);
+                if (isHorizontal && sc.x) {
+                    const x = sc.x.getPixelForValue(refValue2);
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, chartArea.bottom);
+                    ctx.stroke();
+                } else if (!isHorizontal && sc.y) {
+                    const y = sc.y.getPixelForValue(refValue2);
                     ctx.beginPath();
                     ctx.moveTo(chartArea.left, y);
                     ctx.lineTo(chartArea.right, y);
@@ -589,6 +598,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             type: chartType,
             data: { labels: chartLabels || [], datasets: chartDatasets },
             options: {
+                indexAxis:           isHorizontal ? 'y' : 'x',
                 responsive:          true,
                 maintainAspectRatio: false,
                 interaction:         { mode: 'index', intersect: false },
@@ -608,26 +618,28 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         filter: (item) => item.dataset.data?.some(v => v != null),
                         callbacks: {
                             label: (context) => {
-                                const v   = context.parsed.y;
-                                const fmt = Number.isInteger(v) ? v : v.toFixed(1);
-                                return ` ${context.dataset.label}: ${fmt}h`;
+                                const v    = isHorizontal ? context.parsed.x : context.parsed.y;
+                                const fmt  = Number.isInteger(v) ? v : v.toFixed(1);
+                                const unit = isHorizontal ? 'd' : 'h';
+                                return ` ${context.dataset.label}: ${fmt}${unit}`;
                             }
                         }
                     }
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#94a3b8', font: { size: 11 } },
-                        grid:  { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
                         beginAtZero: true,
                         ticks: { color: '#94a3b8', font: { size: 11 } },
-                        grid:  { color: 'rgba(255,255,255,0.07)' }
+                        grid:  { color: isHorizontal ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        beginAtZero: !isHorizontal,
+                        ticks: { color: '#94a3b8', font: { size: 10 } },
+                        grid:  { color: isHorizontal ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.07)' }
                     }
                 }
             },
-            plugins: [refLinesPlugin2]
+            plugins: [refPlugin2]
         });
     }
 
