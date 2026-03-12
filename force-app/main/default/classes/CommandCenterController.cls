@@ -700,7 +700,7 @@ public with sharing class CommandCenterController {
         cd.chartLabels        = projLabels;
         cd.chartProjectIds    = projIds;
         cd.chartClickNavigate = true;
-        cd.datasets           = new List<ChartDataset>{ ds('Weekly Pace (h)', projPace, '#00b4d8'), retainedRef };
+        cd.datasets           = new List<ChartDataset>{ ds('On Time Weekly (h)', projPace, '#00b4d8'), retainedRef };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
             totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h total estimated to complete across all active stories',
