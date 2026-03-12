@@ -174,22 +174,17 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
         const hasMixedTypes = mainDs.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
 
-        // Parse multi-line labels (encoded as "name\ndate") for block projects
+        // Parse multi-line labels ("name\ndate") into arrays for Chart.js multi-line x-axis
         const parsedLabels = (chartLabels || []).map(lbl => {
             if (typeof lbl === 'string' && lbl.includes('\n')) return lbl.split('\n');
             return lbl;
         });
 
-        // Section-header label indices (start with '§') — no bar, no click
-        const sectionHeaderIndices = new Set(
-            (chartLabels || []).reduce((acc, lbl, i) => {
-                if (typeof lbl === 'string' && lbl.startsWith('§')) acc.push(i);
-                return acc;
-            }, [])
-        );
-
         // End dates parallel to labels (for block tooltip)
         const endDates = JSON.parse(JSON.stringify(this.cardData.chartEndDates || []));
+
+        // Section break index: first block project position
+        const sectionBreak = this.cardData.chartSectionBreak;
 
         const chartDatasets = mainDs.map((ds, idx) => {
             const baseColor  = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
@@ -307,20 +302,8 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
         const scales = isDoughnut ? {} : {
             x: {
-                ticks: {
-                    color: '#94a3b8',
-                    font: { size: 11 },
-                    maxRotation: 45,
-                    callback: function(value) {
-                        const lbl = this.getLabelForValue(value);
-                        // Section headers: hide the tick text (drawn by plugin instead)
-                        if (typeof lbl === 'string' && lbl.startsWith('§')) return '';
-                        // Multi-line labels (array) — return as-is for Chart.js wrapping
-                        if (Array.isArray(lbl)) return lbl;
-                        return lbl;
-                    }
-                },
-                grid: { color: 'rgba(255,255,255,0.05)' }
+                ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 45 },
+                grid:  { color: 'rgba(255,255,255,0.05)' }
             },
             y: {
                 beginAtZero: true,
@@ -374,37 +357,48 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
-        // Section header plugin: draw styled "RETAINERS" / "BLOCKS" labels at §-prefix tick positions
-        const sectionHeaderPlugin = {
-            id: 'sectionHeaders',
+        // Section label plugin: draw "RETAINERS" and "BLOCKS" labels below each group + a divider line
+        const sectionLabelPlugin = {
+            id: 'sectionLabels',
             afterDraw(chart) {
-                if (!sectionHeaderIndices.size) return;
+                if (sectionBreak == null || sectionBreak <= 0) return;
                 const { ctx, scales: sc, chartArea } = chart;
                 if (!sc.x) return;
+                const n = sc.x.ticks.length;
+                if (sectionBreak >= n) return;
                 ctx.save();
+
+                // Vertical divider between last retainer and first block
+                const x1 = sc.x.getPixelForTick(sectionBreak - 1);
+                const x2 = sc.x.getPixelForTick(sectionBreak);
+                const dividerX = (x1 + x2) / 2;
+                ctx.strokeStyle = 'rgba(148,163,184,0.25)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(dividerX, chartArea.top);
+                ctx.lineTo(dividerX, chartArea.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Label Y: near bottom of canvas, below rotated tick labels
+                const labelY = chart.height - 8;
                 ctx.font = 'bold 10px -apple-system,BlinkMacSystemFont,sans-serif';
+                ctx.textBaseline = 'bottom';
+
+                // "RETAINERS" — centered under retainer group
+                const retainerMidX = (sc.x.getPixelForTick(0) + x1) / 2;
+                ctx.fillStyle = '#00b4d8';
                 ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const labels = chart.data.labels || [];
-                labels.forEach((lbl, i) => {
-                    const raw = typeof lbl === 'string' ? lbl : '';
-                    if (!raw.startsWith('§')) return;
-                    const text = raw.replace('§', '').trim();
-                    const isBlocks = text.toUpperCase().includes('BLOCK');
-                    ctx.fillStyle = isBlocks ? '#f59e0b' : '#00b4d8';
-                    const tickX = sc.x.getPixelForTick(i);
-                    const y = chartArea.bottom + 14;
-                    // Draw divider line
-                    ctx.strokeStyle = isBlocks ? 'rgba(245,158,11,0.3)' : 'rgba(0,180,216,0.3)';
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([3, 3]);
-                    ctx.beginPath();
-                    ctx.moveTo(tickX, chartArea.top);
-                    ctx.lineTo(tickX, chartArea.bottom);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.fillText(text, tickX, y);
-                });
+                ctx.fillText('RETAINERS', retainerMidX, labelY);
+
+                // "BLOCKS" — centered under block group
+                const lastTickX = sc.x.getPixelForTick(n - 1);
+                const blockMidX = (x2 + lastTickX) / 2;
+                ctx.fillStyle = '#f59e0b';
+                ctx.textAlign = 'center';
+                ctx.fillText('BLOCKS', blockMidX, labelY);
+
                 ctx.restore();
             }
         };
@@ -435,7 +429,6 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 onClick: hasDrilldown ? (event, elements) => {
                     if (!elements.length) return;
                     const idx       = elements[0].index;
-                    if (sectionHeaderIndices.has(idx)) return; // skip section headers
                     const projectId = projectIds[idx];
                     if (!projectId) return;
                     if (clickNavigate) {
@@ -459,11 +452,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderColor:     '#334155',
                         borderWidth:     1,
                         padding:         10,
-                        filter: (item) => {
-                            // Hide tooltips on section header bars (null data)
-                            if (sectionHeaderIndices.has(item.dataIndex)) return false;
-                            return item.dataset.data?.some(v => v != null);
-                        },
+                        filter: (item) => item.dataset.data?.some(v => v != null),
                         callbacks: {
                             label: (context) => {
                                 const idx      = context.dataIndex;
@@ -503,7 +492,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 },
                 scales
             },
-            plugins: [wowPlugin, refLinesPlugin, sectionHeaderPlugin]
+            plugins: [wowPlugin, refLinesPlugin, sectionLabelPlugin]
         });
 
         // Native click listener for x-axis label → open record in new tab
@@ -521,7 +510,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const segW = (xScale.right - xScale.left) / n;
                 const raw  = Math.floor((e.offsetX - xScale.left) / segW);
                 const idx  = raw + 1;
-                if (idx >= 0 && idx < n && !sectionHeaderIndices.has(idx) && projectIds[idx]) {
+                if (idx >= 0 && idx < n && projectIds[idx]) {
                     this._navigateToProject(projectIds[idx]);
                 }
             };

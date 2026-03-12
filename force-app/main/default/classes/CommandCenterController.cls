@@ -47,7 +47,8 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
         @AuraEnabled public Boolean            chartClickNavigate; // true = bar click navigates to record (not drilldown)
         @AuraEnabled public List<String>       chartEndDates;      // parallel to chartLabels; non-null for Block projects (formatted end date)
-        @AuraEnabled public List<String>       chartBarColors;     // per-bar background colors (hex+alpha) for the main dataset
+        @AuraEnabled public List<String>       chartBarColors;     // per-bar background colors for the main dataset
+        @AuraEnabled public Integer            chartSectionBreak;  // index where Block section starts (for drawing section labels)
     }
 
     public class DrilldownData {
@@ -664,43 +665,34 @@ public with sharing class CommandCenterController {
         // Build chart data: §-prefixed section headers act as visual dividers in the JS
 
         // ── Retainer section ──
-        if (!retainerProjs.isEmpty()) {
-            projLabels.add('§ RETAINERS');
-            projPace.add(null); projRetained.add(null); projIds.add(null);
-            barColors.add('transparent'); chartEndDates.add(null);
-            for (Sprint__c s : retainerProjs) {
-                String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
-                Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
-                weeklyDemand += pace;
-                activeProjects++;
-                String lbl = (acctName.length() > 0 ? acctName : s.Name);
-                projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-                projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
-                projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
-                projIds.add(s.Id);
-                barColors.add('#00b4d8cc');
-                chartEndDates.add(null);
-            }
+        for (Sprint__c s : retainerProjs) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            weeklyDemand += pace;
+            activeProjects++;
+            String lbl = (acctName.length() > 0 ? acctName : s.Name);
+            projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
+            projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
+            projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
+            projIds.add(s.Id);
+            barColors.add('rgba(0,180,216,0.8)');
+            chartEndDates.add(null);
         }
 
         // ── Block section ──
-        if (!blockProjs.isEmpty()) {
-            projLabels.add('§ BLOCKS');
-            projPace.add(null); projRetained.add(null); projIds.add(null);
-            barColors.add('transparent'); chartEndDates.add(null);
-            for (Sprint__c s : blockProjs) {
-                String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
-                String lbl = (acctName.length() > 0 ? acctName : s.Name);
-                lbl = lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl;
-                String endDateStr = s.Project_End_Date__c != null ? s.Project_End_Date__c.format() : null;
-                // Label encodes end date as second line for x-axis display
-                projLabels.add(endDateStr != null ? lbl + '\n' + endDateStr : lbl);
-                projPace.add(1);  // blocks excluded from demand; small value renders a visible bar for hover/tooltip
-                projRetained.add(null);
-                projIds.add(s.Id);
-                barColors.add('#f59e0bcc');
-                chartEndDates.add(endDateStr);
-            }
+        Integer sectionBreak = retainerProjs.size(); // first block index
+        for (Sprint__c s : blockProjs) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            String lbl = (acctName.length() > 0 ? acctName : s.Name);
+            lbl = lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl;
+            String endDateStr = s.Project_End_Date__c != null ? s.Project_End_Date__c.format() : null;
+            // Encode end date as second line for x-axis display
+            projLabels.add(endDateStr != null ? lbl + '\n' + endDateStr : lbl);
+            projPace.add(1);  // small placeholder value so bar renders and tooltip works
+            projRetained.add(null);
+            projIds.add(s.Id);
+            barColors.add('rgba(245,158,11,0.8)');
+            chartEndDates.add(endDateStr);
         }
 
         // Story hours estimate
@@ -756,6 +748,7 @@ public with sharing class CommandCenterController {
         cd.chartClickNavigate = true;
         cd.chartEndDates      = chartEndDates;
         cd.chartBarColors     = barColors;
+        cd.chartSectionBreak  = !blockProjs.isEmpty() ? sectionBreak : null;
         cd.datasets           = new List<ChartDataset>{ mainDs, retainedRef };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
