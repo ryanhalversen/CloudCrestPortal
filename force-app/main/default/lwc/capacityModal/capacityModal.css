@@ -293,6 +293,13 @@
     border-top: 1px solid #1e293b;
 }
 
+.point-popup-line--sub {
+    font-size: 11px;
+    color: #64748b;
+    padding-left: 8px;
+    border-top: none;
+}
+
 .chart-error {
     color: #ef4444;
     font-size: 13px;

@@ -76,7 +76,7 @@
                                             <button class="point-popup-close" onclick={closePointPopup}>&times;</button>
                                         </div>
                                         <template for:each={pointPopup.lines} for:item="line">
-                                            <div key={line} class="point-popup-line">{line}</div>
+                                            <div key={line.text} class={line.cls}>{line.text}</div>
                                         </template>
                                     </div>
                                 </template>

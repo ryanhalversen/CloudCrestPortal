@@ -688,7 +688,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const { datasetIndex: dsIdx, index: ptIdx } = elements[0];
                 const raw = breakdowns[dsIdx]?.[ptIdx];
                 if (!raw) { this._pointPopup = null; return; }
-                const lines = raw.split('\n').filter(Boolean);
+                const lines = raw.split('\n').filter(Boolean).map(t => ({
+                    text: t,
+                    cls:  t.startsWith('↳') ? 'point-popup-line point-popup-line--sub' : 'point-popup-line'
+                }));
                 const dsLabel  = this.cardData.datasets[dsIdx]?.label || '';
                 const weekLbl  = this.cardData.chartLabels[ptIdx] || '';
                 // Position popup relative to chart-wrap

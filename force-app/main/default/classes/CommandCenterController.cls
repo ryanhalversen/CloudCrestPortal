@@ -1193,6 +1193,8 @@ public with sharing class CommandCenterController {
 
         List<Decimal> pipelineData  = new List<Decimal>{0,0,0,0,0,0,0,0};
         List<String>  startMarkers  = new List<String>{'','','','','','','',''};
+        // Per-opp weekly contributions for detailed popup breakdown
+        Map<String, List<Decimal>> oppWeeklyContribs = new Map<String, List<Decimal>>();
 
         for (Opportunity o : pipeline) {
             // Count how many of the 8 weeks this opp overlaps
@@ -1203,20 +1205,24 @@ public with sharing class CommandCenterController {
             }
             if (numWeeks == 0) continue;
             Decimal weeklyHrs = (o.Contracted_Hours__c / numWeeks).setScale(1, RoundingMode.HALF_UP);
+            String oppName = (o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name);
+            List<Decimal> contribs = new List<Decimal>{0,0,0,0,0,0,0,0};
 
             Boolean markedStart = false;
             for (Integer i = 0; i < 8; i++) {
                 Date wk = ws.addDays(i * 7);
                 if (wk <= o.Est_Project_End_Date__c && wk.addDays(6) >= o.Est_Project_Start_Date__c) {
                     pipelineData.set(i, pipelineData.get(i) + weeklyHrs);
+                    contribs.set(i, weeklyHrs);
                     if (!markedStart) {
-                        String lbl = (o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name) + '|' + o.Id;
+                        String lbl = oppName + '|' + o.Id;
                         String cur = startMarkers.get(i);
                         startMarkers.set(i, cur == '' ? lbl : cur + '\n' + lbl);
                         markedStart = true;
                     }
                 }
             }
+            oppWeeklyContribs.put(oppName, contribs);
         }
 
         // Projected demand = existing demand + pipeline hours per week
@@ -1256,8 +1262,8 @@ public with sharing class CommandCenterController {
         cd.status     = status;
         cd.benchmarks = bm('< 60% or > 95% util', '60–80% utilization', '80–95% utilization');
         cd.kpis = new List<KPI>{
-            kpi('Wk 4 Forecast', wk4Util + '%', (wk4Util >= 80 && wk4Util <= 95) ? 'up' : 'down', 'projected utilization'),
-            kpi('Wk 8 Forecast', wk8Util + '%', (wk8Util >= 80 && wk8Util <= 95) ? 'up' : 'down', 'projected utilization'),
+            kpi('Wk 4 Forecast', wk4Util + '%', (wk4Util > 100 || (wk4Util >= 80 && wk4Util <= 95)) ? 'up' : 'down', 'projected utilization'),
+            kpi('Wk 8 Forecast', wk8Util + '%', (wk8Util > 100 || (wk8Util >= 80 && wk8Util <= 95)) ? 'up' : 'down', 'projected utilization'),
             kpi('Net Balance',   (surplus >= 0 ? '+' : '') + surplus + 'h', surplus >= 0 ? 'up' : 'down', surplus >= 0 ? 'surplus at wk 4' : 'deficit at wk 4')
         };
         // Build end-of-project markers: for each project ending within the 8-week window,
@@ -1303,9 +1309,29 @@ public with sharing class CommandCenterController {
         if (hasPipeline) {
             List<String> fcastBreak = new List<String>();
             for (Integer i = 0; i < 8; i++) {
+                Date wk = ws.addDays(i * 7);
                 Decimal dem = demandData.get(i);
                 Decimal pip = pipelineData.get(i);
-                fcastBreak.add('Active Projects: ' + dem.setScale(1, RoundingMode.HALF_UP) + 'h\nPipeline: ' + pip.setScale(1, RoundingMode.HALF_UP) + 'h\nTotal: ' + projectedData.get(i).setScale(1, RoundingMode.HALF_UP) + 'h');
+                List<String> flines = new List<String>();
+                flines.add('Active Projects: ' + dem.setScale(1, RoundingMode.HALF_UP) + 'h');
+                for (Sprint__c s : projects) {
+                    if (s.Project_End_Date__c == null || wk <= s.Project_End_Date__c) {
+                        Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+                        if (pace > 0) {
+                            String nm = (s.Accountlu__r != null && s.Accountlu__r.Name != null ? s.Accountlu__r.Name : s.Name);
+                            flines.add('↳ ' + nm + ': ' + pace.setScale(1, RoundingMode.HALF_UP) + 'h');
+                        }
+                    }
+                }
+                if (pip > 0) {
+                    flines.add('Pipeline: ' + pip.setScale(1, RoundingMode.HALF_UP) + 'h');
+                    for (String oppName : oppWeeklyContribs.keySet()) {
+                        Decimal c = oppWeeklyContribs.get(oppName).get(i);
+                        if (c > 0) flines.add('↳ ' + oppName + ': ' + c.setScale(1, RoundingMode.HALF_UP) + 'h');
+                    }
+                }
+                flines.add('Total: ' + projectedData.get(i).setScale(1, RoundingMode.HALF_UP) + 'h');
+                fcastBreak.add(String.join(flines, '\n'));
             }
             breakdowns.add(fcastBreak);
         }
