@@ -1143,20 +1143,11 @@ public with sharing class CommandCenterController {
                    Name, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
-              AND  Accountlu__c != null
-              AND  (NOT Accountlu__r.Name LIKE '%CloudCrest%')
+              AND  (NOT Name LIKE '%CloudCrest%')
         ];
 
-        Decimal contractorCap = 0;
-        for (Contact c : [
-            SELECT Available_Hours__c FROM Contact
-            WHERE  Account.Name = 'CloudCrest Contractors'
-              AND  Available_Hours__c != null AND Available_Hours__c > 0
-        ]) {
-            contractorCap += c.Available_Hours__c;
-        }
-        // TODO: FTE capacity is hardcoded (3 × 35h = 105h/wk); make configurable if headcount changes
-        Decimal totalCap = 105 + contractorCap;
+        // Capacity: 3 FTEs × 35h + Head of Delivery × 20h = 125h/wk
+        Decimal totalCap = 125;
 
         List<String>  labels     = new List<String>();
         List<Decimal> demandData = new List<Decimal>();
@@ -1303,7 +1294,7 @@ public with sharing class CommandCenterController {
             demBreak.add(String.join(lines, '\n'));
         }
         // Dataset 1: Internal Capacity — same each week
-        String capBreakStr = 'FTE (3 × 35h): 105.0h\nContractors: ' + contractorCap.setScale(1, RoundingMode.HALF_UP) + 'h\nTotal: ' + totalCap.setScale(1, RoundingMode.HALF_UP) + 'h';
+        String capBreakStr = 'FTE (3 × 35h): 105.0h\nHead of Delivery: 20.0h\nTotal: 125.0h';
         List<String> capBreak = new List<String>();
         for (Integer i = 0; i < 8; i++) capBreak.add(capBreakStr);
         // Dataset 2 (if pipeline): Forecasted Demand — active projects + pipeline per week
