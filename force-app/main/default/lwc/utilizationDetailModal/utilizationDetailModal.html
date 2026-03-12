@@ -1,0 +1,167 @@
+<!-- force-app/main/default/lwc/utilizationDetailModal/utilizationDetailModal.html -->
+<template>
+    <div class="detail-backdrop" onclick={handleBackdropClick}>
+        <div class="detail-container" onclick={stopProp}>
+
+            <!-- Header -->
+            <div class="detail-header">
+                <div class="detail-header-left">
+                    <h2 class="detail-title">Capacity &amp; Assignment Detail</h2>
+                    <span class="detail-subtitle">Next 8 Weeks — Billable Projects Only</span>
+                </div>
+                <button class="detail-close" onclick={handleClose} title="Close">&times;</button>
+            </div>
+
+            <!-- Loading -->
+            <template if:true={isLoading}>
+                <div class="detail-loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading detail data…</span>
+                </div>
+            </template>
+
+            <!-- Error -->
+            <template if:true={hasError}>
+                <div class="detail-error">{error}</div>
+            </template>
+
+            <!-- Content -->
+            <template if:true={hasData}>
+
+                <!-- KPI Strip -->
+                <div class="kpi-strip">
+                    <template for:each={kpis} for:item="k">
+                        <div key={k.label} class={k.cls}>
+                            <div class="strip-kpi-value-row">
+                                <span class="strip-kpi-value">{k.value}</span>
+                                <span class={k.trendCls}>{k.trendIcon}</span>
+                            </div>
+                            <span class="strip-kpi-label">{k.label}</span>
+                            <span class="strip-kpi-sub">{k.sub}</span>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Chart: Weekly Demand Stacked by Project -->
+                <div class="detail-section">
+                    <h3 class="section-title">Weekly Demand by Project</h3>
+                    <div class="detail-chart-wrap">
+                        <canvas class="detail-chart-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Two-column: Ending Projects + Incoming Opps -->
+                <div class="detail-two-col">
+
+                    <!-- Projects Ending -->
+                    <div class="detail-section detail-section--half">
+                        <h3 class="section-title">
+                            Projects Ending in 8 Weeks
+                            <template if:true={hasEndingProjects}>
+                                <span class="section-count">{endingProjects.length}</span>
+                            </template>
+                        </h3>
+                        <template if:true={hasEndingProjects}>
+                            <table class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Client</th>
+                                        <th>End Date</th>
+                                        <th>Hrs/Wk Freed</th>
+                                        <th>Urgency</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={endingProjects} for:item="p">
+                                        <tr key={p.id} class={p.rowCls}>
+                                            <td class="td-name">{p.name}</td>
+                                            <td class="td-muted">{p.client}</td>
+                                            <td>{p.endDate}</td>
+                                            <td class="td-num">{p.weeklyPace}</td>
+                                            <td><span class={p.urgencyCls}>{p.urgencyLabel}</span></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </template>
+                        <template if:false={hasEndingProjects}>
+                            <p class="detail-empty">No projects ending in the next 8 weeks.</p>
+                        </template>
+                    </div>
+
+                    <!-- Incoming Opportunities -->
+                    <div class="detail-section detail-section--half">
+                        <h3 class="section-title">
+                            Incoming Opportunities
+                            <template if:true={hasIncomingOpps}>
+                                <span class="section-count">{incomingOpps.length}</span>
+                            </template>
+                        </h3>
+                        <template if:true={hasIncomingOpps}>
+                            <table class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Opportunity</th>
+                                        <th>Client</th>
+                                        <th>Start</th>
+                                        <th>Est. Hrs/Wk</th>
+                                        <th>Stage</th>
+                                        <th>Prob.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={incomingOpps} for:item="o">
+                                        <tr key={o.id} class={o.rowCls}>
+                                            <td class="td-name">{o.name}</td>
+                                            <td class="td-muted">{o.client}</td>
+                                            <td>{o.startDate}</td>
+                                            <td class="td-num">{o.weeklyHrs}</td>
+                                            <td class="td-muted">{o.stage}</td>
+                                            <td><span class={o.probCls}>{o.probDisplay}</span></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </template>
+                        <template if:false={hasIncomingOpps}>
+                            <p class="detail-empty">No opportunities starting in the next 8 weeks.</p>
+                        </template>
+                    </div>
+
+                </div>
+
+                <!-- All Active Projects -->
+                <div class="detail-section">
+                    <h3 class="section-title">
+                        All Active Projects
+                        <span class="section-count">{activeProjects.length}</span>
+                    </h3>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Project</th>
+                                <th>Client</th>
+                                <th>Weekly Pace</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={activeProjects} for:item="p">
+                                <tr key={p.id} class={p.rowCls}>
+                                    <td class="td-name">{p.name}</td>
+                                    <td class="td-muted">{p.client}</td>
+                                    <td class="td-num">{p.weeklyPace}</td>
+                                    <td>{p.endDate}</td>
+                                    <td><span class={p.urgencyCls}>{p.urgencyLabel}</span></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+            </template>
+        </div>
+    </div>
+</template>

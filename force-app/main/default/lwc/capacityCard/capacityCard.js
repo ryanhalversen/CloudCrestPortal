@@ -49,7 +49,21 @@ export default class CapacityCard extends LightningElement {
         };
     }
 
-    _cardData = null;
+    _cardData    = null;
+    _showDetail  = false;
+
+    get isUtilizationForecast() {
+        return this._cardData?.title === 'Utilization Forecast';
+    }
+
+    handleViewDetails(e) {
+        e.stopPropagation();
+        this._showDetail = true;
+    }
+
+    handleDetailClose() {
+        this._showDetail = false;
+    }
 
     handleClick() {
         if (!this._cardData) return;

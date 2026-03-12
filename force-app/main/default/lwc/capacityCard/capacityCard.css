@@ -80,6 +80,23 @@
 .capacity-card--critical:hover .card-expand   { color: #ef4444; }
 .capacity-card--neutral:hover  .card-expand   { color: #475569; }
 
+.card-detail-btn {
+    background: rgba(0, 180, 216, 0.1);
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    color: #00b4d8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.card-detail-btn:hover {
+    background: rgba(0, 180, 216, 0.2);
+}
+
 /* ── Question ── */
 .card-question {
     margin: 0 0 auto;

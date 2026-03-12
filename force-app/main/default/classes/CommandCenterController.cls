@@ -74,6 +74,45 @@ public with sharing class CommandCenterController {
         @AuraEnabled public String id;
     }
 
+    // ── Utilization Detail View Classes ───────────────────────────────────────
+
+    public class UtilizationDetailData {
+        @AuraEnabled public Decimal              totalCapacity;
+        @AuraEnabled public Decimal              currentWeeklyDemand;
+        @AuraEnabled public Decimal              hoursFreeing;       // from projects ending ≤8 wks
+        @AuraEnabled public Decimal              hoursIncoming;      // probability-weighted pipeline
+        @AuraEnabled public Decimal              netBalanceWk8;      // cap - demand at wk 8
+        @AuraEnabled public List<String>         weekLabels;
+        @AuraEnabled public List<ProjDetail>     activeProjects;
+        @AuraEnabled public List<ProjDetail>     endingProjects;
+        @AuraEnabled public List<OppDetail>      incomingOpps;
+        @AuraEnabled public List<String>         chartProjectNames;
+        @AuraEnabled public List<String>         chartProjectColors;
+        @AuraEnabled public List<List<Decimal>>  chartProjectData;   // [projIdx][weekIdx]
+    }
+
+    public class ProjDetail {
+        @AuraEnabled public String  id;
+        @AuraEnabled public String  name;
+        @AuraEnabled public String  client;
+        @AuraEnabled public String  weeklyPace;   // formatted e.g. "26.7h"
+        @AuraEnabled public String  endDate;       // formatted or '—'
+        @AuraEnabled public Integer daysUntilEnd;  // null if no end date
+        @AuraEnabled public String  urgency;       // 'critical' (<14d), 'warning' (14–56d), 'none'
+    }
+
+    public class OppDetail {
+        @AuraEnabled public String  id;
+        @AuraEnabled public String  name;
+        @AuraEnabled public String  client;
+        @AuraEnabled public String  startDate;
+        @AuraEnabled public String  weeklyHrs;     // formatted e.g. "26.7h"
+        @AuraEnabled public String  stage;
+        @AuraEnabled public Integer probability;
+        @AuraEnabled public String  ownerName;
+        @AuraEnabled public Boolean isHighProb;    // probability >= 75
+    }
+
     // ── FTE Capacity Constants ────────────────────────────────────────────────
     // 3 FTEs × 35h + Delivery Manager (Alec Hampton) × 20h = 125h/wk
     // Update these if team composition changes
@@ -1572,5 +1611,144 @@ public with sharing class CommandCenterController {
             dd.deliveryRate = Integer.valueOf(((sumDelivered / committed8wk) * 100).setScale(0, RoundingMode.HALF_UP));
         }
         return dd;
+    }
+
+    // ── Utilization Detail View ───────────────────────────────────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static UtilizationDetailData getUtilizationDetail() {
+        Date today = Date.today();
+        Date ws    = today.toStartOfWeek();
+        Date wk8   = ws.addDays(55); // end of week 8
+
+        // Active billable projects
+        List<Sprint__c> projects = [
+            SELECT Id, Name, Accountlu__r.Name, On_Time_Weekly_Pace__c, Project_End_Date__c
+            FROM   Sprint__c
+            WHERE  Status__c = 'In Progress'
+              AND  (NOT Name LIKE '%CloudCrest%')
+            ORDER BY Project_End_Date__c ASC NULLS LAST
+        ];
+
+        // Opportunities starting within the 8-week window
+        List<Opportunity> opps = [
+            SELECT Id, Name, Account.Name, Est_Project_Start_Date__c, Est_Project_End_Date__c,
+                   Contracted_Hours__c, StageName, Probability, Owner.Name
+            FROM   Opportunity
+            WHERE  StageName NOT IN ('Closed Won', 'Closed Lost')
+              AND  Contracted_Hours__c > 0
+              AND  Est_Project_Start_Date__c != null
+              AND  Est_Project_Start_Date__c >= :ws
+              AND  Est_Project_Start_Date__c <= :wk8
+            ORDER BY Est_Project_Start_Date__c ASC
+        ];
+
+        // Project colors
+        List<String> palette = new List<String>{
+            '#00b4d8','#f59e0b','#22c55e','#a855f7','#ef4444',
+            '#0096c7','#0077b6','#48cae4','#e879f9','#fb923c'
+        };
+
+        // Week labels
+        List<String> weekLabels = new List<String>();
+        for (Integer i = 0; i < 8; i++) weekLabels.add(weekLabel(ws.addDays(i * 7)));
+
+        // Build project details + chart data
+        Decimal currentDemand = 0;
+        Decimal hoursFreeing  = 0;
+        List<ProjDetail>     activeList = new List<ProjDetail>();
+        List<ProjDetail>     endingList = new List<ProjDetail>();
+        List<String>         chartNames  = new List<String>();
+        List<String>         chartColors = new List<String>();
+        List<List<Decimal>>  chartData   = new List<List<Decimal>>();
+
+        for (Integer pi = 0; pi < projects.size(); pi++) {
+            Sprint__c s     = projects[pi];
+            Decimal   pace  = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            String    client = s.Accountlu__r != null ? s.Accountlu__r.Name : '—';
+            currentDemand += pace;
+
+            Integer daysLeft = null;
+            String  urgency  = 'none';
+            String  endStr   = '—';
+            if (s.Project_End_Date__c != null) {
+                daysLeft = today.daysBetween(s.Project_End_Date__c);
+                endStr   = s.Project_End_Date__c.month() + '/' + s.Project_End_Date__c.day();
+                if (daysLeft >= 0 && daysLeft <= 56) {
+                    urgency = daysLeft <= 14 ? 'critical' : 'warning';
+                    hoursFreeing += pace;
+                    ProjDetail ed = new ProjDetail();
+                    ed.id = s.Id; ed.name = s.Name; ed.client = client;
+                    ed.weeklyPace = pace.setScale(1, RoundingMode.HALF_UP) + 'h';
+                    ed.endDate = endStr; ed.daysUntilEnd = daysLeft; ed.urgency = urgency;
+                    endingList.add(ed);
+                }
+            }
+
+            ProjDetail pd = new ProjDetail();
+            pd.id = s.Id; pd.name = s.Name; pd.client = client;
+            pd.weeklyPace = pace.setScale(1, RoundingMode.HALF_UP) + 'h';
+            pd.endDate = endStr; pd.daysUntilEnd = daysLeft; pd.urgency = urgency;
+            activeList.add(pd);
+
+            if (pace > 0) {
+                String color = palette[Math.mod(pi, palette.size())];
+                chartNames.add(s.Name);
+                chartColors.add(color);
+                List<Decimal> wkData = new List<Decimal>();
+                for (Integer i = 0; i < 8; i++) {
+                    Date wk = ws.addDays(i * 7);
+                    wkData.add((s.Project_End_Date__c == null || wk <= s.Project_End_Date__c)
+                        ? pace.setScale(1, RoundingMode.HALF_UP) : 0);
+                }
+                chartData.add(wkData);
+            }
+        }
+
+        // Wk 8 demand (projects still active at week 8 start)
+        Decimal wk8Demand = 0;
+        Date wk8Start = ws.addDays(49);
+        for (Sprint__c s : projects) {
+            if (s.Project_End_Date__c == null || wk8Start <= s.Project_End_Date__c)
+                wk8Demand += s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+        }
+
+        // Build opp details
+        Decimal hoursIncoming = 0;
+        List<OppDetail> oppList = new List<OppDetail>();
+        for (Opportunity o : opps) {
+            Date endDate = o.Est_Project_End_Date__c != null ? o.Est_Project_End_Date__c : o.Est_Project_Start_Date__c.addDays(55);
+            Integer totalWeeks = Math.max(1, o.Est_Project_Start_Date__c.daysBetween(endDate) / 7 + 1);
+            Decimal weeklyHrs  = (o.Contracted_Hours__c / totalWeeks).setScale(1, RoundingMode.HALF_UP);
+            Decimal prob       = o.Probability != null ? o.Probability / 100 : 0;
+            hoursIncoming += weeklyHrs * prob;
+
+            OppDetail od = new OppDetail();
+            od.id         = o.Id;
+            od.name       = o.Name;
+            od.client     = o.Account != null ? o.Account.Name : '—';
+            od.startDate  = o.Est_Project_Start_Date__c.month() + '/' + o.Est_Project_Start_Date__c.day();
+            od.weeklyHrs  = weeklyHrs + 'h';
+            od.stage      = o.StageName;
+            od.probability = o.Probability != null ? Integer.valueOf(o.Probability) : 0;
+            od.ownerName  = o.Owner != null ? o.Owner.Name : '—';
+            od.isHighProb = od.probability >= 75;
+            oppList.add(od);
+        }
+
+        UtilizationDetailData result = new UtilizationDetailData();
+        result.totalCapacity       = FTE_WEEKLY_TARGET_HRS;
+        result.currentWeeklyDemand = currentDemand.setScale(1, RoundingMode.HALF_UP);
+        result.hoursFreeing        = hoursFreeing.setScale(1, RoundingMode.HALF_UP);
+        result.hoursIncoming       = hoursIncoming.setScale(1, RoundingMode.HALF_UP);
+        result.netBalanceWk8       = (FTE_WEEKLY_TARGET_HRS - wk8Demand).setScale(1, RoundingMode.HALF_UP);
+        result.weekLabels          = weekLabels;
+        result.activeProjects      = activeList;
+        result.endingProjects      = endingList;
+        result.incomingOpps        = oppList;
+        result.chartProjectNames   = chartNames;
+        result.chartProjectColors  = chartColors;
+        result.chartProjectData    = chartData;
+        return result;
     }
 }
