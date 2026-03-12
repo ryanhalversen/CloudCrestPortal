@@ -640,12 +640,14 @@ public with sharing class CommandCenterController {
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
             ORDER BY On_Time_Weekly_Pace__c DESC NULLS LAST
-            LIMIT  20
+            LIMIT  25
         ]) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            if (s.Name.containsIgnoreCase('CloudCrest') || acctName.containsIgnoreCase('CloudCrest')) continue;
             activeProjects++;
             Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
             weeklyDemand += pace;
-            String lbl = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : s.Name;
+            String lbl = acctName.length() > 0 ? acctName : s.Name;
             projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
             projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
             projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
