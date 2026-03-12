@@ -408,12 +408,14 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
-        // End/start marker plugin: vertical dotted lines + stacked pills above chart
+        // End/start marker plugin: vertical dotted lines + stacked pills above/below chart
         const endMarkers   = JSON.parse(JSON.stringify(this.cardData.chartEndMarkers   || []));
         const startMarkers = JSON.parse(JSON.stringify(this.cardData.chartStartMarkers || []));
+        const pillHitAreas = []; // rebuilt on every afterDraw; read by click handler
         const endMarkersPlugin = {
             id: 'endMarkers',
             afterDraw(chart) {
+                pillHitAreas.length = 0; // clear before repopulating
                 const hasEnd   = endMarkers.some(m => m);
                 const hasStart = startMarkers.some(m => m);
                 if (!hasEnd && !hasStart) return;
@@ -443,7 +445,13 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     for (let i = 0; i < markers.length; i++) {
                         const entry = markers[i];
                         if (!entry) continue;
-                        const names = entry.split('\n').filter(Boolean);
+                        // Each entry: "DisplayName|RecordId" (multiple separated by \n)
+                        const items = entry.split('\n').filter(Boolean).map(s => {
+                            const pipe = s.lastIndexOf('|');
+                            return pipe >= 0
+                                ? { name: s.slice(0, pipe), id: s.slice(pipe + 1) }
+                                : { name: s, id: null };
+                        });
                         const x = sc.x.getPixelForTick(i);
                         // Dotted vertical line
                         ctx.strokeStyle = lineColor;
@@ -455,7 +463,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         ctx.stroke();
                         ctx.setLineDash([]);
                         ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        names.forEach((name, j) => {
+                        items.forEach(({ name, id }, j) => {
                             const text     = fitText(name + suffix);
                             const tw       = ctx.measureText(text).width + 10;
                             const baseY    = getBaseY(j);
@@ -469,6 +477,8 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                             ctx.fill();
                             ctx.fillStyle = textColor;
                             ctx.fillText(text, x, midY);
+                            // Store hit area for click detection
+                            if (id) pillHitAreas.push({ x1: pillLeft, y1: pillTop, x2: pillLeft + tw, y2: pillTop + pillH, recordId: id });
                         });
                     }
                 };
@@ -611,6 +621,43 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             };
             canvas.addEventListener('click', this._canvasClickHandler);
         }
+
+        // Pill click handler: open Opportunity or Sprint__c record
+        if (this._markerClickHandler) {
+            canvas.removeEventListener('click', this._markerClickHandler);
+            this._markerClickHandler = null;
+        }
+        this._markerClickHandler = (e) => {
+            if (!pillHitAreas.length) return;
+            const rect   = canvas.getBoundingClientRect();
+            const scaleX = canvas.width  / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const cx = (e.clientX - rect.left) * scaleX;
+            const cy = (e.clientY - rect.top)  * scaleY;
+            for (const area of pillHitAreas) {
+                if (cx >= area.x1 && cx <= area.x2 && cy >= area.y1 && cy <= area.y2) {
+                    window.open(`${window.location.origin}/lightning/r/${area.recordId}/view`, '_blank');
+                    return;
+                }
+            }
+        };
+        canvas.addEventListener('click', this._markerClickHandler);
+
+        // Pill hover cursor
+        if (this._markerHoverHandler) {
+            canvas.removeEventListener('mousemove', this._markerHoverHandler);
+        }
+        this._markerHoverHandler = (e) => {
+            if (!pillHitAreas.length) return;
+            const rect   = canvas.getBoundingClientRect();
+            const scaleX = canvas.width  / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const cx = (e.clientX - rect.left) * scaleX;
+            const cy = (e.clientY - rect.top)  * scaleY;
+            const hit = pillHitAreas.some(a => cx >= a.x1 && cx <= a.x2 && cy >= a.y1 && cy <= a.y2);
+            canvas.style.cursor = hit ? 'pointer' : '';
+        };
+        canvas.addEventListener('mousemove', this._markerHoverHandler);
     }
 
     _renderChart2() {
@@ -860,10 +907,18 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     }
 
     _destroyChart() {
+        const c = this.refs.canvas;
         if (this._canvasClickHandler) {
-            const c = this.refs.canvas;
             if (c) c.removeEventListener('click', this._canvasClickHandler);
             this._canvasClickHandler = null;
+        }
+        if (this._markerClickHandler) {
+            if (c) c.removeEventListener('click', this._markerClickHandler);
+            this._markerClickHandler = null;
+        }
+        if (this._markerHoverHandler) {
+            if (c) c.removeEventListener('mousemove', this._markerHoverHandler);
+            this._markerHoverHandler = null;
         }
         if (this._chart) { this._chart.destroy(); this._chart = null; }
         if (this._chart2) { this._chart2.destroy(); this._chart2 = null; }

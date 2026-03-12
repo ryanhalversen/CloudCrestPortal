@@ -1217,7 +1217,7 @@ public with sharing class CommandCenterController {
                 if (wk <= o.Est_Project_End_Date__c && wk.addDays(6) >= o.Est_Project_Start_Date__c) {
                     pipelineData.set(i, pipelineData.get(i) + weeklyHrs);
                     if (!markedStart) {
-                        String lbl = o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name;
+                        String lbl = (o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name) + '|' + o.Id;
                         String cur = startMarkers.get(i);
                         startMarkers.set(i, cur == '' ? lbl : cur + '\n' + lbl);
                         markedStart = true;
@@ -1265,8 +1265,8 @@ public with sharing class CommandCenterController {
             if (s.Project_End_Date__c < ws || s.Project_End_Date__c > wkEnd) continue;
             Integer weekIdx = ws.daysBetween(s.Project_End_Date__c) / 7;
             if (weekIdx < 0 || weekIdx > 7) continue;
-            String label = s.Accountlu__r != null && s.Accountlu__r.Name != null
-                ? s.Accountlu__r.Name : s.Name;
+            String label = (s.Accountlu__r != null && s.Accountlu__r.Name != null
+                ? s.Accountlu__r.Name : s.Name) + '|' + s.Id;
             String cur = endMarkers.get(weekIdx);
             endMarkers.set(weekIdx, cur == '' ? label : cur + '\n' + label);
         }
