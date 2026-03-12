@@ -683,7 +683,7 @@ public with sharing class CommandCenterController {
         cd.status     = status;
         cd.benchmarks = bm('Demand > capacity', 'Demand ≈ capacity', 'Capacity covers demand');
         cd.kpis = new List<KPI>{
-            kpi('Demand / Internal Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
+            kpi('On-Time Demand / Internal Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
                                               demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
             kpi('Est. Hours to Complete', totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h', 'neutral', 'across active stories'),
             kpi('Blocked Stories', String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')

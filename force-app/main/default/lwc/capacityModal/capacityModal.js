@@ -233,8 +233,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         // Per-bar mode: each bar gets a line at its own value
                         const data = ref.data || [];
                         for (let i = 0; i < barMeta.data.length; i++) {
-                            const yVal = data[i];
-                            if (yVal == null || yVal === 0) continue;
+                            const raw = data[i];
+                            if (raw == null) continue;
+                            const yVal = Number(raw);
+                            if (!yVal) continue;
                             const barEl = barMeta.data[i];
                             if (!barEl) continue;
                             const y  = sc.y.getPixelForValue(yVal);
@@ -380,14 +382,31 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderWidth:     1,
                         padding:         10,
                         filter: (item) => item.dataset.data?.some(v => v != null),
-                        callbacks: (isLine || hasMixedTypes) ? {
-                            label: (context) => {
-                                const v     = context.parsed.y;
-                                const label = context.dataset.label || '';
-                                const fmt   = Number.isInteger(v) ? v : v.toFixed(1);
-                                return ` ${label}: ${fmt}h`;
-                            }
-                        } : {}
+                        callbacks: Object.assign(
+                            (isLine || hasMixedTypes) ? {
+                                label: (context) => {
+                                    const v     = context.parsed.y;
+                                    const label = context.dataset.label || '';
+                                    const fmt   = Number.isInteger(v) ? v : v.toFixed(1);
+                                    return ` ${label}: ${fmt}h`;
+                                }
+                            } : {},
+                            refDs.some(r => r.isPerBar) ? {
+                                afterBody: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    if (idx == null) return [];
+                                    return refDs
+                                        .filter(r => r.isPerBar)
+                                        .map(r => {
+                                            const v = r.data?.[idx];
+                                            if (v == null || Number(v) === 0) return null;
+                                            const fmt = Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1);
+                                            return ` ${r.label}: ${fmt}h`;
+                                        })
+                                        .filter(Boolean);
+                                }
+                            } : {}
+                        )
                     }
                 },
                 scales
