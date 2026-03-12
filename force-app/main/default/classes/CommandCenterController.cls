@@ -54,6 +54,7 @@ public with sharing class CommandCenterController {
         @AuraEnabled public Decimal            chart2RefValue;     // optional threshold value to draw a reference line on chart 2
         @AuraEnabled public String             chart2RefLabel;     // legend label for the chart 2 reference line
         @AuraEnabled public List<String>       chartEndMarkers;    // parallel to chartLabels; non-null = client name(s) ending that week (for line chart annotations)
+        @AuraEnabled public List<String>       chartStartMarkers;  // parallel to chartLabels; non-null = opp name(s) starting that week (green annotation)
     }
 
     public class DrilldownData {
@@ -1183,6 +1184,57 @@ public with sharing class CommandCenterController {
             : 0;
         Decimal surplus = (totalCap - wk4Demand).setScale(1, RoundingMode.HALF_UP);
 
+        // ── Pipeline opportunities: distribute contracted hours across their date range ──
+        List<Opportunity> pipeline = [
+            SELECT Name, Account.Name, Contracted_Hours__c,
+                   Est_Project_Start_Date__c, Est_Project_End_Date__c
+            FROM   Opportunity
+            WHERE  StageName NOT IN ('Closed Won', 'Closed Lost')
+              AND  Contracted_Hours__c > 0
+              AND  Est_Project_Start_Date__c != null
+              AND  Est_Project_End_Date__c   != null
+              AND  Est_Project_End_Date__c   >= :ws
+              AND  Est_Project_Start_Date__c <= :ws.addDays(55)
+            LIMIT  20
+        ];
+
+        List<Decimal> pipelineData  = new List<Decimal>{0,0,0,0,0,0,0,0};
+        List<String>  startMarkers  = new List<String>{'','','','','','','',''};
+
+        for (Opportunity o : pipeline) {
+            // Count how many of the 8 weeks this opp overlaps
+            Integer numWeeks = 0;
+            for (Integer i = 0; i < 8; i++) {
+                Date wk = ws.addDays(i * 7);
+                if (wk <= o.Est_Project_End_Date__c && wk.addDays(6) >= o.Est_Project_Start_Date__c) numWeeks++;
+            }
+            if (numWeeks == 0) continue;
+            Decimal weeklyHrs = (o.Contracted_Hours__c / numWeeks).setScale(1, RoundingMode.HALF_UP);
+
+            Boolean markedStart = false;
+            for (Integer i = 0; i < 8; i++) {
+                Date wk = ws.addDays(i * 7);
+                if (wk <= o.Est_Project_End_Date__c && wk.addDays(6) >= o.Est_Project_Start_Date__c) {
+                    pipelineData.set(i, pipelineData.get(i) + weeklyHrs);
+                    if (!markedStart) {
+                        String lbl = o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name;
+                        String cur = startMarkers.get(i);
+                        startMarkers.set(i, cur == '' ? lbl : cur + '\n' + lbl);
+                        markedStart = true;
+                    }
+                }
+            }
+        }
+
+        // Projected demand = existing demand + pipeline hours per week
+        List<Decimal> projectedData = new List<Decimal>();
+        Boolean hasPipeline = false;
+        for (Integer i = 0; i < 8; i++) {
+            Decimal p = pipelineData.get(i);
+            if (p > 0) hasPipeline = true;
+            projectedData.add((demandData.get(i) + p).setScale(1, RoundingMode.HALF_UP));
+        }
+
         // Sweet spot: 80–95% utilization; both extremes (<60% or >95%) are poor
         String status = totalCap == 0 ? 'neutral'
             : (wk4Util < 60 || wk4Util > 95) ? 'critical'
@@ -1218,11 +1270,18 @@ public with sharing class CommandCenterController {
             String cur = endMarkers.get(weekIdx);
             endMarkers.set(weekIdx, cur == '' ? label : cur + '\n' + label);
         }
-        cd.chartEndMarkers = endMarkers;
+        cd.chartEndMarkers   = endMarkers;
+        if (hasPipeline) cd.chartStartMarkers = startMarkers;
 
         cd.chartType   = 'line';
         cd.chartLabels = labels;
-        cd.datasets    = new List<ChartDataset>{ demDs, capDs };
+        List<ChartDataset> allDs = new List<ChartDataset>{ demDs, capDs };
+        if (hasPipeline) {
+            ChartDataset pipeDs = ds('Projected w/ Pipeline', projectedData, '#ffffff');
+            pipeDs.isDashed = true;
+            allDs.add(pipeDs);
+        }
+        cd.datasets    = allDs;
         cd.insights    = new List<String>{
             'Week 4: ' + wk4Util + '% utilization (' + wk4Demand.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalCap.setScale(0, RoundingMode.HALF_UP) + 'h capacity)',
             'Week 8: ' + wk8Util + '% utilization — demand trending ' + (wk8Demand <= wk4Demand ? 'down as projects close' : 'up as work ramps'),
