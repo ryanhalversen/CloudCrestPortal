@@ -424,24 +424,38 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const pillGap = 3;
                 const font    = 'bold 11px -apple-system,BlinkMacSystemFont,sans-serif';
 
-                // Build per-week pill lists, then draw each week's combined stack
+                // Max pill width = one tick column minus a small gutter
+                const nTicks      = sc.x.ticks.length;
+                const tickSpacing = nTicks > 1
+                    ? sc.x.getPixelForTick(1) - sc.x.getPixelForTick(0)
+                    : chartArea.width / 8;
+                const maxPillW = tickSpacing - 4;
+
+                // Truncate text so it always fits within one column
+                ctx.font = font;
+                const fitText = (text) => {
+                    if (ctx.measureText(text).width + 10 <= maxPillW) return text;
+                    let t = text;
+                    while (t.length > 2 && ctx.measureText(t + '\u2026').width + 10 > maxPillW) t = t.slice(0, -1);
+                    return t + '\u2026';
+                };
+
+                // Build per-week pill lists (ends first/red, then starts/green)
                 const maxLen = Math.max(endMarkers.length, startMarkers.length);
                 for (let i = 0; i < maxLen; i++) {
-                    // Collect: ends first (red), then starts (green) — stacked bottom-to-top
                     const pills = [];
                     (endMarkers[i]   || '').split('\n').filter(Boolean).forEach(n =>
-                        pills.push({ text: n + ' ends',   bg: 'rgba(239,68,68,0.18)',  fg: 'rgba(239,68,68,0.95)',  line: 'rgba(239,68,68,0.6)'  })
+                        pills.push({ text: fitText(n + ' ends'),   bg: 'rgba(239,68,68,0.18)',  fg: 'rgba(239,68,68,0.95)',  line: 'rgba(239,68,68,0.6)'  })
                     );
                     (startMarkers[i] || '').split('\n').filter(Boolean).forEach(n =>
-                        pills.push({ text: n + ' starts', bg: 'rgba(34,197,94,0.18)', fg: 'rgba(34,197,94,0.95)', line: 'rgba(34,197,94,0.5)' })
+                        pills.push({ text: fitText(n + ' starts'), bg: 'rgba(34,197,94,0.18)', fg: 'rgba(34,197,94,0.95)', line: 'rgba(34,197,94,0.5)' })
                     );
                     if (!pills.length) continue;
 
                     const x = sc.x.getPixelForTick(i);
 
-                    // Draw one dotted line per unique line color at this tick
-                    const lineColors = [...new Set(pills.map(p => p.line))];
-                    lineColors.forEach(lc => {
+                    // Dotted vertical lines (one per unique color)
+                    [...new Set(pills.map(p => p.line))].forEach(lc => {
                         ctx.strokeStyle = lc;
                         ctx.lineWidth   = 1.5;
                         ctx.setLineDash([3, 4]);
