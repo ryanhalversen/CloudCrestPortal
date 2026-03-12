@@ -674,7 +674,7 @@ public with sharing class CommandCenterController {
             kpi('Demand / Internal Capacity', demH.setScale(0, RoundingMode.HALF_UP) + 'h / ' + capH.setScale(0, RoundingMode.HALF_UP) + 'h',
                                                  demandRatio <= 1.0 ? 'up' : 'down', 'this week'),
             kpi('Est. Hours to Complete', totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h', 'neutral', 'across active stories'),
-            kpi('Blocked',     String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
+            kpi('Blocked Stories', String.valueOf(blocked), blocked > 0 ? 'down' : 'neutral', 'need attention')
         };
         cd.chartType   = 'bar';
         cd.chartLabels = new List<String>{ 'This Week' };

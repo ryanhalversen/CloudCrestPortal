@@ -163,7 +163,7 @@ private class CommandCenterControllerTest {
         // Blocked story in test data → Blocked KPI should be present
         Boolean foundBlocked = false, foundEstHrs = false;
         for (CommandCenterController.KPI k : cd.kpis) {
-            if (k.label == 'Blocked') foundBlocked = true;
+            if (k.label == 'Blocked Stories') foundBlocked = true;
             if (k.label == 'Est. Hours to Complete') foundEstHrs = true;
         }
         System.assert(foundBlocked, 'Should have a Blocked KPI');
