@@ -519,7 +519,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 layout: {
                     padding: {
                             top:    startMarkers.some(m => m) ? 55 : 0,
-                        bottom: endMarkers.some(m => m)   ? 32 : 0,
+                        bottom: endMarkers.some(m => m)   ? 55 : 0,
                         left:   40  // extra left margin so tick-0 pills aren't clipped
                     }
                 },
@@ -627,13 +627,14 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             canvas.removeEventListener('click', this._markerClickHandler);
             this._markerClickHandler = null;
         }
+        const pillScaledCoords = (e) => {
+            const scaleX = canvas.width  / (canvas.offsetWidth  || canvas.width);
+            const scaleY = canvas.height / (canvas.offsetHeight || canvas.height);
+            return { cx: e.offsetX * scaleX, cy: e.offsetY * scaleY };
+        };
         this._markerClickHandler = (e) => {
             if (!pillHitAreas.length) return;
-            const rect   = canvas.getBoundingClientRect();
-            const scaleX = canvas.width  / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const cx = (e.clientX - rect.left) * scaleX;
-            const cy = (e.clientY - rect.top)  * scaleY;
+            const { cx, cy } = pillScaledCoords(e);
             for (const area of pillHitAreas) {
                 if (cx >= area.x1 && cx <= area.x2 && cy >= area.y1 && cy <= area.y2) {
                     window.open(`${window.location.origin}/lightning/r/${area.recordId}/view`, '_blank');
@@ -649,11 +650,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         }
         this._markerHoverHandler = (e) => {
             if (!pillHitAreas.length) return;
-            const rect   = canvas.getBoundingClientRect();
-            const scaleX = canvas.width  / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const cx = (e.clientX - rect.left) * scaleX;
-            const cy = (e.clientY - rect.top)  * scaleY;
+            const { cx, cy } = pillScaledCoords(e);
             const hit = pillHitAreas.some(a => cx >= a.x1 && cx <= a.x2 && cy >= a.y1 && cy <= a.y2);
             canvas.style.cursor = hit ? 'pointer' : '';
         };
