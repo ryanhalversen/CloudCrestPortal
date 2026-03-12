@@ -174,16 +174,43 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
         const hasMixedTypes = mainDs.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
 
+        // Parse multi-line labels (encoded as "name\ndate") for block projects
+        const parsedLabels = (chartLabels || []).map(lbl => {
+            if (typeof lbl === 'string' && lbl.includes('\n')) return lbl.split('\n');
+            return lbl;
+        });
+
+        // Section-header label indices (start with '§') — no bar, no click
+        const sectionHeaderIndices = new Set(
+            (chartLabels || []).reduce((acc, lbl, i) => {
+                if (typeof lbl === 'string' && lbl.startsWith('§')) acc.push(i);
+                return acc;
+            }, [])
+        );
+
+        // End dates parallel to labels (for block tooltip)
+        const endDates = JSON.parse(JSON.stringify(this.cardData.chartEndDates || []));
+
         const chartDatasets = mainDs.map((ds, idx) => {
             const baseColor  = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
             const dsType     = ds.chartDatasetType || chartType;
             const isLine     = dsType === 'line';
             const isDoughnut = chartType === 'doughnut';
 
+            // Per-bar colors: ds.colors array takes priority over single baseColor
+            let bgColor;
+            if (isDoughnut) {
+                bgColor = ds.colors || CHART_COLORS;
+            } else if (ds.colors && ds.colors.length > 0) {
+                bgColor = ds.colors; // array — Chart.js uses per-bar
+            } else {
+                bgColor = `${baseColor}cc`;
+            }
+
             const obj = {
                 label:              ds.label,
                 data:               ds.data || [],
-                backgroundColor:    isDoughnut ? (ds.colors || CHART_COLORS) : `${baseColor}cc`,
+                backgroundColor:    bgColor,
                 borderColor:        isDoughnut ? (ds.borderColor || '#1e293b') : baseColor,
                 borderWidth:        isDoughnut ? 2 : isLine ? 2 : 0,
                 borderDash:         ds.isDashed ? [6, 4] : undefined,
@@ -280,8 +307,20 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
         const scales = isDoughnut ? {} : {
             x: {
-                ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 45 },
-                grid:  { color: 'rgba(255,255,255,0.05)' }
+                ticks: {
+                    color: '#94a3b8',
+                    font: { size: 11 },
+                    maxRotation: 45,
+                    callback: function(value) {
+                        const lbl = this.getLabelForValue(value);
+                        // Section headers: hide the tick text (drawn by plugin instead)
+                        if (typeof lbl === 'string' && lbl.startsWith('§')) return '';
+                        // Multi-line labels (array) — return as-is for Chart.js wrapping
+                        if (Array.isArray(lbl)) return lbl;
+                        return lbl;
+                    }
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' }
             },
             y: {
                 beginAtZero: true,
@@ -335,6 +374,41 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             }
         };
 
+        // Section header plugin: draw styled "RETAINERS" / "BLOCKS" labels at §-prefix tick positions
+        const sectionHeaderPlugin = {
+            id: 'sectionHeaders',
+            afterDraw(chart) {
+                if (!sectionHeaderIndices.size) return;
+                const { ctx, scales: sc, chartArea } = chart;
+                if (!sc.x) return;
+                ctx.save();
+                ctx.font = 'bold 10px -apple-system,BlinkMacSystemFont,sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const labels = chart.data.labels || [];
+                labels.forEach((lbl, i) => {
+                    const raw = typeof lbl === 'string' ? lbl : '';
+                    if (!raw.startsWith('§')) return;
+                    const text = raw.replace('§', '').trim();
+                    const isBlocks = text.toUpperCase().includes('BLOCK');
+                    ctx.fillStyle = isBlocks ? '#f59e0b' : '#00b4d8';
+                    const tickX = sc.x.getPixelForTick(i);
+                    const y = chartArea.bottom + 14;
+                    // Draw divider line
+                    ctx.strokeStyle = isBlocks ? 'rgba(245,158,11,0.3)' : 'rgba(0,180,216,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(tickX, chartArea.top);
+                    ctx.lineTo(tickX, chartArea.bottom);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillText(text, tickX, y);
+                });
+                ctx.restore();
+            }
+        };
+
         // Bar click: navigate to record (chartClickNavigate) or drilldown
         const projectIds    = this.cardData.chartProjectIds || [];
         const clickNavigate = this.cardData.chartClickNavigate === true;
@@ -344,7 +418,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         this._chart = new Chart(canvas, {
             type: chartType,
             data: {
-                labels:   chartLabels || [],
+                labels:   parsedLabels,
                 datasets: chartDatasets
             },
             options: {
@@ -361,12 +435,14 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 onClick: hasDrilldown ? (event, elements) => {
                     if (!elements.length) return;
                     const idx       = elements[0].index;
+                    if (sectionHeaderIndices.has(idx)) return; // skip section headers
                     const projectId = projectIds[idx];
                     if (!projectId) return;
                     if (clickNavigate) {
                         this._navigateToProject(projectId);
                     } else {
-                        const rawLabel = (chartLabels[idx] || '').replace(' ●', '').trim();
+                        const rawLbl = parsedLabels[idx];
+                        const rawLabel = (Array.isArray(rawLbl) ? rawLbl[0] : (rawLbl || '')).replace(' ●', '').trim();
                         this._handleBarClick(projectId, rawLabel);
                     }
                 } : undefined,
@@ -383,37 +459,51 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderColor:     '#334155',
                         borderWidth:     1,
                         padding:         10,
-                        filter: (item) => item.dataset.data?.some(v => v != null),
-                        callbacks: Object.assign(
-                            (isLine || hasMixedTypes) ? {
-                                label: (context) => {
-                                    const v     = context.parsed.y;
-                                    const label = context.dataset.label || '';
-                                    const fmt   = Number.isInteger(v) ? v : v.toFixed(1);
-                                    return ` ${label}: ${fmt}h`;
+                        filter: (item) => {
+                            // Hide tooltips on section header bars (null data)
+                            if (sectionHeaderIndices.has(item.dataIndex)) return false;
+                            return item.dataset.data?.some(v => v != null);
+                        },
+                        callbacks: {
+                            label: (context) => {
+                                const idx      = context.dataIndex;
+                                const endDate  = endDates[idx];
+                                const v        = context.parsed.y;
+                                const dsLabel  = context.dataset.label || '';
+                                // Block projects: suppress the numeric pace value
+                                if (endDate && context.datasetIndex === 0) return null;
+                                // Ref legend datasets: suppress (handled by afterBody)
+                                if (context.dataset.type === 'line' && context.dataset.data?.every(d => d == null)) return null;
+                                if (isLine || hasMixedTypes) {
+                                    const fmt = Number.isInteger(v) ? v : v.toFixed(1);
+                                    return ` ${dsLabel}: ${fmt}h`;
                                 }
-                            } : {},
-                            refDs.some(r => r.isPerBar) ? {
-                                afterBody: (items) => {
-                                    const idx = items[0]?.dataIndex;
-                                    if (idx == null) return [];
-                                    return refDs
-                                        .filter(r => r.isPerBar)
-                                        .map(r => {
-                                            const v = r.data?.[idx];
-                                            if (v == null || Number(v) === 0) return null;
-                                            const fmt = Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1);
-                                            return ` ${r.label}: ${fmt}h`;
-                                        })
-                                        .filter(Boolean);
+                                return undefined; // default Chart.js label
+                            },
+                            afterBody: (items) => {
+                                const idx = items[0]?.dataIndex;
+                                if (idx == null) return [];
+                                const lines = [];
+                                // Retained hours ref line (retainer projects only)
+                                if (refDs.some(r => r.isPerBar)) {
+                                    refDs.filter(r => r.isPerBar).forEach(r => {
+                                        const v = r.data?.[idx];
+                                        if (v == null || Number(v) === 0) return;
+                                        const fmt = Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1);
+                                        lines.push(` ${r.label}: ${fmt}h`);
+                                    });
                                 }
-                            } : {}
-                        )
+                                // End date for block projects
+                                const endDate = endDates[idx];
+                                if (endDate) lines.push(` End Date: ${endDate}`);
+                                return lines;
+                            }
+                        }
                     }
                 },
                 scales
             },
-            plugins: [wowPlugin, refLinesPlugin]
+            plugins: [wowPlugin, refLinesPlugin, sectionHeaderPlugin]
         });
 
         // Native click listener for x-axis label → open record in new tab
@@ -431,7 +521,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 const segW = (xScale.right - xScale.left) / n;
                 const raw  = Math.floor((e.offsetX - xScale.left) / segW);
                 const idx  = raw + 1;
-                if (idx >= 0 && idx < n && projectIds[idx]) {
+                if (idx >= 0 && idx < n && !sectionHeaderIndices.has(idx) && projectIds[idx]) {
                     this._navigateToProject(projectIds[idx]);
                 }
             };

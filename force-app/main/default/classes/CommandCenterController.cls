@@ -46,6 +46,8 @@ public with sharing class CommandCenterController {
         @AuraEnabled public List<ChartDataset> datasets2;    // second chart datasets
         @AuraEnabled public List<ProjectRow>   projects; // optional: used for popup project list
         @AuraEnabled public Boolean            chartClickNavigate; // true = bar click navigates to record (not drilldown)
+        @AuraEnabled public List<String>       chartEndDates;      // parallel to chartLabels; non-null for Block projects (formatted end date)
+        @AuraEnabled public List<String>       chartBarColors;     // per-bar background colors (hex+alpha) for the main dataset
     }
 
     public class DrilldownData {
@@ -628,20 +630,22 @@ public with sharing class CommandCenterController {
         // Team capacity: 3 FTEs at 35h/wk + Head of Delivery at 20h/wk = 125h/wk
         Decimal contractorWeeklyHrs = (3 * 35) + 20; // 125h
 
-        // Weekly demand from active projects (sum of on-pace hourly requirement)
+        // Weekly demand from active projects — retainers only (blocks are results-based, not time-based)
         Decimal weeklyDemand    = 0;
         Integer activeProjects  = 0;
-        List<String>  projLabels   = new List<String>();
-        List<Decimal> projPace     = new List<Decimal>();
-        List<Decimal> projRetained = new List<Decimal>();
-        List<String>  projIds      = new List<String>();
+        List<String>  projLabels    = new List<String>();
+        List<Decimal> projPace      = new List<Decimal>();
+        List<Decimal> projRetained  = new List<Decimal>();
+        List<String>  projIds       = new List<String>();
+        List<String>  barColors     = new List<String>();
+        List<String>  chartEndDates = new List<String>();
 
         // Collect retainers (sorted by assignee) and blocks separately, then combine
         List<Sprint__c> retainerProjs = new List<Sprint__c>();
         List<Sprint__c> blockProjs    = new List<Sprint__c>();
         for (Sprint__c s : [
             SELECT Id, Name, Contract_Type__c, On_Time_Weekly_Pace__c, Weekly_Pace_Estimate__c,
-                   Accountlu__r.Name, CloudCrest_Assignee__r.Name
+                   Project_End_Date__c, Accountlu__r.Name, CloudCrest_Assignee__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
             ORDER BY CloudCrest_Assignee__r.Name ASC NULLS LAST, On_Time_Weekly_Pace__c DESC NULLS LAST
@@ -656,21 +660,47 @@ public with sharing class CommandCenterController {
             }
         }
 
-        // Build ordered list: retainers first, then blocks
-        List<Sprint__c> orderedProjs = new List<Sprint__c>();
-        orderedProjs.addAll(retainerProjs);
-        orderedProjs.addAll(blockProjs);
+        // Helper: truncate label
+        // Build chart data: §-prefixed section headers act as visual dividers in the JS
 
-        for (Sprint__c s : orderedProjs) {
-            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
-            activeProjects++;
-            Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
-            weeklyDemand += pace;
-            String lbl = acctName.length() > 0 ? acctName : s.Name;
-            projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
-            projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
-            projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
-            projIds.add(s.Id);
+        // ── Retainer section ──
+        if (!retainerProjs.isEmpty()) {
+            projLabels.add('§ RETAINERS');
+            projPace.add(null); projRetained.add(null); projIds.add(null);
+            barColors.add('transparent'); chartEndDates.add(null);
+            for (Sprint__c s : retainerProjs) {
+                String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+                Decimal pace = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+                weeklyDemand += pace;
+                activeProjects++;
+                String lbl = (acctName.length() > 0 ? acctName : s.Name);
+                projLabels.add(lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl);
+                projPace.add(pace.setScale(1, RoundingMode.HALF_UP));
+                projRetained.add(s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : null);
+                projIds.add(s.Id);
+                barColors.add('#00b4d8cc');
+                chartEndDates.add(null);
+            }
+        }
+
+        // ── Block section ──
+        if (!blockProjs.isEmpty()) {
+            projLabels.add('§ BLOCKS');
+            projPace.add(null); projRetained.add(null); projIds.add(null);
+            barColors.add('transparent'); chartEndDates.add(null);
+            for (Sprint__c s : blockProjs) {
+                String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+                String lbl = (acctName.length() > 0 ? acctName : s.Name);
+                lbl = lbl.length() > 16 ? lbl.substring(0, 16) + '…' : lbl;
+                String endDateStr = s.Project_End_Date__c != null ? s.Project_End_Date__c.format() : null;
+                // Label encodes end date as second line for x-axis display
+                projLabels.add(endDateStr != null ? lbl + '\n' + endDateStr : lbl);
+                projPace.add(1);  // blocks excluded from demand; small value renders a visible bar for hover/tooltip
+                projRetained.add(null);
+                projIds.add(s.Id);
+                barColors.add('#f59e0bcc');
+                chartEndDates.add(endDateStr);
+            }
         }
 
         // Story hours estimate
@@ -717,11 +747,16 @@ public with sharing class CommandCenterController {
         retainedRef.isRef       = true;
         retainedRef.isPerBar    = true;
 
+        ChartDataset mainDs = ds('On Time Weekly (h)', projPace, '#00b4d8');
+        mainDs.colors = barColors; // per-bar colors (teal for retainers, amber for blocks)
+
         cd.chartType          = 'bar';
         cd.chartLabels        = projLabels;
         cd.chartProjectIds    = projIds;
         cd.chartClickNavigate = true;
-        cd.datasets           = new List<ChartDataset>{ ds('On Time Weekly (h)', projPace, '#00b4d8'), retainedRef };
+        cd.chartEndDates      = chartEndDates;
+        cd.chartBarColors     = barColors;
+        cd.datasets           = new List<ChartDataset>{ mainDs, retainedRef };
         cd.insights    = new List<String>{
             capH.setScale(0, RoundingMode.HALF_UP) + 'h team capacity vs ' + demH.setScale(0, RoundingMode.HALF_UP) + 'h committed demand across ' + activeProjects + ' active projects',
             totalEstHrs.setScale(0, RoundingMode.HALF_UP) + 'h total estimated to complete across all active stories',
