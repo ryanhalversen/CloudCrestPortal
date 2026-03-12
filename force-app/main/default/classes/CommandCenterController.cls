@@ -1190,14 +1190,16 @@ public with sharing class CommandCenterController {
         Map<String, List<Decimal>> oppWeeklyContribs = new Map<String, List<Decimal>>();
 
         for (Opportunity o : pipeline) {
-            // Count how many of the 8 weeks this opp overlaps
+            // Count how many of the 8 weeks this opp overlaps with our forecast window
             Integer numWeeks = 0;
             for (Integer i = 0; i < 8; i++) {
                 Date wk = ws.addDays(i * 7);
                 if (wk <= o.Est_Project_End_Date__c && wk.addDays(6) >= o.Est_Project_Start_Date__c) numWeeks++;
             }
             if (numWeeks == 0) continue;
-            Decimal weeklyHrs = (o.Contracted_Hours__c / numWeeks).setScale(1, RoundingMode.HALF_UP);
+            // Weekly pace = total contracted hours / total project duration (not window overlap)
+            Integer totalProjectWeeks = Math.max(1, o.Est_Project_Start_Date__c.daysBetween(o.Est_Project_End_Date__c) / 7 + 1);
+            Decimal weeklyHrs = (o.Contracted_Hours__c / totalProjectWeeks).setScale(1, RoundingMode.HALF_UP);
             String oppName = (o.Account != null && o.Account.Name != null ? o.Account.Name : o.Name);
             List<Decimal> contribs = new List<Decimal>{0,0,0,0,0,0,0,0};
 
