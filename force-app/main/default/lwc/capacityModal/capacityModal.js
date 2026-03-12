@@ -489,13 +489,12 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                     'rgba(34,197,94,0.5)', 'rgba(34,197,94,0.18)', 'rgba(34,197,94,0.95)',
                     (j) => chartArea.top - 8 - j * (pillH + pillGap)
                 );
-                // Red ends: below x-axis date labels, above legend (bottom padding zone)
-                // sc.x.bottom = bottom of the x-axis scale (includes date tick labels)
-                const xBottom = sc.x?.bottom ?? (chartArea.bottom + 28);
+                // Red ends: below the chart legend, in the bottom padding zone
+                const legendBottom = chart.legend?.bottom ?? (chart.height - 10);
                 drawPillRow(
                     endMarkers, ' ends',
                     'rgba(239,68,68,0.6)', 'rgba(239,68,68,0.18)', 'rgba(239,68,68,0.95)',
-                    (j) => xBottom + 6 + (j + 1) * (pillH + pillGap)
+                    (j) => legendBottom + 6 + (j + 1) * (pillH + pillGap)
                 );
                 ctx.restore();
             }
@@ -519,7 +518,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 layout: {
                     padding: {
                             top:    startMarkers.some(m => m) ? 55 : 0,
-                        bottom: endMarkers.some(m => m)   ? 55 : 0,
+                        bottom: endMarkers.some(m => m)   ? 65 : 0,
                         left:   40  // extra left margin so tick-0 pills aren't clipped
                     }
                 },
@@ -627,14 +626,10 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             canvas.removeEventListener('click', this._markerClickHandler);
             this._markerClickHandler = null;
         }
-        const pillScaledCoords = (e) => {
-            const scaleX = canvas.width  / (canvas.offsetWidth  || canvas.width);
-            const scaleY = canvas.height / (canvas.offsetHeight || canvas.height);
-            return { cx: e.offsetX * scaleX, cy: e.offsetY * scaleY };
-        };
+        // Chart.js scales ctx by devicePixelRatio, so drawing coords == CSS pixels == offsetX/Y
         this._markerClickHandler = (e) => {
             if (!pillHitAreas.length) return;
-            const { cx, cy } = pillScaledCoords(e);
+            const cx = e.offsetX, cy = e.offsetY;
             for (const area of pillHitAreas) {
                 if (cx >= area.x1 && cx <= area.x2 && cy >= area.y1 && cy <= area.y2) {
                     window.open(`${window.location.origin}/lightning/r/${area.recordId}/view`, '_blank');
@@ -644,15 +639,13 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         };
         canvas.addEventListener('click', this._markerClickHandler);
 
-        // Pill hover cursor
         if (this._markerHoverHandler) {
             canvas.removeEventListener('mousemove', this._markerHoverHandler);
         }
         this._markerHoverHandler = (e) => {
             if (!pillHitAreas.length) return;
-            const { cx, cy } = pillScaledCoords(e);
-            const hit = pillHitAreas.some(a => cx >= a.x1 && cx <= a.x2 && cy >= a.y1 && cy <= a.y2);
-            canvas.style.cursor = hit ? 'pointer' : '';
+            const cx = e.offsetX, cy = e.offsetY;
+            canvas.style.cursor = pillHitAreas.some(a => cx >= a.x1 && cx <= a.x2 && cy >= a.y1 && cy <= a.y2) ? 'pointer' : '';
         };
         canvas.addEventListener('mousemove', this._markerHoverHandler);
     }
