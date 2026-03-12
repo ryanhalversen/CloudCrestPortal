@@ -164,37 +164,84 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         const { chartType, chartLabels, datasets } = this.cardData;
         if (!chartType || !datasets?.length) return;
 
-        const hasMixedTypes = datasets.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
+        // Separate reference-line datasets from data datasets
+        const refDs  = datasets.filter(d => d.isRef === true);
+        const mainDs = datasets.filter(d => d.isRef !== true);
 
-        const chartDatasets = datasets.map((ds, idx) => {
-            const baseColor   = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
-            const dsType      = ds.chartDatasetType || chartType;
-            const isLine      = dsType === 'line';
-            const isDoughnut  = chartType === 'doughnut';
-            const isRef       = ds.isRef === true;
+        const hasMixedTypes = mainDs.some(d => d.chartDatasetType && d.chartDatasetType !== chartType);
+
+        const chartDatasets = mainDs.map((ds, idx) => {
+            const baseColor  = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
+            const dsType     = ds.chartDatasetType || chartType;
+            const isLine     = dsType === 'line';
+            const isDoughnut = chartType === 'doughnut';
 
             const obj = {
                 label:              ds.label,
                 data:               ds.data || [],
-                backgroundColor:    isDoughnut
-                    ? (ds.colors || CHART_COLORS)
-                    : isRef ? 'transparent' : `${baseColor}cc`,
+                backgroundColor:    isDoughnut ? (ds.colors || CHART_COLORS) : `${baseColor}cc`,
                 borderColor:        isDoughnut ? (ds.borderColor || '#1e293b') : baseColor,
-                borderWidth:        isDoughnut ? 2 : (isLine || isRef) ? 2 : 0,
+                borderWidth:        isDoughnut ? 2 : isLine ? 2 : 0,
                 borderDash:         ds.isDashed ? [6, 4] : undefined,
-                tension:            isLine && !isRef ? 0.3 : 0,
-                pointRadius:        isLine ? (isRef ? 0 : 3) : undefined,
-                pointHitRadius:     isLine ? (isRef ? 0 : 20) : undefined,
-                pointHoverRadius:   isLine ? (isRef ? 0 : 5) : undefined,
+                tension:            isLine ? 0.3 : 0,
+                pointRadius:        isLine ? 3 : undefined,
+                pointHitRadius:     isLine ? 20 : undefined,
+                pointHoverRadius:   isLine ? 5 : undefined,
                 fill:               false,
                 hoverOffset:        isDoughnut ? 6 : undefined,
-                barPercentage:      (!isDoughnut && !isRef && !isLine) ? 0.7 : undefined,
-                categoryPercentage: (!isDoughnut && !isRef && !isLine) ? 0.85 : undefined,
-                isRef:              isRef
+                barPercentage:      (!isDoughnut && !isLine) ? 0.7 : undefined,
+                categoryPercentage: (!isDoughnut && !isLine) ? 0.85 : undefined
             };
             if (ds.chartDatasetType) obj.type = ds.chartDatasetType;
             return obj;
         });
+
+        // Add invisible legend-only entries for reference lines (all-null data = nothing rendered)
+        const nullData = new Array(mainDs[0]?.data?.length || 0).fill(null);
+        refDs.forEach(ref => {
+            chartDatasets.push({
+                label:           ref.label,
+                data:            nullData,
+                type:            'line',
+                backgroundColor: 'transparent',
+                borderColor:     ref.borderColor || ref.color || '#ef4444',
+                borderWidth:     2,
+                pointRadius:     0,
+                fill:            false,
+                spanGaps:        false
+            });
+        });
+
+        // Plugin: draw horizontal tick marks on bars at each ref-line Y value
+        const refLinesPlugin = {
+            id: 'refLines',
+            afterDatasetsDraw(chart) {
+                if (!refDs.length) return;
+                const { ctx, scales: sc } = chart;
+                if (!sc.y) return;
+                const barMeta = chart.getDatasetMeta(0);
+                if (!barMeta?.data?.length) return;
+                ctx.save();
+                for (const ref of refDs) {
+                    ctx.strokeStyle = ref.borderColor || ref.color || '#ef4444';
+                    ctx.lineWidth   = 2.5;
+                    const data = ref.data || [];
+                    for (let i = 0; i < data.length; i++) {
+                        const yVal  = data[i];
+                        if (yVal == null) continue;
+                        const barEl = barMeta.data[i];
+                        if (!barEl) continue;
+                        const y  = sc.y.getPixelForValue(yVal);
+                        const hw = (barEl.width || 20) / 2 + 2;
+                        ctx.beginPath();
+                        ctx.moveTo(barEl.x - hw, y);
+                        ctx.lineTo(barEl.x + hw, y);
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            }
+        };
 
         const isDoughnut = chartType === 'doughnut';
         const isLine     = chartType === 'line';
@@ -288,7 +335,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 } : undefined,
                 plugins: {
                     legend: {
-                        display:  datasets.length > 1 || isDoughnut,
+                        display:  mainDs.length > 1 || isDoughnut || refDs.length > 0,
                         position: 'bottom',
                         labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
                     },
@@ -299,7 +346,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderColor:     '#334155',
                         borderWidth:     1,
                         padding:         10,
-                        filter: (item) => !item.dataset.isRef,
+                        filter: (item) => item.dataset.data?.some(v => v != null),
                         callbacks: (isLine || hasMixedTypes) ? {
                             label: (context) => {
                                 const v     = context.parsed.y;
@@ -312,7 +359,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 },
                 scales
             },
-            plugins: [wowPlugin]
+            plugins: [wowPlugin, refLinesPlugin]
         });
 
         // Native click listener for x-axis label → open record in new tab
@@ -346,27 +393,62 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
         const { chartType2: chartType, chartLabels2: chartLabels, datasets2: datasets } = this.cardData;
         if (!chartType || !datasets?.length) return;
 
-        const chartDatasets = datasets.map((ds, idx) => {
+        const refDs2  = datasets.filter(d => d.isRef === true);
+        const mainDs2 = datasets.filter(d => d.isRef !== true);
+
+        const chartDatasets = mainDs2.map((ds, idx) => {
             const baseColor = ds.color || CHART_COLORS[idx % CHART_COLORS.length];
-            const dsType    = ds.chartDatasetType || chartType;
-            const isLine    = dsType === 'line';
-            const isRef     = ds.isRef === true;
-            const obj = {
+            return {
                 label:              ds.label,
                 data:               ds.data || [],
-                backgroundColor:    isRef ? 'transparent' : `${baseColor}cc`,
+                backgroundColor:    `${baseColor}cc`,
                 borderColor:        baseColor,
-                borderWidth:        isRef ? 2 : 0,
-                tension:            0,
-                pointRadius:        isRef ? 0 : undefined,
+                borderWidth:        0,
                 fill:               false,
-                barPercentage:      isRef ? undefined : 0.7,
-                categoryPercentage: isRef ? undefined : 0.85,
-                isRef:              isRef
+                barPercentage:      0.7,
+                categoryPercentage: 0.85
             };
-            if (ds.chartDatasetType) obj.type = ds.chartDatasetType;
-            return obj;
         });
+
+        // Invisible legend-only entries for ref lines
+        refDs2.forEach(ref => {
+            chartDatasets.push({
+                label:           ref.label,
+                data:            new Array(mainDs2[0]?.data?.length || 0).fill(null),
+                type:            'line',
+                backgroundColor: 'transparent',
+                borderColor:     ref.borderColor || ref.color || '#ef4444',
+                borderWidth:     2,
+                pointRadius:     0,
+                fill:            false,
+                spanGaps:        false
+            });
+        });
+
+        // Plugin: draw dashed horizontal lines across full chart width
+        const refLinesPlugin2 = {
+            id: 'refLines2',
+            afterDatasetsDraw(chart) {
+                if (!refDs2.length) return;
+                const { ctx, chartArea, scales: sc } = chart;
+                if (!sc.y || !chartArea) return;
+                ctx.save();
+                for (const ref of refDs2) {
+                    const yVal = ref.data?.[0];
+                    if (yVal == null) continue;
+                    const y = sc.y.getPixelForValue(yVal);
+                    ctx.strokeStyle = ref.borderColor || ref.color || '#ef4444';
+                    ctx.lineWidth   = 1.5;
+                    ctx.setLineDash([5, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(chartArea.left, y);
+                    ctx.lineTo(chartArea.right, y);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+        };
 
         /* global Chart */
         this._chart2 = new Chart(canvas, {
@@ -389,7 +471,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         borderColor:     '#334155',
                         borderWidth:     1,
                         padding:         10,
-                        filter: (item) => !item.dataset.isRef,
+                        filter: (item) => item.dataset.data?.some(v => v != null),
                         callbacks: {
                             label: (context) => {
                                 const v   = context.parsed.y;
@@ -410,7 +492,8 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         grid:  { color: 'rgba(255,255,255,0.07)' }
                     }
                 }
-            }
+            },
+            plugins: [refLinesPlugin2]
         });
     }
 
