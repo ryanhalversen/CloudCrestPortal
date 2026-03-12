@@ -239,13 +239,21 @@ public with sharing class CommandCenterController {
         Date ws    = Date.today().toStartOfWeek();
 
         // ── 1. All active projects, sorted by weekly commitment desc ──────────
-        List<Sprint__c> allProjects = [
+        List<Sprint__c> rawProjects = [
             SELECT Id, Name, Contract_Type__c, Weekly_Pace_Estimate__c, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
             ORDER BY Weekly_Pace_Estimate__c DESC NULLS LAST, Name ASC
             LIMIT  25
         ];
+        // Exclude internal CloudCrest projects from client delivery reporting
+        List<Sprint__c> allProjects = new List<Sprint__c>();
+        for (Sprint__c s : rawProjects) {
+            String acctName = s.Accountlu__r?.Name != null ? s.Accountlu__r.Name : '';
+            if (!s.Name.containsIgnoreCase('CloudCrest') && !acctName.containsIgnoreCase('CloudCrest')) {
+                allProjects.add(s);
+            }
+        }
 
         // ── 2. Partition by contract type ──────────────────────────────────────
         Set<Id>          retainerIds  = new Set<Id>();          // non-Block with weekly hrs set
