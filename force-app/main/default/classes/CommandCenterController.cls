@@ -1143,6 +1143,8 @@ public with sharing class CommandCenterController {
                    Name, Accountlu__r.Name
             FROM   Sprint__c
             WHERE  Status__c = 'In Progress'
+              AND  Accountlu__c != null
+              AND  (NOT Accountlu__r.Name LIKE '%CloudCrest%')
         ];
 
         Decimal contractorCap = 0;
@@ -1346,11 +1348,6 @@ public with sharing class CommandCenterController {
             allDs.add(pipeDs);
         }
         cd.datasets    = allDs;
-        cd.insights    = new List<String>{
-            'Week 4: ' + wk4Util + '% utilization (' + wk4Forecast.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalCap.setScale(0, RoundingMode.HALF_UP) + 'h capacity)' + (hasPipeline ? ' incl. pipeline' : ''),
-            'Week 8: ' + wk8Util + '% utilization — demand trending ' + (wk8Forecast <= wk4Forecast ? 'down as projects close' : 'up as work ramps'),
-            surplus >= 0 ? surplus + 'h/week surplus at week 4 — room to take on new work' : Math.abs(surplus) + 'h/week over capacity at week 4 — review resourcing'
-        };
         return cd;
     }
 

@@ -339,7 +339,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             },
             y: {
                 beginAtZero: true,
-                ticks: { color: '#94a3b8', font: { size: 11 }, stepSize: isLine ? 10 : undefined },
+                ticks: { color: '#94a3b8', font: { size: 11 }, stepSize: isLine ? 5 : undefined },
                 grid:  { color: 'rgba(255,255,255,0.07)' }
             }
         };
