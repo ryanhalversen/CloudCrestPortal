@@ -474,16 +474,17 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                         const pillBottom = chartArea.top - 10 - j * (pillH + pillGap);
                         const pillTop    = pillBottom - pillH;
                         const midY       = pillTop + pillH / 2;
-                        const rawLeft    = x - tw / 2;
-                        const pillLeft   = Math.max(chartArea.left, Math.min(rawLeft, chartArea.right - tw));
-                        const textX      = pillLeft + tw / 2;
+                        // Clamp only to canvas edges (not chartArea) so column-0 pills
+                        // don't get pushed right into column-1's space
+                        const pillLeft = Math.max(0, Math.min(x - tw / 2, chart.width - tw));
                         ctx.fillStyle = pill.bg;
                         ctx.beginPath();
                         if (ctx.roundRect) ctx.roundRect(pillLeft, pillTop, tw, pillH, 4);
                         else               ctx.rect(pillLeft, pillTop, tw, pillH);
                         ctx.fill();
                         ctx.fillStyle = pill.fg;
-                        ctx.fillText(pill.text, textX, midY);
+                        // Text always centered on tick x (may extend slightly into y-axis margin)
+                        ctx.fillText(pill.text, x, midY);
                     });
                 }
                 ctx.restore();
