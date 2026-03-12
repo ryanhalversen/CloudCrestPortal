@@ -21,10 +21,15 @@
 .capacity-card--critical:hover{ box-shadow: 0 8px 28px rgba(239, 68, 68, 0.18);  border-color: #ef4444; }
 .capacity-card--neutral:hover  { box-shadow: 0 8px 28px rgba(71, 85, 105, 0.18); border-color: #475569; }
 
-.capacity-card--good     { border-left: 3px solid #22c55e; }
+.capacity-card--good     { border-left: 3px solid #22c55e; border-right: 3px solid #22c55e; }
 .capacity-card--warning  { border-left: 3px solid #f59e0b; }
-.capacity-card--critical { border-left: 3px solid #ef4444; }
+.capacity-card--critical { border-left: 3px solid #ef4444; animation: criticalSidebarFlash 1.4s ease-in-out infinite; }
 .capacity-card--neutral  { border-left: 3px solid #475569; }
+
+@keyframes criticalSidebarFlash {
+    0%, 100% { border-left-color: #ef4444; box-shadow: -3px 0 14px rgba(239,68,68,0.55); }
+    50%       { border-left-color: rgba(239,68,68,0.15); box-shadow: none; }
+}
 
 /* ── Context label row ── */
 .card-top {
