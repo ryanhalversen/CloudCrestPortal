@@ -1176,14 +1176,6 @@ public with sharing class CommandCenterController {
             if (i == 7) wk8Demand = d;  // 8th week in forecast
         }
 
-        Integer wk4Util = totalCap > 0
-            ? Integer.valueOf(((wk4Demand / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
-        Integer wk8Util = totalCap > 0
-            ? Integer.valueOf(((wk8Demand / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
-            : 0;
-        Decimal surplus = (totalCap - wk4Demand).setScale(1, RoundingMode.HALF_UP);
-
         // ── Pipeline opportunities: distribute contracted hours across their date range ──
         List<Opportunity> pipeline = [
             SELECT Name, Account.Name, Contracted_Hours__c,
@@ -1235,6 +1227,17 @@ public with sharing class CommandCenterController {
             projectedData.add((demandData.get(i) + p).setScale(1, RoundingMode.HALF_UP));
         }
 
+        // KPIs use projected (demand + pipeline) when pipeline exists, otherwise existing demand
+        Decimal wk4Forecast = hasPipeline ? projectedData.get(3) : wk4Demand;
+        Decimal wk8Forecast = hasPipeline ? projectedData.get(7) : wk8Demand;
+        Integer wk4Util = totalCap > 0
+            ? Integer.valueOf(((wk4Forecast / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+        Integer wk8Util = totalCap > 0
+            ? Integer.valueOf(((wk8Forecast / totalCap) * 100).setScale(0, RoundingMode.HALF_UP))
+            : 0;
+        Decimal surplus = (totalCap - wk4Forecast).setScale(1, RoundingMode.HALF_UP);
+
         // Sweet spot: 80–95% utilization; both extremes (<60% or >95%) are poor
         String status = totalCap == 0 ? 'neutral'
             : (wk4Util < 60 || wk4Util > 95) ? 'critical'
@@ -1283,8 +1286,8 @@ public with sharing class CommandCenterController {
         }
         cd.datasets    = allDs;
         cd.insights    = new List<String>{
-            'Week 4: ' + wk4Util + '% utilization (' + wk4Demand.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalCap.setScale(0, RoundingMode.HALF_UP) + 'h capacity)',
-            'Week 8: ' + wk8Util + '% utilization — demand trending ' + (wk8Demand <= wk4Demand ? 'down as projects close' : 'up as work ramps'),
+            'Week 4: ' + wk4Util + '% utilization (' + wk4Forecast.setScale(0, RoundingMode.HALF_UP) + 'h demand vs ' + totalCap.setScale(0, RoundingMode.HALF_UP) + 'h capacity)' + (hasPipeline ? ' incl. pipeline' : ''),
+            'Week 8: ' + wk8Util + '% utilization — demand trending ' + (wk8Forecast <= wk4Forecast ? 'down as projects close' : 'up as work ramps'),
             surplus >= 0 ? surplus + 'h/week surplus at week 4 — room to take on new work' : Math.abs(surplus) + 'h/week over capacity at week 4 — review resourcing'
         };
         return cd;

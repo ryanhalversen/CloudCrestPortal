@@ -311,7 +311,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
             },
             y: {
                 beginAtZero: true,
-                ticks: { color: '#94a3b8', font: { size: 11 } },
+                ticks: { color: '#94a3b8', font: { size: 11 }, stepSize: isLine ? 10 : undefined },
                 grid:  { color: 'rgba(255,255,255,0.07)' }
             }
         };
@@ -545,7 +545,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
                 plugins: {
                     legend: {
                         display:  mainDs.length > 1 || isDoughnut || refDs.length > 0,
-                        position: endMarkers.some(m => m) ? 'top' : 'bottom',
+                        position: 'top',
                         labels:   { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 16 }
                     },
                     tooltip: {
