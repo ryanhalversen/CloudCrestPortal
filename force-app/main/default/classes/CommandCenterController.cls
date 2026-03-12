@@ -638,19 +638,19 @@ public with sharing class CommandCenterController {
             if (s.On_Time_Weekly_Pace__c != null) weeklyDemand += s.On_Time_Weekly_Pace__c;
         }
 
-        // Story hours estimate + blocked count
+        // Story hours estimate
         Decimal totalEstHrs = 0;
-        Integer blocked     = 0;
-        for (AggregateResult ar : [
-            SELECT Status s, SUM(Hours_Estimate_to_Complete__c) hrs, COUNT(Id) c
+        AggregateResult hrsAr = [
+            SELECT SUM(Hours_Estimate_to_Complete__c) hrs
             FROM   Case
             WHERE  Status NOT IN ('Completed','Closed','Cancelled')
-            GROUP BY Status
-        ]) {
-            Decimal hrs = (Decimal) ar.get('hrs');
-            if (hrs != null) totalEstHrs += hrs;
-            if ((String) ar.get('s') == 'Blocked') blocked = (Integer) ar.get('c');
-        }
+        ];
+        if (hrsAr.get('hrs') != null) totalEstHrs = (Decimal) hrsAr.get('hrs');
+
+        // Blocked story count
+        Integer blocked = [
+            SELECT COUNT() FROM Case WHERE Status = 'Blocked'
+        ];
 
         // Status: demand vs capacity — demand > capacity by 10%+ = critical
         Decimal demandRatio = contractorWeeklyHrs > 0 ? weeklyDemand / contractorWeeklyHrs : 0;
