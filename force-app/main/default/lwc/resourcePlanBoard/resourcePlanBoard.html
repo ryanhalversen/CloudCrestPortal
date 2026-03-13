@@ -127,29 +127,31 @@
                                             </div>
                                             <span class="card-client">{card.client}</span>
 
-                                            <div class="card-hours-row">
-                                                <span class="card-hrs-label">hrs/wk</span>
-                                                <template if:false={card.isPipeline}>
-                                                    <span class="card-hrs">{card.hoursPerWeek}</span>
-                                                </template>
-                                                <template if:true={card.isPipeline}>
-                                                    <template if:false={card.isEditing}>
-                                                        <span class="card-hrs"
-                                                              data-assignment-id={card.assignmentId}
-                                                              onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                            <template if:false={card.isBlock}>
+                                                <div class="card-hours-row">
+                                                    <span class="card-hrs-label">hrs/wk</span>
+                                                    <template if:false={card.isPipeline}>
+                                                        <span class="card-hrs">{card.hoursPerWeek}</span>
                                                     </template>
-                                                    <template if:true={card.isEditing}>
-                                                        <input type="number"
-                                                               class="hours-input"
-                                                               value={card.editValue}
-                                                               min="0" step="0.5"
-                                                               data-assignment-id={card.assignmentId}
-                                                               oninput={handleHoursInput}
-                                                               onblur={handleHoursBlur}
-                                                               onkeydown={handleHoursKeydown} />
+                                                    <template if:true={card.isPipeline}>
+                                                        <template if:false={card.isEditing}>
+                                                            <span class="card-hrs"
+                                                                  data-assignment-id={card.assignmentId}
+                                                                  onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                                        </template>
+                                                        <template if:true={card.isEditing}>
+                                                            <input type="number"
+                                                                   class="hours-input"
+                                                                   value={card.editValue}
+                                                                   min="0" step="0.5"
+                                                                   data-assignment-id={card.assignmentId}
+                                                                   oninput={handleHoursInput}
+                                                                   onblur={handleHoursBlur}
+                                                                   onkeydown={handleHoursKeydown} />
+                                                        </template>
                                                     </template>
-                                                </template>
-                                            </div>
+                                                </div>
+                                            </template>
 
                                             <template if:false={card.isPipeline}>
                                                 <div class="card-footer">

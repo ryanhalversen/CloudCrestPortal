@@ -3,8 +3,8 @@ public with sharing class ResourcePlanningController {
 
     // ── FTE weekly targets (matches existing teamCapacity constants) ──────────
     static final Map<String,Integer> FTE_TARGETS = new Map<String,Integer>{
-        'Alec' => 20,
-        'Alec Hampton' => 20
+        'Alec' => 0,
+        'Alec Hampton' => 0
     };
     // Users excluded from FTE swim lanes (contractors who also have User records, admins, etc.)
     static final Set<String> FTE_EXCLUDE = new Set<String>{
@@ -41,7 +41,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  id;
         @AuraEnabled public String  name;
         @AuraEnabled public String  client;
-        @AuraEnabled public Decimal weeklyPace;
+        @AuraEnabled public Decimal weeklyPace;      // on-time weekly pace
         @AuraEnabled public String  endDate;
         @AuraEnabled public String  urgency;
         @AuraEnabled public String  paceStatus;
@@ -49,6 +49,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  ownerId;
         @AuraEnabled public String  supportLeadId;
         @AuraEnabled public Decimal supportSplit;
+        @AuraEnabled public Boolean isBlock;
     }
 
     public class ContractorRow {
@@ -90,8 +91,8 @@ public with sharing class ResourcePlanningController {
         // ── 1. Active billable projects ───────────────────────────────────────
         List<Sprint__c> sprints = [
             SELECT Id, Name, OwnerId, Support_Lead__c, Support_Split__c,
-                   Accountlu__r.Name, Weekly_Pace_Estimate__c,
-                   Project_End_Date__c, Pace_Status__c
+                   Accountlu__r.Name, Weekly_Pace_Estimate__c, On_Time_Weekly_Pace__c,
+                   Project_End_Date__c, Pace_Status__c, Contract_Type__c
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             AND (NOT Name LIKE '%CloudCrest%')
@@ -169,7 +170,8 @@ public with sharing class ResourcePlanningController {
             pc.id           = s.Id;
             pc.name         = s.Name;
             pc.client       = s.Accountlu__r != null ? s.Accountlu__r.Name : '—';
-            pc.weeklyPace   = s.Weekly_Pace_Estimate__c != null ? s.Weekly_Pace_Estimate__c : 0;
+            pc.weeklyPace   = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
+            pc.isBlock      = 'Block'.equalsIgnoreCase(s.Contract_Type__c);
             Integer daysLeft = s.Project_End_Date__c != null
                 ? Date.today().daysBetween(s.Project_End_Date__c)
                 : 9999;

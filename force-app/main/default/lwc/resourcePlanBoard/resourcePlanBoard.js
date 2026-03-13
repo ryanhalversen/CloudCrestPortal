@@ -100,6 +100,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 name:         proj.name,
                 client:       proj.client,
                 hoursPerWeek: ownerHours,
+                isBlock:      !!proj.isBlock,
                 endDate:      proj.endDate || '—',
                 urgency:      urg,
                 urgencyLabel: URGENCY_LABEL[urg] || '',
@@ -130,6 +131,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 name:         proj.name,
                 client:       proj.client,
                 hoursPerWeek: supportHours,
+                isBlock:      !!proj.isBlock,
                 splitPct:     Math.round(splitPct * 100),
                 endDate:      proj.endDate || '—',
                 urgency:      urg,
@@ -179,7 +181,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             supportProjects.reduce((s, p) => {
                 return s + (p.weeklyPace || 0) * ((p.supportSplit || 0) / 100);
             }, 0);
-        const cap      = fte.weeklyTarget || 35;
+        const cap      = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
         const pct      = cap > 0 ? (alloc / cap) * 100 : 0;
         const barPct   = Math.min(pct, 100);
         const barColor = pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
@@ -259,7 +261,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get kpis() {
         if (!this._raw) return [];
         const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
-        const totalCap  = (this._raw.fteRows || []).reduce((s, f) => s + (f.weeklyTarget || 35), 0);
+        // Exclude FTEs with weeklyTarget = 0 (e.g. Head of Delivery) from capacity total
+        const totalCap  = (this._raw.fteRows || []).reduce((s, f) => {
+            const t = f.weeklyTarget != null ? f.weeklyTarget : 35;
+            return s + t;
+        }, 0);
         // fteDemand = owner hours (after split) + support hours for all FTE-owned projects
         const fteDemand = (this._raw.projectCards || [])
             .filter(p => fteIds.has(p.ownerId))
