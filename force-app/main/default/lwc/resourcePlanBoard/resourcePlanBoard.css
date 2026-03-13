@@ -365,6 +365,11 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
+.card-name--link {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.card-name--link:hover { color: #00b4d8; text-decoration: underline; }
 .card-remove {
     background: none;
     border: none;

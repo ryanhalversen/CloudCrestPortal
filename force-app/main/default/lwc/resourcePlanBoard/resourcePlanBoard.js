@@ -1,5 +1,6 @@
 // force-app/main/default/lwc/resourcePlanBoard/resourcePlanBoard.js
 import { LightningElement } from 'lwc';
+import { NavigationMixin }  from 'lightning/navigation';
 import getBoardData         from '@salesforce/apex/ResourcePlanningController.getBoardData';
 import upsertAssignment     from '@salesforce/apex/ResourcePlanningController.upsertAssignment';
 import deleteAssignment     from '@salesforce/apex/ResourcePlanningController.deleteAssignment';
@@ -8,7 +9,7 @@ import batchSaveAssignments from '@salesforce/apex/ResourcePlanningController.ba
 const UNDO_LIMIT = 20;
 const URGENCY_LABEL = { critical: '< 2 wks', warning: '2–8 wks' };
 
-export default class ResourcePlanBoard extends LightningElement {
+export default class ResourcePlanBoard extends NavigationMixin(LightningElement) {
 
     // ── Server data ───────────────────────────────────────────────────────────
     _raw        = null;
@@ -133,6 +134,7 @@ export default class ResourcePlanBoard extends LightningElement {
                 showUrgency:  !!urg,
                 color:        proj.color,
                 colorStyle:   `border-left-color:${proj.color};`,
+                recordId:     proj.id,
                 isLocal:      !!a._local,
                 cardCls:      `plan-card plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}${a._local ? ' plan-card--new' : ''}`,
                 chips,
@@ -149,6 +151,8 @@ export default class ResourcePlanBoard extends LightningElement {
             const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
             return {
                 assignmentId: a.id,
+                oppId:        a.opportunityId,
+                recordId:     a.opportunityId,
                 name:         opp?.name || a.opportunityId,
                 client:       opp?.client || '',
                 hoursPerWeek: a.hoursPerWeek || 0,
@@ -595,6 +599,16 @@ export default class ResourcePlanBoard extends LightningElement {
     handleToggleView() {
         this._viewMode = this._viewMode === 'full' ? 'compact' : 'full';
         this._refresh();
+    }
+
+    handleRecordClick(e) {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.recordId;
+        if (!id) return;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: id, actionName: 'view' }
+        });
     }
 
     handleClose()        { this.dispatchEvent(new CustomEvent('close')); }

@@ -112,7 +112,9 @@
                                              ondrop={handleCardDrop}>
 
                                             <div class="card-top-row">
-                                                <span class="card-name">{card.name}</span>
+                                                <span class="card-name card-name--link"
+                                                      data-record-id={card.recordId}
+                                                      onclick={handleRecordClick}>{card.name}</span>
                                                 <button class="card-remove"
                                                         data-assignment-id={card.assignmentId}
                                                         onclick={handleRemoveCard}
@@ -186,7 +188,9 @@
                                              data-id={proj.id}
                                              ondragstart={handleDragStart}
                                              ondragend={handleDragEnd}>
-                                            <span class="card-name">{proj.name}</span>
+                                            <span class="card-name card-name--link"
+                                                  data-record-id={proj.id}
+                                                  onclick={handleRecordClick}>{proj.name}</span>
                                             <span class="card-client">{proj.client}</span>
                                             <span class="card-hrs">{proj.weeklyPace}h/wk</span>
                                         </div>
@@ -223,7 +227,9 @@
                                          ondragend={handleDragEnd}>
                                         <div class="cont-avatar">{cont.initials}</div>
                                         <div class="cont-info">
-                                            <span class="cont-name">{cont.name}</span>
+                                            <span class="cont-name card-name--link"
+                                                  data-record-id={cont.id}
+                                                  onclick={handleRecordClick}>{cont.name}</span>
                                             <span class="cont-company">{cont.company}</span>
                                             <div class="cont-bar-track">
                                                 <div class="cont-bar-fill" style={cont.barStyle}></div>
@@ -247,7 +253,9 @@
                                          data-id={opp.id}
                                          ondragstart={handleDragStart}
                                          ondragend={handleDragEnd}>
-                                        <div class="pipe-name">{opp.name}</div>
+                                        <div class="pipe-name card-name--link"
+                                             data-record-id={opp.id}
+                                             onclick={handleRecordClick}>{opp.name}</div>
                                         <div class="pipe-client">{opp.client}</div>
                                         <div class="pipe-meta">
                                             <span>{opp.expectedStart}</span>
