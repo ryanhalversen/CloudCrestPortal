@@ -134,9 +134,11 @@ public with sharing class ResourcePlanningController {
             ORDER BY Est_Project_Start_Date__c
         ];
 
-        // ── Build FTE rows ────────────────────────────────────────────────────
+        // ── Build FTE rows (sorted by name) ──────────────────────────────────
+        List<User> sortedUsers = userMap.values();
+        sortedUsers.sort();
         bd.fteRows = new List<FteRow>();
-        for (User u : userMap.values()) {
+        for (User u : sortedUsers) {
             FteRow f    = new FteRow();
             f.id        = u.Id;
             f.name      = u.Name;
@@ -145,7 +147,6 @@ public with sharing class ResourcePlanningController {
             f.weeklyTarget = fteTarget(u.Name);
             bd.fteRows.add(f);
         }
-        bd.fteRows.sort();
 
         // ── Build project cards ───────────────────────────────────────────────
         bd.projectCards = new List<ProjectCard>();
