@@ -2,6 +2,7 @@
 import { LightningElement } from 'lwc';
 import { NavigationMixin }  from 'lightning/navigation';
 import getBoardData         from '@salesforce/apex/ResourcePlanningController.getBoardData';
+import updateSprintOwner   from '@salesforce/apex/ResourcePlanningController.updateSprintOwner';
 import upsertAssignment     from '@salesforce/apex/ResourcePlanningController.upsertAssignment';
 import deleteAssignment     from '@salesforce/apex/ResourcePlanningController.deleteAssignment';
 import batchSaveAssignments from '@salesforce/apex/ResourcePlanningController.batchSaveAssignments';
@@ -17,23 +18,23 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     error       = null;
 
     // ── Working state ─────────────────────────────────────────────────────────
-    _assignments    = [];   // flat array of assignment objects (source of truth)
+    _assignments    = [];   // RA records only (contractors + pipeline)
     _whatIfMode     = false;
-    _pendingOps     = [];   // for what-if change log display
+    _pendingOps     = [];
 
     // ── Undo ──────────────────────────────────────────────────────────────────
     _undoStack      = [];
 
     // ── Drag state ────────────────────────────────────────────────────────────
-    _drag           = null;   // { type, id, fromUserId } — set on dragstart
-    _dropTarget     = null;   // userId currently highlighted as drop zone
+    _drag           = null;
+    _dropTarget     = null;
 
-    // ── Inline edit ───────────────────────────────────────────────────────────
+    // ── Inline edit (pipeline cards only) ────────────────────────────────────
     _editCell       = null;   // { assignmentId, value }
 
     // ── UI toggles ────────────────────────────────────────────────────────────
-    _rightTab       = 'contractor';  // 'contractor' | 'pipeline'
-    _viewMode       = 'full';        // 'full' | 'compact'
+    _rightTab       = 'contractor';
+    _viewMode       = 'full';
     _tempId         = 1;
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
@@ -62,43 +63,12 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         try {
             const data = await getBoardData();
             this._raw  = data;
-            this._buildAssignments(data);
+            this._assignments = (data.assignments || []).map(a => ({ ...a, _local: false, _deleted: false }));
             this.isLoading = false;
         } catch (e) {
             this.error    = e.body?.message || 'Failed to load board data.';
             this.isLoading = false;
         }
-    }
-
-    _buildAssignments(data) {
-        // Start from server records
-        const serverRows = (data.assignments || []).map(a => ({ ...a, _local: false, _deleted: false }));
-        const serverKeys = new Set(serverRows.map(a => `${a.userId || a.contractorId}||${a.sprintId}`));
-
-        // Derive from Sprint__c assignee fields where no RA record exists
-        const seeds = [];
-        for (const p of (data.projectCards || [])) {
-            for (const uid of (p.seedUserIds || [])) {
-                if (!uid || serverKeys.has(`${uid}||${p.id}`)) continue;
-                const fte = (data.fteRows || []).find(f => f.id === uid);
-                if (!fte) continue;
-                seeds.push({
-                    id:             `seed-${this._tempId++}`,
-                    sprintId:       p.id,
-                    userId:         uid,
-                    contractorId:   null,
-                    opportunityId:  null,
-                    hoursPerWeek:   p.seedHoursEach || 0,
-                    role:           'Contributor',
-                    assignmentType: 'Active',
-                    isDerived:      true,
-                    _local:         true,   // needs to be saved
-                    _deleted:       false
-                });
-            }
-        }
-
-        this._assignments = [...serverRows, ...seeds];
     }
 
     // ── Computed: Lanes ───────────────────────────────────────────────────────
@@ -109,24 +79,21 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     }
 
     _buildLane(fte) {
-        const active = this._assignments.filter(
-            a => a.userId === fte.id && !a._deleted && a.assignmentType !== 'Pipeline'
-        );
+        // Project cards: Sprint__c records owned by this FTE
+        const ownedProjects = (this._raw.projectCards || []).filter(p => p.ownerId === fte.id);
 
-        const cards = active.map(a => {
-            const proj = (this._raw.projectCards || []).find(p => p.id === a.sprintId);
-            if (!proj) return null;
-            const chips = this._contractorChipsForProject(a.sprintId);
-            const isEditing = this._editCell?.assignmentId === a.id;
+        const cards = ownedProjects.map(proj => {
+            const chips     = this._contractorChipsForProject(proj.id);
             const daysLeft  = this._daysLeft(proj.endDate);
             const urg = daysLeft !== null && daysLeft <= 14 ? 'critical'
                       : daysLeft !== null && daysLeft <= 56 ? 'warning' : '';
             return {
-                assignmentId: a.id,
+                assignmentId: proj.id,   // used as key + drag id
                 projectId:    proj.id,
+                recordId:     proj.id,
                 name:         proj.name,
                 client:       proj.client,
-                hoursPerWeek: a.hoursPerWeek || 0,
+                hoursPerWeek: proj.weeklyPace || 0,
                 endDate:      proj.endDate || '—',
                 urgency:      urg,
                 urgencyLabel: URGENCY_LABEL[urg] || '',
@@ -134,21 +101,20 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 showUrgency:  !!urg,
                 color:        proj.color,
                 colorStyle:   `border-left-color:${proj.color};`,
-                recordId:     proj.id,
-                isLocal:      !!a._local,
-                cardCls:      `plan-card plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}${a._local ? ' plan-card--new' : ''}`,
+                cardCls:      `plan-card plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}`,
                 chips,
                 hasChips:     chips.length > 0,
-                isEditing,
-                editValue:    isEditing ? this._editCell.value : a.hoursPerWeek
+                isPipeline:   false,
+                canRemove:    false   // ownership is changed by dragging, not removing
             };
-        }).filter(Boolean);
+        });
 
-        // Pipeline cards in this lane
+        // Pipeline cards from RA records
         const pipeCards = this._assignments.filter(
             a => a.userId === fte.id && !a._deleted && a.assignmentType === 'Pipeline'
         ).map(a => {
             const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
+            const isEditing = this._editCell?.assignmentId === a.id;
             return {
                 assignmentId: a.id,
                 oppId:        a.opportunityId,
@@ -159,14 +125,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 stage:        opp?.stage || '',
                 probability:  opp?.probability || 0,
                 isPipeline:   true,
-                isEditing:    this._editCell?.assignmentId === a.id,
-                editValue:    this._editCell?.assignmentId === a.id ? this._editCell.value : a.hoursPerWeek,
+                canRemove:    true,
+                isEditing,
+                editValue:    isEditing ? this._editCell.value : a.hoursPerWeek,
                 cardCls:      'plan-card plan-card--pipeline'
             };
         });
 
         const allCards = [...cards, ...pipeCards];
-        const alloc    = active.reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
+        const alloc    = ownedProjects.reduce((s, p) => s + (p.weeklyPace || 0), 0);
         const cap      = fte.weeklyTarget || 35;
         const pct      = cap > 0 ? (alloc / cap) * 100 : 0;
         const barPct   = Math.min(pct, 100);
@@ -246,10 +213,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     get kpis() {
         if (!this._raw) return [];
+        const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
         const totalCap  = (this._raw.fteRows || []).reduce((s, f) => s + (f.weeklyTarget || 35), 0);
-        const fteDemand = this._assignments
-            .filter(a => a.userId && !a._deleted && a.assignmentType !== 'Pipeline')
-            .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
+        const fteDemand = (this._raw.projectCards || [])
+            .filter(p => fteIds.has(p.ownerId))
+            .reduce((s, p) => s + (p.weeklyPace || 0), 0);
         const contrHrs = this._assignments
             .filter(a => a.contractorId && !a._deleted)
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
@@ -278,7 +246,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get hasData()          { return !this.isLoading && !this.error && !!this._raw; }
     get hasError()         { return !!this.error; }
     get isWhatIf()         { return this._whatIfMode; }
-    get canUndo()          { return this._undoStack.length > 0; }
+    get canUndo()          { return this._undoStack.length === 0; }
     get hasChanges()       { return this._whatIfMode && this._pendingOps.length > 0; }
     get whatIfLabel()      { return this._whatIfMode ? 'Exit What-If' : 'What-If Mode'; }
     get boardCls()         { return `plan-board${this._whatIfMode ? ' plan-board--whatif' : ''}`; }
@@ -289,17 +257,13 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get pipelineTabCls()   { return `panel-tab${this._rightTab === 'pipeline' ? ' panel-tab--active' : ''}`; }
     get pendingCount()     { return this._pendingOps.length; }
 
-    // Unassigned projects (no active FTE assignment)
+    // Projects whose owner is not in the FTE lanes (unowned or owner excluded/inactive)
     get unassignedProjects() {
         if (!this._raw) return [];
-        return (this._raw.projectCards || []).filter(proj => {
-            return !this._assignments.some(a =>
-                a.sprintId === proj.id && a.userId && !a._deleted && a.assignmentType !== 'Pipeline'
-            );
-        }).map(p => ({
-            ...p,
-            cardStyle: `border-left-color:${p.color};`
-        }));
+        const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
+        return (this._raw.projectCards || [])
+            .filter(p => !p.ownerId || !fteIds.has(p.ownerId))
+            .map(p => ({ ...p, cardStyle: `border-left-color:${p.color};` }));
     }
     get hasUnassigned() { return this.unassignedProjects.length > 0; }
 
@@ -313,10 +277,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             id:         el.dataset.id,
             fromUserId: el.dataset.fromUserId || null
         };
-        // Push undo snapshot BEFORE the change
         this._pushUndo();
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', type); // LWC allows this minimal use
+        e.dataTransfer.setData('text/plain', type);
     }
 
     handleDragEnd() {
@@ -325,7 +288,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         this._refresh();
     }
 
-    // Drop zone: FTE swim lane
     handleLaneDragOver(e) {
         if (!this._drag) return;
         e.preventDefault();
@@ -352,20 +314,28 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const fte = (this._raw.fteRows || []).find(f => f.id === toUserId);
         if (!fte || !this._drag) { this._dropTarget = null; return; }
 
-        if (this._drag.type === 'project') {
-            // Moving a project card to a different FTE lane
-            const a = this._assignments.find(x => x.id === this._drag.id);
-            if (a && a.userId !== toUserId) {
-                this._assignments = this._assignments.map(x =>
-                    x.id === a.id ? { ...x, userId: toUserId, _local: true } : x
-                );
-                this._recordOp({ action: 'move-project', from: a.userId, to: toUserId, assignmentId: a.id });
-                this._autoSave(this._assignments.find(x => x.id === a.id));
+        if (this._drag.type === 'project' || this._drag.type === 'unassigned') {
+            // Find the project by ID and update its ownerId
+            const projId = this._drag.id;
+            const proj   = (this._raw.projectCards || []).find(p => p.id === projId);
+            if (proj && proj.ownerId !== toUserId) {
+                // Update local state
+                this._raw = {
+                    ...this._raw,
+                    projectCards: this._raw.projectCards.map(p =>
+                        p.id === projId ? { ...p, ownerId: toUserId } : p
+                    )
+                };
+                this._recordOp({ action: 'move-project', from: proj.ownerId, to: toUserId, projectId: projId });
+                // Persist to Salesforce
+                if (!this._whatIfMode) {
+                    updateSprintOwner({ sprintId: projId, newOwnerId: toUserId }).catch(console.error);
+                }
             } else {
-                this._undoStack.pop(); // no change, discard snapshot
+                this._undoStack.pop();
             }
+
         } else if (this._drag.type === 'pipeline') {
-            // Drag opp from pipeline shelf into FTE lane
             const opp = (this._raw.pipelineShelf || []).find(o => o.id === this._drag.id);
             if (opp && !this._assignments.some(a => a.userId === toUserId && a.opportunityId === opp.id && !a._deleted)) {
                 const newA = {
@@ -387,29 +357,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             } else {
                 this._undoStack.pop();
             }
-        } else if (this._drag.type === 'unassigned') {
-            // Drag from unassigned pool into a lane
-            const proj = (this._raw.projectCards || []).find(p => p.id === this._drag.id);
-            if (proj) {
-                const newA = {
-                    id:             `tmp-${this._tempId++}`,
-                    sprintId:       proj.id,
-                    userId:         toUserId,
-                    contractorId:   null,
-                    opportunityId:  null,
-                    hoursPerWeek:   proj.seedHoursEach || proj.weeklyPace || 0,
-                    role:           'Contributor',
-                    assignmentType: 'Active',
-                    isDerived:      false,
-                    _local:         true,
-                    _deleted:       false
-                };
-                this._assignments = [...this._assignments, newA];
-                this._recordOp({ action: 'assign-project', projectId: proj.id, userId: toUserId });
-                this._autoSave(newA);
-            } else {
-                this._undoStack.pop();
-            }
+
         } else {
             this._undoStack.pop();
         }
@@ -455,7 +403,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         }
     }
 
-    // ── Inline hour editing ───────────────────────────────────────────────────
+    // ── Inline hour editing (pipeline cards only) ─────────────────────────────
 
     handleHoursClick(e) {
         const id = e.currentTarget.dataset.assignmentId;
@@ -490,10 +438,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!isNaN(val) && val >= 0) {
             this._pushUndo();
             const id = this._editCell.assignmentId;
-            const updated = this._assignments.map(a =>
+            this._assignments = this._assignments.map(a =>
                 a.id === id ? { ...a, hoursPerWeek: Math.round(val * 10) / 10, _local: true } : a
             );
-            this._assignments = updated;
             this._recordOp({ action: 'update-hours', assignmentId: id, newValue: val });
             this._autoSave(this._assignments.find(x => x.id === id));
         }
@@ -501,7 +448,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         this._refresh();
     }
 
-    // ── Remove card ───────────────────────────────────────────────────────────
+    // ── Remove card (pipeline / contractor RA records only) ───────────────────
 
     handleRemoveCard(e) {
         e.stopPropagation();
@@ -526,7 +473,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     // ── Undo ──────────────────────────────────────────────────────────────────
 
     _pushUndo() {
-        const snap = JSON.parse(JSON.stringify(this._assignments));
+        const snap = {
+            assignments:  JSON.parse(JSON.stringify(this._assignments)),
+            projectCards: JSON.parse(JSON.stringify(this._raw?.projectCards || []))
+        };
         this._undoStack = [...this._undoStack.slice(-(UNDO_LIMIT - 1)), snap];
     }
 
@@ -534,7 +484,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!this._undoStack.length) return;
         const snap = this._undoStack[this._undoStack.length - 1];
         this._undoStack = this._undoStack.slice(0, -1);
-        this._assignments = snap;
+        this._assignments = snap.assignments;
+        if (this._raw) this._raw = { ...this._raw, projectCards: snap.projectCards };
         this._pendingOps = this._pendingOps.slice(0, -1);
         this._refresh();
     }
@@ -545,7 +496,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     handleToggleWhatIf() {
         if (this._whatIfMode) {
-            // Exiting — discard and reload
             this._whatIfMode = false;
             this._pendingOps = [];
             this._load();
@@ -556,6 +506,13 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     }
 
     handleCommit() {
+        // Commit pending ownership changes
+        const ownerOps = this._pendingOps.filter(op => op.action === 'move-project');
+        const promises = ownerOps.map(op =>
+            updateSprintOwner({ sprintId: op.projectId, newOwnerId: op.to }).catch(console.error)
+        );
+
+        // Commit RA record changes (contractors/pipeline)
         const toSave = this._assignments
             .filter(a => a._local && !a._deleted)
             .map(a => ({
@@ -573,9 +530,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .filter(a => a._deleted && a.id.startsWith('0'))
             .map(a => ({ action: 'delete', id: a.id }));
         const all = [...toSave, ...toDel];
-        if (!all.length) { this._whatIfMode = false; return; }
+        if (all.length) {
+            promises.push(batchSaveAssignments({ payloadJson: JSON.stringify(all) }));
+        }
 
-        batchSaveAssignments({ payloadJson: JSON.stringify(all) })
+        Promise.all(promises)
             .then(() => {
                 this._whatIfMode = false;
                 this._pendingOps = [];
@@ -615,7 +574,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     handleBackdropClick(){ this.handleClose(); }
     stopProp(e)          { e.stopPropagation(); }
 
-    // ── Auto-save (live mode only) ────────────────────────────────────────────
+    // ── Auto-save (live mode only, RA records) ────────────────────────────────
 
     _autoSave(a) {
         if (this._whatIfMode || !a) return;
@@ -645,7 +604,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     }
 
     _refresh() {
-        // Force LWC reactivity
         this._assignments = [...this._assignments];
     }
 }

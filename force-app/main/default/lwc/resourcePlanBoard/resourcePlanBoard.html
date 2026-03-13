@@ -115,29 +115,36 @@
                                                 <span class="card-name card-name--link"
                                                       data-record-id={card.recordId}
                                                       onclick={handleRecordClick}>{card.name}</span>
-                                                <button class="card-remove"
-                                                        data-assignment-id={card.assignmentId}
-                                                        onclick={handleRemoveCard}
-                                                        title="Remove">&times;</button>
+                                                <template if:true={card.canRemove}>
+                                                    <button class="card-remove"
+                                                            data-assignment-id={card.assignmentId}
+                                                            onclick={handleRemoveCard}
+                                                            title="Remove">&times;</button>
+                                                </template>
                                             </div>
                                             <span class="card-client">{card.client}</span>
 
                                             <div class="card-hours-row">
                                                 <span class="card-hrs-label">hrs/wk</span>
-                                                <template if:false={card.isEditing}>
-                                                    <span class="card-hrs"
-                                                          data-assignment-id={card.assignmentId}
-                                                          onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                                <template if:false={card.isPipeline}>
+                                                    <span class="card-hrs">{card.hoursPerWeek}</span>
                                                 </template>
-                                                <template if:true={card.isEditing}>
-                                                    <input type="number"
-                                                           class="hours-input"
-                                                           value={card.editValue}
-                                                           min="0" step="0.5"
-                                                           data-assignment-id={card.assignmentId}
-                                                           oninput={handleHoursInput}
-                                                           onblur={handleHoursBlur}
-                                                           onkeydown={handleHoursKeydown} />
+                                                <template if:true={card.isPipeline}>
+                                                    <template if:false={card.isEditing}>
+                                                        <span class="card-hrs"
+                                                              data-assignment-id={card.assignmentId}
+                                                              onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                                    </template>
+                                                    <template if:true={card.isEditing}>
+                                                        <input type="number"
+                                                               class="hours-input"
+                                                               value={card.editValue}
+                                                               min="0" step="0.5"
+                                                               data-assignment-id={card.assignmentId}
+                                                               oninput={handleHoursInput}
+                                                               onblur={handleHoursBlur}
+                                                               onkeydown={handleHoursKeydown} />
+                                                    </template>
                                                 </template>
                                             </div>
 

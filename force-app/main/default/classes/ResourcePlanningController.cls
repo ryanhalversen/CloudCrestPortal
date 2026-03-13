@@ -46,8 +46,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  urgency;
         @AuraEnabled public String  paceStatus;
         @AuraEnabled public String  color;
-        @AuraEnabled public List<String> seedUserIds;
-        @AuraEnabled public Decimal      seedHoursEach;
+        @AuraEnabled public String  ownerId;
     }
 
     public class ContractorRow {
@@ -88,25 +87,20 @@ public with sharing class ResourcePlanningController {
 
         // ── 1. Active billable projects ───────────────────────────────────────
         List<Sprint__c> sprints = [
-            SELECT Id, Name, Accountlu__r.Name, Weekly_Pace_Estimate__c,
-                   Project_End_Date__c, Pace_Status__c, Support_Split__c,
-                   CloudCrest_Assignee__c, CloudCrest_Assignee__r.Name,
-                   Project_Lead_Sprint__c,  Project_Lead_Sprint__r.Name,
-                   Support_Lead__c,         Support_Lead__r.Name
+            SELECT Id, Name, OwnerId, Accountlu__r.Name, Weekly_Pace_Estimate__c,
+                   Project_End_Date__c, Pace_Status__c, Support_Split__c
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             AND (NOT Name LIKE '%CloudCrest%')
             ORDER BY Name
         ];
 
-        // ── 2. Collect FTE user IDs (from project assignees + recent Time logs) ─
+        // ── 2. Collect FTE user IDs (owners of active projects + recent Time logs) ─
         Set<Id> fteIds = new Set<Id>();
         for (Sprint__c s : sprints) {
-            if (s.CloudCrest_Assignee__c != null) fteIds.add(s.CloudCrest_Assignee__c);
-            if (s.Project_Lead_Sprint__c  != null) fteIds.add(s.Project_Lead_Sprint__c);
-            if (s.Support_Lead__c         != null) fteIds.add(s.Support_Lead__c);
+            if (s.OwnerId != null) fteIds.add(s.OwnerId);
         }
-        // Also include users who logged time in the last 90 days (catches FTEs not on any current project)
+        // Also include users who logged time in the last 90 days (catches FTEs not owning a current project)
         for (AggregateResult ar : [
             SELECT CreatedById id
             FROM Time__c
@@ -179,18 +173,8 @@ public with sharing class ResourcePlanningController {
             pc.urgency  = daysLeft <= 14 ? 'critical' : daysLeft <= 56 ? 'warning' : '';
             pc.paceStatus = s.Pace_Status__c != null ? s.Pace_Status__c : '';
             pc.color    = COLORS[Math.mod(ci, COLORS.size())];
+            pc.ownerId  = s.OwnerId;
             ci++;
-
-            // Seed FTE IDs (deduplicated)
-            Set<String> seen = new Set<String>();
-            List<String> seeds = new List<String>();
-            for (Id uid : new List<Id>{s.CloudCrest_Assignee__c, s.Project_Lead_Sprint__c, s.Support_Lead__c}) {
-                if (uid != null && !seen.contains(uid)) { seen.add(uid); seeds.add(uid); }
-            }
-            pc.seedUserIds = seeds;
-
-            Decimal pace = pc.weeklyPace != null ? pc.weeklyPace : 0;
-            pc.seedHoursEach = seeds.isEmpty() ? 0 : (pace / seeds.size()).setScale(1);
             bd.projectCards.add(pc);
         }
 
@@ -271,6 +255,13 @@ public with sharing class ResourcePlanningController {
         a.Is_Derived__c     = isDerived != null ? isDerived : false;
         upsert a;
         return a.Id;
+    }
+
+    @AuraEnabled
+    public static void updateSprintOwner(String sprintId, String newOwnerId) {
+        if (String.isBlank(sprintId) || String.isBlank(newOwnerId)) return;
+        Sprint__c s = new Sprint__c(Id = (Id) sprintId, OwnerId = (Id) newOwnerId);
+        update s;
     }
 
     @AuraEnabled
