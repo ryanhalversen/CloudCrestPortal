@@ -605,10 +605,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         e.stopPropagation();
         const id = e.currentTarget.dataset.recordId;
         if (!id) return;
-        this[NavigationMixin.Navigate]({
+        this[NavigationMixin.GenerateUrl]({
             type: 'standard__recordPage',
             attributes: { recordId: id, actionName: 'view' }
-        });
+        }).then(url => { window.open(url, '_blank'); });
     }
 
     handleClose()        { this.dispatchEvent(new CustomEvent('close')); }
