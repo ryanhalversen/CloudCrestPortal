@@ -1,0 +1,267 @@
+<!-- force-app/main/default/lwc/resourcePlanBoard/resourcePlanBoard.html -->
+<template>
+    <div class="plan-backdrop" onclick={handleBackdropClick}>
+        <div class={boardCls} onclick={stopProp}>
+
+            <!-- ── Header ──────────────────────────────────────────────────── -->
+            <div class="plan-header">
+                <div class="plan-title-row">
+                    <div class="plan-title-left">
+                        <h2 class="plan-title">Resource Planning Board</h2>
+                        <span class="plan-subtitle">Live staffing &amp; capacity view</span>
+                    </div>
+                    <div class="plan-controls">
+                        <button class="ctrl-btn ctrl-btn--undo" onclick={handleUndoClick}
+                                disabled={canUndo} title="Undo (⌘Z)">↩ Undo</button>
+                        <button class="ctrl-btn ctrl-btn--view" onclick={handleToggleView}>{viewModeLabel}</button>
+                        <button class="ctrl-btn ctrl-btn--whatif" onclick={handleToggleWhatIf}>{whatIfLabel}</button>
+                        <button class="plan-close" onclick={handleClose} title="Close">&times;</button>
+                    </div>
+                </div>
+
+                <!-- What-If Banner -->
+                <template if:true={isWhatIf}>
+                    <div class="whatif-banner">
+                        <span class="whatif-icon">⚠</span>
+                        <span class="whatif-text">What-If Mode — changes are in-memory only</span>
+                        <span class="whatif-count">{pendingCount} pending op(s)</span>
+                        <template if:true={hasChanges}>
+                            <button class="whatif-commit" onclick={handleCommit}>Commit Changes</button>
+                            <button class="whatif-discard" onclick={handleDiscard}>Discard</button>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- KPI Bar -->
+                <template if:true={hasData}>
+                    <div class="plan-kpi-bar">
+                        <template for:each={kpis} for:item="k">
+                            <div key={k.label} class={k.cls}>
+                                <div class="kpi-val-row">
+                                    <span class="kpi-val">{k.value}</span>
+                                    <span class="kpi-trend">{k.trendIcon}</span>
+                                </div>
+                                <span class="kpi-lbl">{k.label}</span>
+                                <span class="kpi-sub">{k.sub}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── Loading / Error ─────────────────────────────────────────── -->
+            <template if:true={isLoading}>
+                <div class="plan-loading">
+                    <div class="loading-spin"></div>
+                    <span>Loading board data…</span>
+                </div>
+            </template>
+
+            <template if:true={hasError}>
+                <div class="plan-error">{error}</div>
+            </template>
+
+            <!-- ── Main Board ──────────────────────────────────────────────── -->
+            <template if:true={hasData}>
+                <div class="plan-body">
+
+                    <!-- Swim Lanes Area -->
+                    <div class="plan-lanes">
+
+                        <!-- FTE Lanes -->
+                        <template for:each={lanes} for:item="lane">
+                            <div key={lane.id} class={lane.laneCls}
+                                 data-user-id={lane.id}
+                                 ondragover={handleLaneDragOver}
+                                 ondragleave={handleLaneDragLeave}
+                                 ondrop={handleLaneDrop}>
+
+                                <!-- Lane Header -->
+                                <div class="lane-head">
+                                    <div class="lane-avatar">{lane.initials}</div>
+                                    <div class="lane-meta">
+                                        <span class="lane-name">{lane.name}</span>
+                                        <span class="lane-role">{lane.role}</span>
+                                    </div>
+                                    <div class="lane-cap">
+                                        <div class="cap-bar-track">
+                                            <div class="cap-bar-fill" style={lane.barStyle}></div>
+                                        </div>
+                                        <div class="cap-labels">
+                                            <span class="cap-alloc">{lane.utilLabel}</span>
+                                            <span class="cap-avail">{lane.availLabel}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Project Cards -->
+                                <div class="lane-cards">
+                                    <template for:each={lane.cards} for:item="card">
+                                        <div key={card.assignmentId} class={card.cardCls}
+                                             style={card.colorStyle}
+                                             draggable="true"
+                                             data-drag-type="project"
+                                             data-id={card.assignmentId}
+                                             data-project-id={card.projectId}
+                                             data-from-user-id={lane.id}
+                                             ondragstart={handleDragStart}
+                                             ondragend={handleDragEnd}
+                                             ondragover={handleCardDragOver}
+                                             ondrop={handleCardDrop}>
+
+                                            <div class="card-top-row">
+                                                <span class="card-name">{card.name}</span>
+                                                <button class="card-remove"
+                                                        data-assignment-id={card.assignmentId}
+                                                        onclick={handleRemoveCard}
+                                                        title="Remove">&times;</button>
+                                            </div>
+                                            <span class="card-client">{card.client}</span>
+
+                                            <div class="card-hours-row">
+                                                <span class="card-hrs-label">hrs/wk</span>
+                                                <template if:false={card.isEditing}>
+                                                    <span class="card-hrs"
+                                                          data-assignment-id={card.assignmentId}
+                                                          onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                                </template>
+                                                <template if:true={card.isEditing}>
+                                                    <input type="number"
+                                                           class="hours-input"
+                                                           value={card.editValue}
+                                                           min="0" step="0.5"
+                                                           data-assignment-id={card.assignmentId}
+                                                           oninput={handleHoursInput}
+                                                           onblur={handleHoursBlur}
+                                                           onkeydown={handleHoursKeydown} />
+                                                </template>
+                                            </div>
+
+                                            <template if:false={card.isPipeline}>
+                                                <div class="card-footer">
+                                                    <span class="card-end">{card.endDate}</span>
+                                                    <template if:true={card.showUrgency}>
+                                                        <span class={card.urgencyCls}>{card.urgencyLabel}</span>
+                                                    </template>
+                                                </div>
+                                                <template if:true={card.hasChips}>
+                                                    <div class="card-chips">
+                                                        <template for:each={card.chips} for:item="chip">
+                                                            <span key={chip.id} class="chip"
+                                                                  title={chip.name}>{chip.name} {chip.hours}h</span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </template>
+
+                                            <template if:true={card.isPipeline}>
+                                                <div class="card-footer">
+                                                    <span class="card-stage">{card.stage}</span>
+                                                    <span class="card-prob">{card.probability}%</span>
+                                                </div>
+                                            </template>
+
+                                        </div>
+                                    </template>
+
+                                    <!-- Drop hint shown when dragging over an empty or non-empty lane -->
+                                    <div class="drop-hint">Drop project or opportunity here</div>
+                                </div>
+
+                            </div>
+                        </template>
+
+                        <!-- Unassigned Projects Pool -->
+                        <template if:true={hasUnassigned}>
+                            <div class="unassigned-pool">
+                                <h4 class="unassigned-title">Unassigned Projects</h4>
+                                <div class="unassigned-cards">
+                                    <template for:each={unassignedProjects} for:item="proj">
+                                        <div key={proj.id} class="plan-card plan-card--unassigned"
+                                             style={proj.cardStyle}
+                                             draggable="true"
+                                             data-drag-type="unassigned"
+                                             data-id={proj.id}
+                                             ondragstart={handleDragStart}
+                                             ondragend={handleDragEnd}>
+                                            <span class="card-name">{proj.name}</span>
+                                            <span class="card-client">{proj.client}</span>
+                                            <span class="card-hrs">{proj.weeklyPace}h/wk</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                    </div>
+
+                    <!-- Right Panel -->
+                    <div class="plan-right">
+
+                        <!-- Panel Tabs -->
+                        <div class="panel-tabs">
+                            <button class={contractorTabCls} data-tab="contractor" onclick={handleTabClick}>
+                                Contractors ({contractorPool.length})
+                            </button>
+                            <button class={pipelineTabCls} data-tab="pipeline" onclick={handleTabClick}>
+                                Pipeline ({pipelineShelf.length})
+                            </button>
+                        </div>
+
+                        <!-- Contractor Pool -->
+                        <template if:true={showContractors}>
+                            <div class="panel-body">
+                                <p class="panel-hint">Drag a contractor onto a project card to assign them.</p>
+                                <template for:each={contractorPool} for:item="cont">
+                                    <div key={cont.id} class="cont-card"
+                                         draggable="true"
+                                         data-drag-type="contractor"
+                                         data-id={cont.id}
+                                         ondragstart={handleDragStart}
+                                         ondragend={handleDragEnd}>
+                                        <div class="cont-avatar">{cont.initials}</div>
+                                        <div class="cont-info">
+                                            <span class="cont-name">{cont.name}</span>
+                                            <span class="cont-company">{cont.company}</span>
+                                            <div class="cont-bar-track">
+                                                <div class="cont-bar-fill" style={cont.barStyle}></div>
+                                            </div>
+                                            <span class="cont-hrs">{cont.assigned}h / {cont.availableHours}h — {cont.remaining}h free</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Pipeline Shelf -->
+                        <template if:true={showPipeline}>
+                            <div class="panel-body">
+                                <p class="panel-hint">Drag an opportunity into a lane to plan staffing.</p>
+                                <template for:each={pipelineShelf} for:item="opp">
+                                    <div key={opp.id} class="pipe-card"
+                                         style={opp.cardStyle}
+                                         draggable="true"
+                                         data-drag-type="pipeline"
+                                         data-id={opp.id}
+                                         ondragstart={handleDragStart}
+                                         ondragend={handleDragEnd}>
+                                        <div class="pipe-name">{opp.name}</div>
+                                        <div class="pipe-client">{opp.client}</div>
+                                        <div class="pipe-meta">
+                                            <span>{opp.expectedStart}</span>
+                                            <span>{opp.weeklyHrs}h/wk</span>
+                                            <span class={opp.probCls}>{opp.probability}%</span>
+                                        </div>
+                                        <div class="pipe-stage">{opp.stage}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                    </div>
+                </div>
+            </template>
+
+        </div>
+    </div>
+</template>

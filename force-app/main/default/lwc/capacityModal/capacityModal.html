@@ -14,6 +14,7 @@
                 </div>
                 <div class="modal-header-actions">
                     <template if:true={isUtilizationForecast}>
+                        <button class="modal-detail-btn" onclick={handleOpenPlanBoard}>Planning Board</button>
                         <button class="modal-detail-btn" onclick={handleViewDetails}>View Details</button>
                     </template>
                     <button class="modal-close" onclick={handleClose} title="Close">&times;</button>
@@ -135,6 +136,11 @@
     <!-- Utilization Detail Modal -->
     <template if:true={_showDetail}>
         <c-utilization-detail-modal onclose={handleDetailClose}></c-utilization-detail-modal>
+    </template>
+
+    <!-- Resource Planning Board -->
+    <template if:true={_showPlanBoard}>
+        <c-resource-plan-board onclose={handlePlanBoardClose}></c-resource-plan-board>
     </template>
 
 </template>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Derived__c</fullName>
+    <label>Is Derived</label>
+    <defaultValue>false</defaultValue>
+    <type>Checkbox</type>
+    <description>True when auto-created from Sprint__c assignee fields on first board load.</description>
+</CustomField>

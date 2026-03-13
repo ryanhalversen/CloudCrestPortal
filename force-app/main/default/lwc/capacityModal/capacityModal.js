@@ -20,6 +20,7 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
     _chart2              = null;
     _pointPopup          = null;
     _showDetail          = false;
+    _showPlanBoard       = false;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -993,6 +994,15 @@ export default class CapacityModal extends NavigationMixin(LightningElement) {
 
     handleDetailClose() {
         this._showDetail = false;
+    }
+
+    handleOpenPlanBoard(e) {
+        e.stopPropagation();
+        this._showPlanBoard = true;
+    }
+
+    handlePlanBoardClose() {
+        this._showPlanBoard = false;
     }
 
     handleClose() {
