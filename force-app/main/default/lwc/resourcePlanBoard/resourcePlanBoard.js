@@ -174,11 +174,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
         const allCards = [...cards, ...supportCards, ...pipeCards];
         const alloc =
-            ownedProjects.reduce((s, p) => {
+            ownedProjects.filter(p => !p.isBlock).reduce((s, p) => {
                 const splitPct = (p.supportLeadId && p.supportSplit) ? p.supportSplit / 100 : 0;
                 return s + (p.weeklyPace || 0) * (1 - splitPct);
             }, 0) +
-            supportProjects.reduce((s, p) => {
+            supportProjects.filter(p => !p.isBlock).reduce((s, p) => {
                 return s + (p.weeklyPace || 0) * ((p.supportSplit || 0) / 100);
             }, 0);
         const cap      = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
@@ -266,10 +266,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             const t = f.weeklyTarget != null ? f.weeklyTarget : 35;
             return s + t;
         }, 0);
-        // fteDemand = owner hours (after split) + support hours for all FTE-owned projects
+        // fteDemand = owner hours (after split) + support hours, excluding Block projects
         const fteDemand = (this._raw.projectCards || [])
-            .filter(p => fteIds.has(p.ownerId))
-            .reduce((s, p) => s + (p.weeklyPace || 0), 0);  // total pace already split across owner+support
+            .filter(p => fteIds.has(p.ownerId) && !p.isBlock)
+            .reduce((s, p) => s + (p.weeklyPace || 0), 0);
         const contrHrs = this._assignments
             .filter(a => a.contractorId && !a._deleted)
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
