@@ -95,13 +95,23 @@ public with sharing class ResourcePlanningController {
             ORDER BY Name
         ];
 
-        // ── 2. Collect FTE user IDs ───────────────────────────────────────────
+        // ── 2. Collect FTE user IDs (from project assignees + recent Time logs) ─
         Set<Id> fteIds = new Set<Id>();
         for (Sprint__c s : sprints) {
             if (s.CloudCrest_Assignee__c != null) fteIds.add(s.CloudCrest_Assignee__c);
             if (s.Project_Lead_Sprint__c  != null) fteIds.add(s.Project_Lead_Sprint__c);
             if (s.Support_Lead__c         != null) fteIds.add(s.Support_Lead__c);
         }
+        // Also include users who logged time in the last 90 days (catches FTEs not on any current project)
+        for (AggregateResult ar : [
+            SELECT CreatedById id
+            FROM Time__c
+            WHERE Logged_Date__c >= :Date.today().addDays(-90)
+            GROUP BY CreatedById
+        ]) {
+            fteIds.add((Id) ar.get('id'));
+        }
+        // Exclude contractor contacts — contractors are Contacts, not Users, so all Users are FTEs
         Map<Id, User> userMap = fteIds.isEmpty()
             ? new Map<Id, User>()
             : new Map<Id, User>([SELECT Id, Name, SmallPhotoUrl FROM User WHERE Id IN :fteIds AND IsActive = true]);
