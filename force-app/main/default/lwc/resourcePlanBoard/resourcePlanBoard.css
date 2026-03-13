@@ -202,11 +202,13 @@
 /* ── Swim Lanes ────────────────────────────────────────────────────────────── */
 .plan-lanes {
     flex: 1;
-    overflow-y: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
     padding: 16px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
+    align-items: flex-start;
 }
 
 .plan-lane {
@@ -215,6 +217,11 @@
     border: 1px solid #334155;
     overflow: hidden;
     transition: border-color 0.15s;
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
 }
 .plan-lane--over {
     border-color: #00b4d8;
@@ -224,9 +231,9 @@
 /* Lane Header */
 .lane-head {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 12px 10px;
     border-bottom: 1px solid #334155;
     background: #162032;
 }
@@ -245,24 +252,28 @@
     flex-shrink: 0;
 }
 
+.lane-fte-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .lane-meta {
     display: flex;
     flex-direction: column;
     gap: 1px;
-    min-width: 120px;
+    flex: 1;
+    min-width: 0;
 }
-.lane-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-.lane-role { font-size: 11px; color: #475569; }
+.lane-name { font-size: 13px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lane-role { font-size: 10px; color: #475569; }
 
 .lane-cap {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-left: 12px;
+    gap: 3px;
 }
 .cap-bar-track {
-    height: 6px;
+    height: 5px;
     background: #0f172a;
     border-radius: 4px;
     overflow: hidden;
@@ -272,18 +283,19 @@
     border-radius: 4px;
     transition: width 0.3s ease, background 0.3s ease;
 }
-.cap-labels { display: flex; justify-content: space-between; }
-.cap-alloc { font-size: 12px; color: #94a3b8; font-weight: 500; }
-.cap-avail { font-size: 11px; color: #475569; }
+.cap-labels { display: flex; justify-content: space-between; gap: 4px; }
+.cap-alloc { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.cap-avail { font-size: 10px; color: #475569; }
 
 /* Lane Cards */
 .lane-cards {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 12px 16px;
-    min-height: 72px;
-    align-content: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px 10px;
+    min-height: 60px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .drop-hint {
@@ -305,7 +317,7 @@
     border: 1px solid #334155;
     border-left: 3px solid #334155;
     padding: 10px 12px;
-    width: 180px;
+    width: 100%;
     flex-shrink: 0;
     cursor: grab;
     transition: transform 0.1s, box-shadow 0.1s;
@@ -315,7 +327,7 @@
 .plan-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
 .plan-card:active { cursor: grabbing; }
 
-.plan-card--compact { width: 140px; padding: 6px 8px; }
+.plan-card--compact { padding: 6px 8px; }
 
 .plan-card--critical {
     border-top: 1px solid rgba(239,68,68,0.4);
@@ -332,7 +344,7 @@
     background: rgba(15,23,42,0.6);
 }
 .plan-card--new { border-right: 2px solid #22c55e; }
-.plan-card--unassigned { opacity: 0.8; width: 160px; background: #1e293b; }
+.plan-card--unassigned { opacity: 0.8; width: 200px; flex-shrink: 0; background: #1e293b; }
 
 .plan-card.dragging { opacity: 0.4; transform: rotate(2deg); }
 
@@ -432,17 +444,19 @@
     background: rgba(30,41,59,0.5);
     border: 1px dashed #334155;
     border-radius: 10px;
-    padding: 12px 16px;
+    padding: 10px 12px;
+    width: 240px;
+    flex-shrink: 0;
 }
 .unassigned-title {
-    margin: 0 0 10px;
-    font-size: 11px;
+    margin: 0 0 8px;
+    font-size: 10px;
     font-weight: 600;
     color: #475569;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
-.unassigned-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.unassigned-cards { display: flex; flex-direction: column; gap: 8px; }
 
 /* ── Right Panel ───────────────────────────────────────────────────────────── */
 .plan-right {
