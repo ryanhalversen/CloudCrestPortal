@@ -6,6 +6,10 @@ public with sharing class ResourcePlanningController {
         'Alec' => 20,
         'Alec Hampton' => 20
     };
+    // Users excluded from FTE swim lanes (contractors who also have User records, admins, etc.)
+    static final Set<String> FTE_EXCLUDE = new Set<String>{
+        'Alec White', 'Ryan Halversen', 'Ryan H'
+    };
     static final Integer DEFAULT_FTE_TARGET = 35;
 
     // ── Project color palette ─────────────────────────────────────────────────
@@ -149,6 +153,7 @@ public with sharing class ResourcePlanningController {
         sortedUsers.sort();
         bd.fteRows = new List<FteRow>();
         for (User u : sortedUsers) {
+            if (FTE_EXCLUDE.contains(u.Name)) continue;
             FteRow f    = new FteRow();
             f.id        = u.Id;
             f.name      = u.Name;
