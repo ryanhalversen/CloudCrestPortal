@@ -47,6 +47,8 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  paceStatus;
         @AuraEnabled public String  color;
         @AuraEnabled public String  ownerId;
+        @AuraEnabled public String  supportLeadId;
+        @AuraEnabled public Decimal supportSplit;
     }
 
     public class ContractorRow {
@@ -87,8 +89,9 @@ public with sharing class ResourcePlanningController {
 
         // ── 1. Active billable projects ───────────────────────────────────────
         List<Sprint__c> sprints = [
-            SELECT Id, Name, OwnerId, Accountlu__r.Name, Weekly_Pace_Estimate__c,
-                   Project_End_Date__c, Pace_Status__c, Support_Split__c
+            SELECT Id, Name, OwnerId, Support_Lead__c, Support_Split__c,
+                   Accountlu__r.Name, Weekly_Pace_Estimate__c,
+                   Project_End_Date__c, Pace_Status__c
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             AND (NOT Name LIKE '%CloudCrest%')
@@ -98,7 +101,8 @@ public with sharing class ResourcePlanningController {
         // ── 2. Collect FTE user IDs (owners of active projects + recent Time logs) ─
         Set<Id> fteIds = new Set<Id>();
         for (Sprint__c s : sprints) {
-            if (s.OwnerId != null) fteIds.add(s.OwnerId);
+            if (s.OwnerId       != null) fteIds.add(s.OwnerId);
+            if (s.Support_Lead__c != null) fteIds.add(s.Support_Lead__c);
         }
         // Also include users who logged time in the last 90 days (catches FTEs not owning a current project)
         for (AggregateResult ar : [
@@ -172,8 +176,10 @@ public with sharing class ResourcePlanningController {
             pc.endDate  = s.Project_End_Date__c != null ? s.Project_End_Date__c.format() : null;
             pc.urgency  = daysLeft <= 14 ? 'critical' : daysLeft <= 56 ? 'warning' : '';
             pc.paceStatus = s.Pace_Status__c != null ? s.Pace_Status__c : '';
-            pc.color    = COLORS[Math.mod(ci, COLORS.size())];
-            pc.ownerId  = s.OwnerId;
+            pc.color        = COLORS[Math.mod(ci, COLORS.size())];
+            pc.ownerId      = s.OwnerId;
+            pc.supportLeadId = s.Support_Lead__c;
+            pc.supportSplit  = s.Support_Split__c != null ? s.Support_Split__c : 0;
             ci++;
             bd.projectCards.add(pc);
         }

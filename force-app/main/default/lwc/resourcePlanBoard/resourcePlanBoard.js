@@ -81,19 +81,25 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _buildLane(fte) {
         // Project cards: Sprint__c records owned by this FTE
         const ownedProjects = (this._raw.projectCards || []).filter(p => p.ownerId === fte.id);
+        // Projects where this FTE is the support lead
+        const supportProjects = (this._raw.projectCards || []).filter(
+            p => p.supportLeadId === fte.id
+        );
 
         const cards = ownedProjects.map(proj => {
-            const chips     = this._contractorChipsForProject(proj.id);
-            const daysLeft  = this._daysLeft(proj.endDate);
+            const splitPct   = (proj.supportLeadId && proj.supportSplit) ? proj.supportSplit / 100 : 0;
+            const ownerHours = Math.round((proj.weeklyPace || 0) * (1 - splitPct) * 10) / 10;
+            const chips      = this._contractorChipsForProject(proj.id);
+            const daysLeft   = this._daysLeft(proj.endDate);
             const urg = daysLeft !== null && daysLeft <= 14 ? 'critical'
                       : daysLeft !== null && daysLeft <= 56 ? 'warning' : '';
             return {
-                assignmentId: proj.id,   // used as key + drag id
+                assignmentId: proj.id,
                 projectId:    proj.id,
                 recordId:     proj.id,
                 name:         proj.name,
                 client:       proj.client,
-                hoursPerWeek: proj.weeklyPace || 0,
+                hoursPerWeek: ownerHours,
                 endDate:      proj.endDate || '—',
                 urgency:      urg,
                 urgencyLabel: URGENCY_LABEL[urg] || '',
@@ -105,7 +111,39 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 chips,
                 hasChips:     chips.length > 0,
                 isPipeline:   false,
-                canRemove:    false   // ownership is changed by dragging, not removing
+                isSupport:    false,
+                canRemove:    false
+            };
+        });
+
+        // Support lead cards: this FTE is the support lead on someone else's project
+        const supportCards = supportProjects.map(proj => {
+            const splitPct     = (proj.supportSplit || 0) / 100;
+            const supportHours = Math.round((proj.weeklyPace || 0) * splitPct * 10) / 10;
+            const daysLeft     = this._daysLeft(proj.endDate);
+            const urg = daysLeft !== null && daysLeft <= 14 ? 'critical'
+                      : daysLeft !== null && daysLeft <= 56 ? 'warning' : '';
+            return {
+                assignmentId: `support-${proj.id}`,
+                projectId:    proj.id,
+                recordId:     proj.id,
+                name:         proj.name,
+                client:       proj.client,
+                hoursPerWeek: supportHours,
+                splitPct:     Math.round(splitPct * 100),
+                endDate:      proj.endDate || '—',
+                urgency:      urg,
+                urgencyLabel: URGENCY_LABEL[urg] || '',
+                urgencyCls:   urg ? `urg-badge urg-badge--${urg}` : '',
+                showUrgency:  !!urg,
+                color:        proj.color,
+                colorStyle:   `border-left-color:${proj.color};`,
+                cardCls:      `plan-card plan-card--support plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}`,
+                chips:        [],
+                hasChips:     false,
+                isPipeline:   false,
+                isSupport:    true,
+                canRemove:    false
             };
         });
 
@@ -132,8 +170,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             };
         });
 
-        const allCards = [...cards, ...pipeCards];
-        const alloc    = ownedProjects.reduce((s, p) => s + (p.weeklyPace || 0), 0);
+        const allCards = [...cards, ...supportCards, ...pipeCards];
+        const alloc =
+            ownedProjects.reduce((s, p) => {
+                const splitPct = (p.supportLeadId && p.supportSplit) ? p.supportSplit / 100 : 0;
+                return s + (p.weeklyPace || 0) * (1 - splitPct);
+            }, 0) +
+            supportProjects.reduce((s, p) => {
+                return s + (p.weeklyPace || 0) * ((p.supportSplit || 0) / 100);
+            }, 0);
         const cap      = fte.weeklyTarget || 35;
         const pct      = cap > 0 ? (alloc / cap) * 100 : 0;
         const barPct   = Math.min(pct, 100);
@@ -215,9 +260,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!this._raw) return [];
         const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
         const totalCap  = (this._raw.fteRows || []).reduce((s, f) => s + (f.weeklyTarget || 35), 0);
+        // fteDemand = owner hours (after split) + support hours for all FTE-owned projects
         const fteDemand = (this._raw.projectCards || [])
             .filter(p => fteIds.has(p.ownerId))
-            .reduce((s, p) => s + (p.weeklyPace || 0), 0);
+            .reduce((s, p) => s + (p.weeklyPace || 0), 0);  // total pace already split across owner+support
         const contrHrs = this._assignments
             .filter(a => a.contractorId && !a._deleted)
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
@@ -257,12 +303,12 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get pipelineTabCls()   { return `panel-tab${this._rightTab === 'pipeline' ? ' panel-tab--active' : ''}`; }
     get pendingCount()     { return this._pendingOps.length; }
 
-    // Projects whose owner is not in the FTE lanes (unowned or owner excluded/inactive)
+    // Projects whose owner AND support lead are both not in any FTE lane
     get unassignedProjects() {
         if (!this._raw) return [];
         const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
         return (this._raw.projectCards || [])
-            .filter(p => !p.ownerId || !fteIds.has(p.ownerId))
+            .filter(p => (!p.ownerId || !fteIds.has(p.ownerId)) && (!p.supportLeadId || !fteIds.has(p.supportLeadId)))
             .map(p => ({ ...p, cardStyle: `border-left-color:${p.color};` }));
     }
     get hasUnassigned() { return this.unassignedProjects.length > 0; }

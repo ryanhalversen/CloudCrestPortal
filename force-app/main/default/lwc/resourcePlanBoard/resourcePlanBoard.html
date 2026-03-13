@@ -115,6 +115,9 @@
                                                 <span class="card-name card-name--link"
                                                       data-record-id={card.recordId}
                                                       onclick={handleRecordClick}>{card.name}</span>
+                                                <template if:true={card.isSupport}>
+                                                    <span class="support-badge">SUPPORT {card.splitPct}%</span>
+                                                </template>
                                                 <template if:true={card.canRemove}>
                                                     <button class="card-remove"
                                                             data-assignment-id={card.assignmentId}

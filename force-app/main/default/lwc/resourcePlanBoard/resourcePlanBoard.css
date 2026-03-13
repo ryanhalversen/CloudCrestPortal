@@ -343,6 +343,23 @@
     opacity: 0.85;
     background: rgba(15,23,42,0.6);
 }
+.plan-card--support {
+    border-left-style: dashed;
+    background: rgba(168,85,247,0.06);
+}
+
+.support-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(168,85,247,0.15);
+    color: #a855f7;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
 .plan-card--new { border-right: 2px solid #22c55e; }
 .plan-card--unassigned { opacity: 0.8; width: 200px; flex-shrink: 0; background: #1e293b; }
 
