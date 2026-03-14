@@ -491,13 +491,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
 
         const projects = (this._raw.projectCards || [])
-            .filter(p => !p.isBlock && (fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId)))
+            .filter(p => fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId))
             .filter(p => !p.endDate || new Date(p.endDate) >= weekStart)
             .map(p => ({
                 id:         p.id,
                 name:       p.name,
                 client:     p.client,
-                weeklyHrs:  this._round(p.weeklyPace || 0),
+                weeklyHrs:  p.isBlock ? null : this._round(p.weeklyPace || 0),
+                hrsLabel:   p.isBlock ? 'Block' : `${this._round(p.weeklyPace || 0)}h/wk`,
+                isBlock:    !!p.isBlock,
                 endDate:    p.endDate || '—',
                 colorStyle: `background:${p.color};`
             }));

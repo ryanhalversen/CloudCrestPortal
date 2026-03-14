@@ -178,7 +178,12 @@
                                         <div key={proj.id} class="breakdown-row">
                                             <span class="breakdown-dot" style={proj.colorStyle}></span>
                                             <span class="breakdown-name">{proj.name}</span>
-                                            <span class="breakdown-hrs">{proj.weeklyHrs}h/wk</span>
+                                            <template if:true={proj.isBlock}>
+                                                <span class="breakdown-block-lbl">Block</span>
+                                            </template>
+                                            <template if:false={proj.isBlock}>
+                                                <span class="breakdown-hrs">{proj.weeklyHrs}h/wk</span>
+                                            </template>
                                             <span class="breakdown-date">{proj.endDate}</span>
                                         </div>
                                     </template>

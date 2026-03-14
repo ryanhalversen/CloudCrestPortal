@@ -361,6 +361,18 @@
     min-width: 48px;
     text-align: right;
 }
+.breakdown-block-lbl {
+    font-size: 9px;
+    font-weight: 600;
+    color: #64748b;
+    background: rgba(100,116,139,0.15);
+    border: 1px solid rgba(100,116,139,0.3);
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: center;
+}
 .breakdown-prob {
     color: #22c55e;
     font-size: 10px;
@@ -369,7 +381,7 @@
     text-align: right;
 }
 .breakdown-date {
-    color: #475569;
+    color: #94a3b8;
     font-size: 10px;
     white-space: nowrap;
     min-width: 52px;
