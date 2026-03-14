@@ -492,7 +492,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
         const projects = (this._raw.projectCards || [])
             .filter(p => fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId))
-            .filter(p => !p.endDate || new Date(p.endDate) >= weekStart)
             .map(p => ({
                 id:         p.id,
                 name:       p.name,
