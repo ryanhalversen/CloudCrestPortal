@@ -942,7 +942,7 @@
 
 /* ── Project Cards ─────────────────────────────────────────────────────────── */
 .plan-card {
-    background: #162032;
+    background: #1a2538;
     border-radius: 8px;
     border: 1px solid #2d3f55;
     border-left: 3px solid #334155;
@@ -971,11 +971,11 @@
 .plan-card--pipeline {
     border-style: dashed;
     opacity: 0.85;
-    background: rgba(22,32,50,0.7);
+    background: #152030;
 }
 .plan-card--support {
     border-left-style: dashed;
-    background: rgba(168,85,247,0.06);
+    background: #1a2538;
 }
 
 .support-badge {
