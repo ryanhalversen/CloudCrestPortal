@@ -297,10 +297,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const trend = v => v >= 0 ? 'up' : 'down';
         return [
             { label: 'FTE Capacity',      value: `${totalCap}h`,                                        trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
-            { label: 'FTE Demand',        value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
+            { label: 'On-Time Demand',    value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
+            { label: 'Demand Forecast',   value: `${this._round(pipWt)}h`,                              trend: 'neutral', sub: `probability-adjusted${wkStr}` },
             { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: `${netAvail >= 0 ? 'surplus' : 'overallocated'}${wkStr}` },
-            { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' },
-            { label: 'Pipeline (wtd)',    value: `${this._round(pipWt)}h`,                              trend: 'neutral', sub: `probability-adjusted${wkStr}` }
+            { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' }
         ].map(k => ({
             ...k,
             cls:       `board-kpi board-kpi--${k.trend}`,
