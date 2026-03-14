@@ -295,7 +295,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         return [
             { label: 'FTE Capacity',      value: `${totalCap}h`,                                        trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
             { label: 'On-Time Demand',    value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
-            { label: 'Demand Forecast',   value: `${this._round(forecastDemand)}h`,                      trend: forecastDemand > totalCap ? 'down' : 'neutral', sub: `on-time + pipeline${wkStr}` },
+            { label: 'Demand Forecast',   value: `${this._round(forecastDemand)}h`,                      trend: forecastDemand > totalCap ? 'down' : 'neutral', sub: `active + pipeline${wkStr}` },
             { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: `${netAvail >= 0 ? 'surplus' : 'overallocated'}${wkStr}` },
             { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' }
         ].map(k => ({
@@ -377,7 +377,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _forecastForWeek(weekStart, baseDemand) {
         const pipeAdded = (this._raw.pipelineShelf || [])
             .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
-            .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0);
+            .reduce((s, o) => s + (o.weeklyHrs || 0), 0);
         return baseDemand + pipeAdded;
     }
 
