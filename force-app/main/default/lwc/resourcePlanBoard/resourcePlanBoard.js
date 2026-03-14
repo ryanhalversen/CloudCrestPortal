@@ -41,6 +41,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _breakdownSort      = 'name';   // 'name' | 'endDate' | 'hours'
     _breakdownSortDir   = 1;        // 1 = asc, -1 = desc
     _hoveredWeek        = null;     // { weekIdx, clientX, clientY }
+    _chartMode          = 'demand'; // 'demand' | 'timeline'
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -338,6 +339,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     get showChart()        { return this._showChart; }
     get chartToggleLabel() { return this._showChart ? 'Hide Forecast' : 'Forecast'; }
+    get showDemandChart()      { return this._chartMode === 'demand'; }
+    get showTimeline()         { return this._chartMode === 'timeline'; }
+    get chartModeDemandCls()   { return `cmode-btn${this._chartMode === 'demand'   ? ' cmode-btn--active' : ''}`; }
+    get chartModeTimelineCls() { return `cmode-btn${this._chartMode === 'timeline' ? ' cmode-btn--active' : ''}`; }
 
     handleToggleChart() { this._showChart = !this._showChart; }
 
@@ -347,6 +352,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     handleNextWeek() {
         if (this._selectedWeek < 23) this._selectedWeek = this._selectedWeek + 1;
     }
+
+    handleChartModeDemand()   { this._chartMode = 'demand'; }
+    handleChartModeTimeline() { this._chartMode = 'timeline'; }
 
     handleBreakdownSort(e) {
         const field = e.currentTarget.dataset.sort;
@@ -562,7 +570,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     // ── Forecast Breakdown ────────────────────────────────────────────────────
 
     get forecastBreakdown() {
-        if (!this._raw || !this._showChart) return null;
+        if (!this._raw || !this._showChart || this._chartMode !== 'demand') return null;
         const weekStart = this._getWeekStart(this._selectedWeek);
         const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
 
@@ -628,6 +636,141 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             sortHoursCls:   mkCls('hours'),
             sortEndDateLbl: `End Date${this._breakdownSort === 'endDate' ? sortIcon : ''}`,
             sortHoursLbl:   `hrs/wk${this._breakdownSort === 'hours' ? sortIcon : ''}`
+        };
+    }
+
+    // ── Timeline (Gantt) Chart ────────────────────────────────────────────────
+
+    get timelineData() {
+        if (!this._raw || !this._showChart) return null;
+
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        // Window: 2 weeks before today → 30 weeks after
+        const BACK_WEEKS   = 2;
+        const FWD_WEEKS    = 30;
+        const chartStartMs = today.getTime() - BACK_WEEKS * 7 * 86400000;
+        const chartEndMs   = today.getTime() + FWD_WEEKS * 7 * 86400000;
+        const totalMs      = chartEndMs - chartStartMs;
+
+        const SVG_W   = 1400;
+        const LABEL_W = 150;
+        const MR      = 12;
+        const MT      = 8;
+        const MB      = 28;
+        const ROW_H   = 22;
+        const GRP_H   = 18;
+        const CW      = SVG_W - LABEL_W - MR;
+        const clamp   = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        const xOf     = ms => LABEL_W + clamp((ms - chartStartMs) / totalMs, 0, 1) * CW;
+
+        // Build account groups
+        const accountMap = new Map();
+        const addItem = (acc, item) => {
+            if (!accountMap.has(acc)) accountMap.set(acc, []);
+            accountMap.get(acc).push(item);
+        };
+
+        for (const p of (this._raw.projectCards || [])) {
+            const acc = p.client || '—';
+            addItem(acc, {
+                id: p.id, name: p.name, type: 'project',
+                startMs: chartStartMs,
+                endMs:   p.endDate ? new Date(p.endDate).getTime() : chartEndMs,
+                color:   p.color,  isBlock: !!p.isBlock
+            });
+        }
+        for (const o of (this._raw.pipelineShelf || [])) {
+            const acc      = o.client || '—';
+            const startMs  = o.expectedStart ? new Date(o.expectedStart).getTime() : today.getTime();
+            const endMs    = o.expectedEnd   ? new Date(o.expectedEnd).getTime()
+                           : startMs + 10 * 7 * 86400000;
+            addItem(acc, { id: o.id, name: o.name, type: 'pipeline', startMs, endMs, color: null });
+        }
+
+        const accounts = [...accountMap.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([name, items]) => ({
+                name,
+                items: items.sort((a, b) => {
+                    if (a.type !== b.type) return a.type === 'project' ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                })
+            }));
+
+        const grpRects   = [];
+        const grpTexts   = [];
+        const hLines     = [];
+        const vGridLines = [];
+        const bars       = [];
+        const rowLabels  = [];
+        const xLabels    = [];
+
+        let y = MT;
+
+        for (const acc of accounts) {
+            grpRects.push({ key: `gr-${acc.name}`, y: y.toFixed(1), h: GRP_H });
+            grpTexts.push({ key: `gt-${acc.name}`, y: (y + GRP_H * 0.72).toFixed(1), text: acc.name.toUpperCase() });
+            y += GRP_H;
+
+            for (const item of acc.items) {
+                const x1   = xOf(item.startMs);
+                const x2   = Math.max(xOf(item.endMs), x1 + 3);
+                const cx1  = Math.max(x1, LABEL_W);
+                const cx2  = Math.min(x2, LABEL_W + CW);
+                const barW = cx2 - cx1;
+                const barY = y + 4;
+                const barH = ROW_H - 8;
+                const midY = y + ROW_H / 2 + 3;
+
+                if (barW > 0) {
+                    bars.push({
+                        key:       `bar-${item.id}`,
+                        x:         cx1.toFixed(1), y: barY.toFixed(1),
+                        width:     barW.toFixed(1), height: barH.toFixed(1),
+                        fill:      item.type === 'project' ? item.color : 'rgba(148,163,184,0.18)',
+                        stroke:    item.type === 'pipeline' ? '#475569' : 'none',
+                        strokeDash: item.type === 'pipeline' ? '4,3' : 'none',
+                        opacity:   item.type === 'pipeline' ? '0.85' : '1'
+                    });
+                }
+
+                const MAX_CH = Math.floor((LABEL_W - 12) / 5.8);
+                const lbl    = item.name.length > MAX_CH ? item.name.substring(0, MAX_CH - 1) + '\u2026' : item.name;
+                rowLabels.push({
+                    key: `rl-${item.id}`,
+                    x: 8, y: midY.toFixed(1),
+                    text: lbl,
+                    fill: item.type === 'project' ? '#cbd5e1' : '#64748b'
+                });
+
+                y += ROW_H;
+            }
+            hLines.push({ key: `hl-${acc.name}`, y: (y + 1).toFixed(1) });
+            y += 4;
+        }
+
+        const SVG_H  = y + MB;
+        const todayX = xOf(today.getTime()).toFixed(1);
+
+        const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        let d = new Date(new Date(chartStartMs).getFullYear(), new Date(chartStartMs).getMonth(), 1);
+        if (d.getTime() < chartStartMs) d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        while (d.getTime() <= chartEndMs) {
+            const x = xOf(d.getTime());
+            if (x >= LABEL_W && x <= LABEL_W + CW) {
+                vGridLines.push({ key: `vg-${d.getTime()}`, x: x.toFixed(1), y1: MT, y2: SVG_H - MB });
+                xLabels.push({    key: `xl-${d.getTime()}`, x: x.toFixed(1), y: SVG_H - MB + 13, label: `${MONTH_ABBR[d.getMonth()]} 1` });
+            }
+            d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        }
+
+        return {
+            viewBox:  `0 0 ${SVG_W} ${SVG_H}`,
+            svgW:     SVG_W,
+            bgX:      LABEL_W, bgY: MT, bgW: CW, bgH: SVG_H - MT - MB,
+            divX:     LABEL_W,
+            todayX,   todayY1: MT, todayY2: SVG_H - MB,
+            grpRects, grpTexts, hLines, vGridLines, bars, rowLabels, xLabels
         };
     }
 

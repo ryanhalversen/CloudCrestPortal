@@ -66,6 +66,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  name;
         @AuraEnabled public String  client;
         @AuraEnabled public String  expectedStart;
+        @AuraEnabled public String  expectedEnd;
         @AuraEnabled public Decimal weeklyHrs;
         @AuraEnabled public String  stage;
         @AuraEnabled public Integer probability;
@@ -213,8 +214,9 @@ public with sharing class ResourcePlanningController {
             if (o.Est_Project_Start_Date__c != null && o.Est_Project_End_Date__c != null) {
                 totalWks = Math.max(1, o.Est_Project_Start_Date__c.daysBetween(o.Est_Project_End_Date__c) / 7 + 1);
             }
-            pr.weeklyHrs  = o.Contracted_Hours__c != null ? (o.Contracted_Hours__c / totalWks).setScale(1) : 0;
-            pr.stage      = o.StageName;
+            pr.weeklyHrs   = o.Contracted_Hours__c != null ? (o.Contracted_Hours__c / totalWks).setScale(1) : 0;
+            pr.expectedEnd = o.Est_Project_End_Date__c != null ? o.Est_Project_End_Date__c.format() : null;
+            pr.stage       = o.StageName;
             pr.probability = o.Probability != null ? o.Probability.intValue() : 0;
             bd.pipelineShelf.add(pr);
         }

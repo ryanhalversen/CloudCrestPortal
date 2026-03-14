@@ -903,3 +903,41 @@
     color: #64748b;
 }
 .prob-pill--high { background: rgba(34,197,94,.15); color: #22c55e; }
+
+/* ── Chart Mode Toggle ─────────────────────────────────────────────────────── */
+.cmode-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #334155;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.cmode-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.cmode-btn:hover { color: #94a3b8; }
+.cmode-btn--active {
+    background: rgba(0,180,216,0.15);
+    color: #00b4d8;
+}
+
+/* ── Timeline (Gantt) Chart ────────────────────────────────────────────────── */
+.timeline-container {
+    width: 100%;
+    overflow-y: auto;
+    max-height: 460px;
+}
+.timeline-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}

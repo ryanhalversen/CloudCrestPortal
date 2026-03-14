@@ -67,37 +67,51 @@
                 <template if:true={showChart}>
                     <div class="forecast-section">
 
-                        <!-- Header row: title | stepper | KPI pills -->
+                        <!-- Header row: title | mode toggle | stepper | KPI pills | legend -->
                         <div class="forecast-header">
                             <span class="forecast-title">24-Week Demand Forecast</span>
-                            <div class="forecast-stepper">
-                                <button class="step-btn" onclick={handlePrevWeek} disabled={chartData.cannotPrev}>&#8592;</button>
-                                <span class="step-label">{chartData.weekLabel}</span>
-                                <button class="step-btn" onclick={handleNextWeek} disabled={chartData.cannotNext}>&#8594;</button>
+                            <div class="cmode-toggle">
+                                <button class={chartModeDemandCls} onclick={handleChartModeDemand}>Demand</button>
+                                <button class={chartModeTimelineCls} onclick={handleChartModeTimeline}>Timeline</button>
                             </div>
-                            <div class="forecast-kpis">
-                                <div class="fcast-kpi">
-                                    <span class="fcast-val">{chartData.wk4Util}%</span>
-                                    <span class="fcast-lbl">WK 4</span>
+                            <template if:true={showDemandChart}>
+                                <div class="forecast-stepper">
+                                    <button class="step-btn" onclick={handlePrevWeek} disabled={chartData.cannotPrev}>&#8592;</button>
+                                    <span class="step-label">{chartData.weekLabel}</span>
+                                    <button class="step-btn" onclick={handleNextWeek} disabled={chartData.cannotNext}>&#8594;</button>
                                 </div>
-                                <div class="fcast-kpi">
-                                    <span class="fcast-val">{chartData.wk8Util}%</span>
-                                    <span class="fcast-lbl">WK 8</span>
+                                <div class="forecast-kpis">
+                                    <div class="fcast-kpi">
+                                        <span class="fcast-val">{chartData.wk4Util}%</span>
+                                        <span class="fcast-lbl">WK 4</span>
+                                    </div>
+                                    <div class="fcast-kpi">
+                                        <span class="fcast-val">{chartData.wk8Util}%</span>
+                                        <span class="fcast-lbl">WK 8</span>
+                                    </div>
+                                    <div class="fcast-kpi">
+                                        <span class="fcast-val">{chartData.selNetStr}</span>
+                                        <span class="fcast-lbl">Net Wk {chartData.selDate}</span>
+                                    </div>
                                 </div>
-                                <div class="fcast-kpi">
-                                    <span class="fcast-val">{chartData.selNetStr}</span>
-                                    <span class="fcast-lbl">Net Wk {chartData.selDate}</span>
+                                <!-- Legend -->
+                                <div class="forecast-legend">
+                                    <span class="leg-item leg-item--demand">&#9644; On-Time Demand</span>
+                                    <span class="leg-item leg-item--cap">- - Capacity</span>
+                                    <span class="leg-item leg-item--forecast">- - Forecast</span>
                                 </div>
-                            </div>
-                            <!-- Legend -->
-                            <div class="forecast-legend">
-                                <span class="leg-item leg-item--demand">&#9644; On-Time Demand</span>
-                                <span class="leg-item leg-item--cap">- - Capacity</span>
-                                <span class="leg-item leg-item--forecast">- - Forecast</span>
-                            </div>
+                            </template>
+                            <template if:true={showTimeline}>
+                                <div class="forecast-legend">
+                                    <span class="leg-item leg-item--demand">&#9644; Active Project</span>
+                                    <span class="leg-item leg-item--forecast">- - Pipeline Opportunity</span>
+                                    <span class="leg-item leg-item--cap">&#9646; Today</span>
+                                </div>
+                            </template>
                         </div>
 
-                        <!-- SVG Chart -->
+                        <!-- SVG Chart (demand mode only) -->
+                        <template if:true={showDemandChart}>
                         <svg class="forecast-svg forecast-svg--clickable" viewBox={chartData.viewBox}
                              onclick={handleChartClick}>
 
@@ -165,6 +179,65 @@
                             </template>
 
                         </svg>
+                        </template>
+
+                        <!-- Timeline (Gantt) chart -->
+                        <template if:true={showTimeline}>
+                            <template if:true={timelineData}>
+                                <div class="timeline-container">
+                                    <svg class="timeline-svg" viewBox={timelineData.viewBox}>
+                                        <!-- Chart background -->
+                                        <rect x={timelineData.bgX} y={timelineData.bgY}
+                                              width={timelineData.bgW} height={timelineData.bgH}
+                                              fill="rgba(15,23,42,0.4)"/>
+                                        <!-- Left-column separator -->
+                                        <line x1={timelineData.divX} y1={timelineData.bgY}
+                                              x2={timelineData.divX} y2={timelineData.todayY2}
+                                              stroke="#1e293b" stroke-width="1"/>
+                                        <!-- Vertical grid lines (month boundaries) -->
+                                        <template for:each={timelineData.vGridLines} for:item="g">
+                                            <line key={g.key} x1={g.x} y1={g.y1} x2={g.x} y2={g.y2}
+                                                  stroke="#1e293b" stroke-width="1"/>
+                                        </template>
+                                        <!-- Group header backgrounds -->
+                                        <template for:each={timelineData.grpRects} for:item="r">
+                                            <rect key={r.key} x="0" y={r.y} width={timelineData.svgW} height={r.h}
+                                                  fill="rgba(10,22,40,0.85)"/>
+                                        </template>
+                                        <!-- Group header texts (account names) -->
+                                        <template for:each={timelineData.grpTexts} for:item="t">
+                                            <text key={t.key} x="6" y={t.y}
+                                                  font-size="8" font-weight="700" fill="#475569">{t.text}</text>
+                                        </template>
+                                        <!-- Horizontal dividers between groups -->
+                                        <template for:each={timelineData.hLines} for:item="l">
+                                            <line key={l.key} x1="0" y1={l.y} x2={timelineData.svgW} y2={l.y}
+                                                  stroke="#1e293b" stroke-width="1"/>
+                                        </template>
+                                        <!-- Bars (projects + pipeline) -->
+                                        <template for:each={timelineData.bars} for:item="b">
+                                            <rect key={b.key} x={b.x} y={b.y} width={b.width} height={b.height}
+                                                  fill={b.fill} stroke={b.stroke} stroke-dasharray={b.strokeDash}
+                                                  opacity={b.opacity} rx="3"/>
+                                        </template>
+                                        <!-- Row labels (left column) -->
+                                        <template for:each={timelineData.rowLabels} for:item="l">
+                                            <text key={l.key} x={l.x} y={l.y}
+                                                  font-size="9" fill={l.fill}>{l.text}</text>
+                                        </template>
+                                        <!-- Today line -->
+                                        <line x1={timelineData.todayX} y1={timelineData.todayY1}
+                                              x2={timelineData.todayX} y2={timelineData.todayY2}
+                                              stroke="#00b4d8" stroke-width="1.5" opacity="0.7"/>
+                                        <!-- X-axis labels -->
+                                        <template for:each={timelineData.xLabels} for:item="l">
+                                            <text key={l.key} x={l.x} y={l.y} text-anchor="middle"
+                                                  font-size="9" fill="#64748b">{l.label}</text>
+                                        </template>
+                                    </svg>
+                                </div>
+                            </template>
+                        </template>
 
                         <!-- Breakdown: Projects + Pipeline side by side -->
                         <template if:true={forecastBreakdown}>
