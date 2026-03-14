@@ -403,10 +403,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .map(o => ({ id: o.id, name: o.name, hrs: this._round(o.weeklyHrs || 0) }));
 
         const totalDemand   = this._round(projects.reduce((s, p) => s + p.hrs, 0));
-        const totalForecast = this._round(totalDemand + pipeline.reduce((s, o) => s + o.hrs, 0));
+        const pipelineTotal = this._round(pipeline.reduce((s, o) => s + o.hrs, 0));
+        const totalForecast = this._round(totalDemand + pipelineTotal);
         const left = Math.min(clientX + 14, (typeof window !== 'undefined' ? window.innerWidth : 1400) - 310);
         const top  = Math.max(10, clientY - 50);
-        return { style: `left:${left}px;top:${top}px;`, dateLabel, projects, pipeline, hasPipeline: pipeline.length > 0, totalDemand, totalForecast };
+        return { style: `left:${left}px;top:${top}px;`, dateLabel, projects, pipeline, hasPipeline: pipeline.length > 0, totalDemand, pipelineTotal, totalForecast };
     }
 
     _getWeekStart(n) {

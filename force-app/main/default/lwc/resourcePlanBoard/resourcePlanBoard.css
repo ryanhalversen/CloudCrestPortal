@@ -451,6 +451,28 @@
     transition: color 0.1s;
 }
 .tt-close:hover { color: #94a3b8; }
+.tt-combined {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    background: rgba(0,180,216,0.08);
+    border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 5px;
+    padding: 5px 8px;
+    margin-bottom: 6px;
+}
+.tt-combined-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.tt-combined-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: #00b4d8;
+}
 .tt-section { margin-top: 4px; }
 .tt-section--pipe { margin-top: 8px; border-top: 1px solid #334155; padding-top: 7px; }
 .tt-section-lbl {

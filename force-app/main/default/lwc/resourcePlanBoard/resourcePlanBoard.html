@@ -459,6 +459,12 @@
                         <div class="tt-date">{dotTooltip.dateLabel}</div>
                         <button class="tt-close" onclick={handleTooltipClose}>&times;</button>
                     </div>
+                    <!-- Combined total at top -->
+                    <div class="tt-combined">
+                        <span class="tt-combined-lbl">Total Forecast</span>
+                        <span class="tt-combined-val">{dotTooltip.totalForecast}h</span>
+                    </div>
+                    <!-- On-Time Demand section -->
                     <div class="tt-section">
                         <div class="tt-section-lbl">On-Time Demand — <span class="tt-total">{dotTooltip.totalDemand}h</span></div>
                         <template for:each={dotTooltip.projects} for:item="p">
@@ -469,9 +475,10 @@
                             </div>
                         </template>
                     </div>
+                    <!-- Pipeline section -->
                     <template if:true={dotTooltip.hasPipeline}>
                         <div class="tt-section tt-section--pipe">
-                            <div class="tt-section-lbl tt-section-lbl--pipe">+ Pipeline — <span class="tt-total">{dotTooltip.totalForecast}h forecast</span></div>
+                            <div class="tt-section-lbl tt-section-lbl--pipe">Pipeline — <span class="tt-total">{dotTooltip.pipelineTotal}h</span></div>
                             <template for:each={dotTooltip.pipeline} for:item="o">
                                 <div key={o.id} class="tt-row tt-row--pipe">
                                     <span class="tt-name">{o.name}</span>
