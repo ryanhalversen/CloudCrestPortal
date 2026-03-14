@@ -286,19 +286,14 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
         const netAvail = totalCap - fteDemand;
 
-        // Pipeline: for projected weeks show only opps that have started by then
-        const pipWt = isProjected
-            ? (this._raw.pipelineShelf || [])
-                .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
-                .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0)
-            : (this._raw.pipelineShelf || [])
-                .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0);
+        // Forecast = on-time demand + pipeline that has started by this week (matches chart line)
+        const forecastDemand = this._forecastForWeek(weekStart, fteDemand);
 
         const trend = v => v >= 0 ? 'up' : 'down';
         return [
             { label: 'FTE Capacity',      value: `${totalCap}h`,                                        trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
             { label: 'On-Time Demand',    value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
-            { label: 'Demand Forecast',   value: `${this._round(fteDemand + pipWt)}h`,                  trend: (fteDemand + pipWt) > totalCap ? 'down' : 'neutral', sub: `on-time + pipeline${wkStr}` },
+            { label: 'Demand Forecast',   value: `${this._round(forecastDemand)}h`,                      trend: forecastDemand > totalCap ? 'down' : 'neutral', sub: `on-time + pipeline${wkStr}` },
             { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: `${netAvail >= 0 ? 'surplus' : 'overallocated'}${wkStr}` },
             { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' }
         ].map(k => ({
@@ -486,6 +481,39 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             cannotPrev: sel <= 0,
             cannotNext: sel >= WEEKS - 1
         };
+    }
+
+    // ── Forecast Breakdown ────────────────────────────────────────────────────
+
+    get forecastBreakdown() {
+        if (!this._raw || !this._showChart) return null;
+        const weekStart = this._getWeekStart(this._selectedWeek);
+        const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
+
+        const projects = (this._raw.projectCards || [])
+            .filter(p => !p.isBlock && (fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId)))
+            .filter(p => !p.endDate || new Date(p.endDate) >= weekStart)
+            .map(p => ({
+                id:         p.id,
+                name:       p.name,
+                client:     p.client,
+                weeklyHrs:  this._round(p.weeklyPace || 0),
+                endDate:    p.endDate || '—',
+                colorStyle: `background:${p.color};`
+            }));
+
+        const pipeline = (this._raw.pipelineShelf || [])
+            .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
+            .map(o => ({
+                id:            o.id,
+                name:          o.name,
+                client:        o.client,
+                weeklyHrs:     this._round((o.weeklyHrs || 0) * ((o.probability || 0) / 100)),
+                probability:   o.probability || 0,
+                expectedStart: o.expectedStart || '—'
+            }));
+
+        return { projects, pipeline, hasPipeline: pipeline.length > 0 };
     }
 
     // ── Drag & Drop ───────────────────────────────────────────────────────────

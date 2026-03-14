@@ -164,6 +164,48 @@
                             </template>
 
                         </svg>
+
+                        <!-- Breakdown: Projects + Pipeline side by side -->
+                        <template if:true={forecastBreakdown}>
+                            <div class="forecast-breakdown">
+                                <!-- Active Projects column -->
+                                <div class="breakdown-col">
+                                    <div class="breakdown-col-header">
+                                        <span class="breakdown-col-title">Active Projects</span>
+                                        <span class="breakdown-col-count">{forecastBreakdown.projects.length} projects</span>
+                                    </div>
+                                    <template for:each={forecastBreakdown.projects} for:item="proj">
+                                        <div key={proj.id} class="breakdown-row">
+                                            <span class="breakdown-dot" style={proj.colorStyle}></span>
+                                            <span class="breakdown-name">{proj.name}</span>
+                                            <span class="breakdown-hrs">{proj.weeklyHrs}h/wk</span>
+                                            <span class="breakdown-date">{proj.endDate}</span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <!-- Pipeline Forecast column -->
+                                <div class="breakdown-col breakdown-col--pipe">
+                                    <div class="breakdown-col-header">
+                                        <span class="breakdown-col-title">Pipeline Forecast</span>
+                                        <span class="breakdown-col-count">{forecastBreakdown.pipeline.length} opps starting by this week</span>
+                                    </div>
+                                    <template if:true={forecastBreakdown.hasPipeline}>
+                                        <template for:each={forecastBreakdown.pipeline} for:item="opp">
+                                            <div key={opp.id} class="breakdown-row">
+                                                <span class="breakdown-name">{opp.name}</span>
+                                                <span class="breakdown-hrs">{opp.weeklyHrs}h/wk</span>
+                                                <span class="breakdown-prob">{opp.probability}%</span>
+                                                <span class="breakdown-date">{opp.expectedStart}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:false={forecastBreakdown.hasPipeline}>
+                                        <p class="breakdown-empty">No pipeline starting by this week</p>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
                     </div>
                 </template>
             </template>
