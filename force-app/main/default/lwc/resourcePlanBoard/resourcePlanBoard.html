@@ -173,6 +173,12 @@
                                     <div class="breakdown-col-header">
                                         <span class="breakdown-col-title">Active Projects</span>
                                         <span class="breakdown-col-count">{forecastBreakdown.projects.length} projects</span>
+                                        <button class={forecastBreakdown.sortHoursCls}
+                                                data-sort="hours"
+                                                onclick={handleBreakdownSort}>{forecastBreakdown.sortHoursLbl}</button>
+                                        <button class={forecastBreakdown.sortEndDateCls}
+                                                data-sort="endDate"
+                                                onclick={handleBreakdownSort}>{forecastBreakdown.sortEndDateLbl}</button>
                                     </div>
                                     <template for:each={forecastBreakdown.projects} for:item="proj">
                                         <div key={proj.id} class="breakdown-row">
@@ -184,7 +190,7 @@
                                             <template if:false={proj.isBlock}>
                                                 <span class="breakdown-hrs">{proj.weeklyHrs}h/wk</span>
                                             </template>
-                                            <span class="breakdown-date">{proj.endDate}</span>
+                                            <span class={proj.dateCls}>{proj.endDate}</span>
                                         </div>
                                     </template>
                                 </div>

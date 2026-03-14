@@ -387,6 +387,20 @@
     min-width: 52px;
     text-align: right;
 }
+.breakdown-date--overdue { color: #ef4444; }
+.breakdown-sort-btn {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.1s, border-color 0.1s;
+}
+.breakdown-sort-btn:hover { color: #94a3b8; border-color: #475569; }
+.breakdown-sort-btn--active { color: #00b4d8; border-color: rgba(0,180,216,0.4); }
 .breakdown-empty {
     font-size: 11px;
     color: #475569;

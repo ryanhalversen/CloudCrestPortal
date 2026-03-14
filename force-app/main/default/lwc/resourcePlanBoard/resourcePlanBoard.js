@@ -33,11 +33,13 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _editCell       = null;   // { assignmentId, value }
 
     // ── UI toggles ────────────────────────────────────────────────────────────
-    _rightTab       = 'contractor';
-    _viewMode       = 'full';
-    _tempId         = 1;
-    _showChart      = true;
-    _selectedWeek   = 0;
+    _rightTab           = 'contractor';
+    _viewMode           = 'full';
+    _tempId             = 1;
+    _showChart          = true;
+    _selectedWeek       = 0;
+    _breakdownSort      = 'name';   // 'name' | 'endDate' | 'hours'
+    _breakdownSortDir   = 1;        // 1 = asc, -1 = desc
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -345,6 +347,16 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (this._selectedWeek < 23) this._selectedWeek = this._selectedWeek + 1;
     }
 
+    handleBreakdownSort(e) {
+        const field = e.currentTarget.dataset.sort;
+        if (this._breakdownSort === field) {
+            this._breakdownSortDir = this._breakdownSortDir === 1 ? -1 : 1;
+        } else {
+            this._breakdownSort    = field;
+            this._breakdownSortDir = field === 'hours' ? -1 : 1; // hours default descending
+        }
+    }
+
     _getWeekStart(n) {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -490,18 +502,37 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const weekStart = this._getWeekStart(this._selectedWeek);
         const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
 
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+
         const projects = (this._raw.projectCards || [])
             .filter(p => fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId))
-            .map(p => ({
-                id:         p.id,
-                name:       p.name,
-                client:     p.client,
-                weeklyHrs:  p.isBlock ? null : this._round(p.weeklyPace || 0),
-                hrsLabel:   p.isBlock ? 'Block' : `${this._round(p.weeklyPace || 0)}h/wk`,
-                isBlock:    !!p.isBlock,
-                endDate:    p.endDate || '—',
-                colorStyle: `background:${p.color};`
-            }));
+            .map(p => {
+                const isOverdue = !!p.endDate && new Date(p.endDate) < today;
+                return {
+                    id:         p.id,
+                    name:       p.name,
+                    client:     p.client,
+                    weeklyHrs:  p.isBlock ? null : this._round(p.weeklyPace || 0),
+                    hrsLabel:   p.isBlock ? 'Block' : `${this._round(p.weeklyPace || 0)}h/wk`,
+                    isBlock:    !!p.isBlock,
+                    endDate:    p.endDate || '—',
+                    endDateMs:  p.endDate ? new Date(p.endDate).getTime() : Infinity,
+                    isOverdue,
+                    dateCls:    isOverdue ? 'breakdown-date breakdown-date--overdue' : 'breakdown-date',
+                    colorStyle: `background:${p.color};`
+                };
+            });
+
+        // Sort
+        const dir = this._breakdownSortDir;
+        const sorted = [...projects].sort((a, b) => {
+            if (this._breakdownSort === 'endDate') return (a.endDateMs - b.endDateMs) * dir;
+            if (this._breakdownSort === 'hours')   return ((a.weeklyHrs || 0) - (b.weeklyHrs || 0)) * dir;
+            return a.name.localeCompare(b.name) * dir;
+        });
+
+        const sortIcon = this._breakdownSortDir === 1 ? ' ↑' : ' ↓';
+        const mkCls = f => `breakdown-sort-btn${this._breakdownSort === f ? ' breakdown-sort-btn--active' : ''}`;
 
         const pipeline = (this._raw.pipelineShelf || [])
             .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
@@ -514,7 +545,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 expectedStart: o.expectedStart || '—'
             }));
 
-        return { projects, pipeline, hasPipeline: pipeline.length > 0 };
+        return {
+            projects: sorted,
+            pipeline,
+            hasPipeline:    pipeline.length > 0,
+            sortEndDateCls: mkCls('endDate'),
+            sortHoursCls:   mkCls('hours'),
+            sortEndDateLbl: `End Date${this._breakdownSort === 'endDate' ? sortIcon : ''}`,
+            sortHoursLbl:   `hrs/wk${this._breakdownSort === 'hours' ? sortIcon : ''}`
+        };
     }
 
     // ── Drag & Drop ───────────────────────────────────────────────────────────
