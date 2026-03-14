@@ -11,7 +11,7 @@
     align-items: flex-start;
     justify-content: center;
     padding: 12px;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* ── Board Container ───────────────────────────────────────────────────────── */
@@ -21,7 +21,7 @@
     border: 1px solid #1e293b;
     width: 100%;
     max-width: 1800px;
-    height: calc(100vh - 24px);
+    min-height: calc(100vh - 24px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -517,6 +517,7 @@
 .plan-body {
     display: flex;
     flex: 1;
+    min-height: 380px;
     overflow: hidden;
     gap: 0;
 }
