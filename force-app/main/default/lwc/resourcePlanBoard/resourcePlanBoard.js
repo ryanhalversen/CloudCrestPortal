@@ -10,6 +10,17 @@ import batchSaveAssignments from '@salesforce/apex/ResourcePlanningController.ba
 const UNDO_LIMIT = 20;
 const URGENCY_LABEL = { critical: '< 2 wks', warning: '2–8 wks' };
 
+const DELIVERY_TYPES = {
+    'Chris Manring': 'Developer',
+    'Holly Worz':    'Dev + PM',
+    'Terri Lee':     'Project Manager'
+};
+const DELIVERY_META = {
+    'Developer':       { bg: 'rgba(127,119,221,0.12)', text: '#AFA9EC', short: 'Dev', cls: 'delivery-badge--dev' },
+    'Dev + PM':        { bg: 'rgba(127,119,221,0.12)', text: '#AFA9EC', short: 'Dev+PM', cls: 'delivery-badge--dev' },
+    'Project Manager': { bg: 'rgba(29,158,117,0.12)',  text: '#5DCAA5', short: 'PM',  cls: 'delivery-badge--pm' }
+};
+
 export default class ResourcePlanBoard extends NavigationMixin(LightningElement) {
 
     // ── Server data ───────────────────────────────────────────────────────────
@@ -334,6 +345,82 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .map(p => ({ ...p, cardStyle: `border-left-color:${p.color};` }));
     }
     get hasUnassigned() { return this.unassignedProjects.length > 0; }
+
+    // ── Org Chart ─────────────────────────────────────────────────────────────
+
+    get leaderLane() {
+        if (!this._raw) return null;
+        return this.lanes.find(l => l.role === 'Head of Delivery') || null;
+    }
+
+    get leaderMetrics() {
+        if (!this._raw) return null;
+        const totalCap   = (this._raw.fteRows || []).reduce((s, f) => s + (f.weeklyTarget != null ? f.weeklyTarget : 35), 0);
+        const totalAlloc = this.lanes.reduce((s, l) => s + (l.alloc || 0), 0);
+        const net        = this._round(totalCap - totalAlloc);
+        return {
+            capacity: totalCap,
+            demand:   this._round(totalAlloc),
+            net,
+            netStr:   `${net >= 0 ? '+' : ''}${net}h`,
+            netCls:   `leader-metric-val${net >= 0 ? ' leader-metric-val--pos' : ' leader-metric-val--neg'}`
+        };
+    }
+
+    get fteTeamLanes() {
+        if (!this._raw) return [];
+        const team = this.lanes.filter(l => l.role !== 'Head of Delivery');
+        return team.map((lane, i) => {
+            const isFirst      = i === 0;
+            const isLast       = i === team.length - 1;
+            const isOnly       = team.length === 1;
+            const deliveryType = DELIVERY_TYPES[lane.name] || 'Developer';
+            const dm           = DELIVERY_META[deliveryType] || DELIVERY_META['Developer'];
+            const branchCls    = [
+                'org-fte-branch',
+                isFirst && !isOnly ? 'org-fte-branch--first' : '',
+                isLast  && !isOnly ? 'org-fte-branch--last'  : '',
+                isOnly             ? 'org-fte-branch--only'  : '',
+                this._dropTarget === lane.id ? 'org-fte-branch--over' : ''
+            ].filter(Boolean).join(' ');
+
+            const cards = lane.cards.map((card, ci) => {
+                const isFirstCard = ci === 0;
+                const isLastCard  = ci === lane.cards.length - 1;
+                const isOnlyCard  = lane.cards.length === 1;
+                let   dbadge, dbadgeCls, dbadgeStyle;
+                if (card.isBlock) {
+                    dbadge = 'Blocked'; dbadgeCls = 'delivery-badge delivery-badge--blocked'; dbadgeStyle = '';
+                } else if (card.isSupport) {
+                    dbadge = `Support ${card.splitPct}%`; dbadgeCls = 'delivery-badge delivery-badge--support'; dbadgeStyle = '';
+                } else {
+                    dbadge = dm.short; dbadgeCls = `delivery-badge ${dm.cls}`; dbadgeStyle = `background:${dm.bg};color:${dm.text};`;
+                }
+                return {
+                    ...card,
+                    projBranchCls: [
+                        'org-proj-branch',
+                        isFirstCard && !isOnlyCard ? 'org-proj-branch--first' : '',
+                        isLastCard  && !isOnlyCard ? 'org-proj-branch--last'  : '',
+                        isOnlyCard                 ? 'org-proj-branch--only'  : ''
+                    ].filter(Boolean).join(' '),
+                    deliveryBadge:      dbadge,
+                    deliveryBadgeCls:   dbadgeCls,
+                    deliveryBadgeStyle: dbadgeStyle
+                };
+            });
+
+            return {
+                ...lane,
+                deliveryType,
+                deliveryShort:      dm.short,
+                deliveryBadgeStyle: `background:${dm.bg};color:${dm.text};`,
+                roleLabel:          `FTE · ${deliveryType}`,
+                branchCls,
+                cards
+            };
+        });
+    }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
 

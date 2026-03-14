@@ -303,134 +303,172 @@
             <template if:true={hasData}>
                 <div class="plan-body">
 
-                    <!-- Swim Lanes Area -->
-                    <div class="plan-lanes">
+                    <!-- Org Chart Tree -->
+                    <div class="org-tree">
 
-                        <!-- FTE Lanes -->
-                        <template for:each={lanes} for:item="lane">
-                            <div key={lane.id} class={lane.laneCls}
-                                 data-user-id={lane.id}
-                                 ondragover={handleLaneDragOver}
-                                 ondragleave={handleLaneDragLeave}
-                                 ondrop={handleLaneDrop}>
-
-                                <!-- Lane Header -->
-                                <div class="lane-head">
-                                    <div class="lane-fte-row">
-                                        <div class="lane-avatar">{lane.initials}</div>
-                                        <div class="lane-meta">
-                                            <span class="lane-name">{lane.name}</span>
-                                            <span class="lane-role">{lane.role}</span>
+                        <!-- Tier 1: Leader card (centered) -->
+                        <template if:true={leaderLane}>
+                            <div class="org-leader-row">
+                                <div class="org-card--leader">
+                                    <div class="org-leader-left">
+                                        <div class="org-leader-avatar">{leaderLane.initials}</div>
+                                        <div class="org-leader-info">
+                                            <span class="org-leader-name">{leaderLane.name}</span>
+                                            <span class="org-leader-role">Head of Delivery</span>
                                         </div>
                                     </div>
-                                    <div class="lane-cap">
-                                        <div class="cap-bar-track">
-                                            <div class="cap-bar-fill" style={lane.barStyle}></div>
+                                    <div class="org-leader-metrics">
+                                        <div class="leader-metric">
+                                            <span class="leader-metric-val">{leaderMetrics.capacity}h</span>
+                                            <span class="leader-metric-lbl">FTE Capacity</span>
                                         </div>
-                                        <div class="cap-labels">
-                                            <span class="cap-alloc">{lane.utilLabel}</span>
-                                            <span class="cap-avail">{lane.availLabel}</span>
+                                        <div class="leader-metric">
+                                            <span class="leader-metric-val">{leaderMetrics.demand}h</span>
+                                            <span class="leader-metric-lbl">On-Time Demand</span>
+                                        </div>
+                                        <div class="leader-metric">
+                                            <span class={leaderMetrics.netCls}>{leaderMetrics.netStr}</span>
+                                            <span class="leader-metric-lbl">Net Available</span>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="org-root-vline"></div>
+                        </template>
 
-                                <!-- Project Cards -->
-                                <div class="lane-cards">
-                                    <template for:each={lane.cards} for:item="card">
-                                        <div key={card.assignmentId} class={card.cardCls}
-                                             style={card.colorStyle}
-                                             draggable="true"
-                                             data-drag-type="project"
-                                             data-id={card.assignmentId}
-                                             data-project-id={card.projectId}
-                                             data-from-user-id={lane.id}
-                                             ondragstart={handleDragStart}
-                                             ondragend={handleDragEnd}
-                                             ondragover={handleCardDragOver}
-                                             ondrop={handleCardDrop}>
+                        <!-- Tier 2+3: FTE columns with project trees -->
+                        <div class="org-fte-row">
+                            <template for:each={fteTeamLanes} for:item="lane">
+                                <div key={lane.id} class={lane.branchCls}
+                                     data-user-id={lane.id}
+                                     ondragover={handleLaneDragOver}
+                                     ondragleave={handleLaneDragLeave}
+                                     ondrop={handleLaneDrop}>
 
-                                            <div class="card-top-row">
-                                                <span class="card-name card-name--link"
-                                                      data-record-id={card.recordId}
-                                                      onclick={handleRecordClick}>{card.name}</span>
-                                                <template if:true={card.isSupport}>
-                                                    <span class="support-badge">SUPPORT {card.splitPct}%</span>
-                                                </template>
-                                                <template if:true={card.canRemove}>
-                                                    <button class="card-remove"
-                                                            data-assignment-id={card.assignmentId}
-                                                            onclick={handleRemoveCard}
-                                                            title="Remove">&times;</button>
-                                                </template>
+                                    <!-- FTE Card -->
+                                    <div class="org-card--fte">
+                                        <div class="org-fte-top">
+                                            <div class="org-fte-avatar">{lane.initials}</div>
+                                            <div class="org-fte-info">
+                                                <span class="org-fte-name">{lane.name}</span>
+                                                <span class="org-fte-role">{lane.roleLabel}</span>
                                             </div>
-                                            <span class="card-client">{card.client}</span>
+                                            <span class="delivery-badge" style={lane.deliveryBadgeStyle}>{lane.deliveryShort}</span>
+                                        </div>
+                                        <div class="org-fte-cap">
+                                            <div class="cap-bar-track">
+                                                <div class="cap-bar-fill" style={lane.barStyle}></div>
+                                            </div>
+                                            <div class="cap-labels">
+                                                <span class="cap-alloc">{lane.utilLabel}</span>
+                                                <span class="cap-avail">{lane.availLabel}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                            <template if:false={card.isBlock}>
-                                                <div class="card-hours-row">
-                                                    <span class="card-hrs-label">hrs/wk</span>
-                                                    <template if:false={card.isPipeline}>
-                                                        <span class="card-hrs">{card.hoursPerWeek}</span>
-                                                    </template>
-                                                    <template if:true={card.isPipeline}>
-                                                        <template if:false={card.isEditing}>
-                                                            <span class="card-hrs"
-                                                                  data-assignment-id={card.assignmentId}
-                                                                  onclick={handleHoursClick}>{card.hoursPerWeek}</span>
-                                                        </template>
-                                                        <template if:true={card.isEditing}>
-                                                            <input type="number"
-                                                                   class="hours-input"
-                                                                   value={card.editValue}
-                                                                   min="0" step="0.5"
-                                                                   data-assignment-id={card.assignmentId}
-                                                                   oninput={handleHoursInput}
-                                                                   onblur={handleHoursBlur}
-                                                                   onkeydown={handleHoursKeydown} />
-                                                        </template>
-                                                    </template>
-                                                </div>
-                                            </template>
+                                    <!-- Vertical drop + project row -->
+                                    <template if:true={lane.hasCards}>
+                                        <div class="org-fte-vline"></div>
+                                        <div class="org-proj-row">
+                                            <template for:each={lane.cards} for:item="card">
+                                                <div key={card.assignmentId} class={card.projBranchCls}>
+                                                    <div class={card.cardCls}
+                                                         style={card.colorStyle}
+                                                         draggable="true"
+                                                         data-drag-type="project"
+                                                         data-id={card.assignmentId}
+                                                         data-project-id={card.projectId}
+                                                         data-from-user-id={lane.id}
+                                                         ondragstart={handleDragStart}
+                                                         ondragend={handleDragEnd}
+                                                         ondragover={handleCardDragOver}
+                                                         ondrop={handleCardDrop}>
 
-                                            <template if:false={card.isPipeline}>
-                                                <div class="card-footer">
-                                                    <span class="card-end">{card.endDate}</span>
-                                                    <template if:true={card.showRemaining}>
-                                                        <span class="card-remaining">{card.remainingHours}h left</span>
-                                                    </template>
-                                                    <template if:true={card.showUrgency}>
-                                                        <span class={card.urgencyCls}>{card.urgencyLabel}</span>
-                                                    </template>
-                                                </div>
-                                                <template if:true={card.hasChips}>
-                                                    <div class="card-chips">
-                                                        <template for:each={card.chips} for:item="chip">
-                                                            <span key={chip.id} class="chip"
-                                                                  title={chip.name}>{chip.name} {chip.hours}h</span>
+                                                        <div class="card-top-row">
+                                                            <span class="card-name card-name--link"
+                                                                  data-record-id={card.recordId}
+                                                                  onclick={handleRecordClick}>{card.name}</span>
+                                                            <template if:true={card.canRemove}>
+                                                                <button class="card-remove"
+                                                                        data-assignment-id={card.assignmentId}
+                                                                        onclick={handleRemoveCard}
+                                                                        title="Remove">&times;</button>
+                                                            </template>
+                                                        </div>
+                                                        <span class="card-client">{card.client}</span>
+
+                                                        <!-- Delivery type badge -->
+                                                        <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+
+                                                        <template if:false={card.isBlock}>
+                                                            <div class="card-hours-row">
+                                                                <span class="card-hrs-label">hrs/wk</span>
+                                                                <template if:false={card.isPipeline}>
+                                                                    <span class="card-hrs">{card.hoursPerWeek}</span>
+                                                                </template>
+                                                                <template if:true={card.isPipeline}>
+                                                                    <template if:false={card.isEditing}>
+                                                                        <span class="card-hrs"
+                                                                              data-assignment-id={card.assignmentId}
+                                                                              onclick={handleHoursClick}>{card.hoursPerWeek}</span>
+                                                                    </template>
+                                                                    <template if:true={card.isEditing}>
+                                                                        <input type="number"
+                                                                               class="hours-input"
+                                                                               value={card.editValue}
+                                                                               min="0" step="0.5"
+                                                                               data-assignment-id={card.assignmentId}
+                                                                               oninput={handleHoursInput}
+                                                                               onblur={handleHoursBlur}
+                                                                               onkeydown={handleHoursKeydown} />
+                                                                    </template>
+                                                                </template>
+                                                            </div>
                                                         </template>
+
+                                                        <template if:false={card.isPipeline}>
+                                                            <div class="card-footer">
+                                                                <span class="card-end">{card.endDate}</span>
+                                                                <template if:true={card.showRemaining}>
+                                                                    <span class="card-remaining">{card.remainingHours}h left</span>
+                                                                </template>
+                                                                <template if:true={card.showUrgency}>
+                                                                    <span class={card.urgencyCls}>{card.urgencyLabel}</span>
+                                                                </template>
+                                                            </div>
+                                                            <template if:true={card.hasChips}>
+                                                                <div class="card-chips">
+                                                                    <template for:each={card.chips} for:item="chip">
+                                                                        <span key={chip.id} class="chip"
+                                                                              title={chip.name}>{chip.name} {chip.hours}h</span>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </template>
+
+                                                        <template if:true={card.isPipeline}>
+                                                            <div class="card-footer">
+                                                                <span class="card-stage">{card.stage}</span>
+                                                                <span class="card-prob">{card.probability}%</span>
+                                                            </div>
+                                                        </template>
+
                                                     </div>
-                                                </template>
-                                            </template>
-
-                                            <template if:true={card.isPipeline}>
-                                                <div class="card-footer">
-                                                    <span class="card-stage">{card.stage}</span>
-                                                    <span class="card-prob">{card.probability}%</span>
                                                 </div>
                                             </template>
-
                                         </div>
                                     </template>
 
-                                    <!-- Drop hint shown when dragging over an empty or non-empty lane -->
-                                    <div class="drop-hint">Drop project or opportunity here</div>
-                                </div>
+                                    <!-- Drop hint -->
+                                    <div class="drop-hint">Drop project here</div>
 
-                            </div>
-                        </template>
+                                </div>
+                            </template>
+                        </div>
 
                         <!-- Unassigned Projects Pool -->
                         <template if:true={hasUnassigned}>
-                            <div class="unassigned-pool">
+                            <div class="unassigned-pool unassigned-pool--org">
                                 <h4 class="unassigned-title">Unassigned Projects</h4>
                                 <div class="unassigned-cards">
                                     <template for:each={unassignedProjects} for:item="proj">
