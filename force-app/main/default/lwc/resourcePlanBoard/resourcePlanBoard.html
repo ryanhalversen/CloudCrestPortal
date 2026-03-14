@@ -98,9 +98,8 @@
                         </div>
 
                         <!-- SVG Chart -->
-                        <svg class="forecast-svg" viewBox={chartData.viewBox}
-                             onmousemove={handleChartMouseMove}
-                             onmouseleave={handleChartMouseLeave}>
+                        <svg class="forecast-svg forecast-svg--clickable" viewBox={chartData.viewBox}
+                             onclick={handleChartClick}>
 
                             <!-- Chart background -->
                             <rect x={chartData.chartLeft} y={chartData.chartTop}
@@ -453,10 +452,13 @@
                 </div>
             </template>
 
-            <!-- Chart hover tooltip -->
+            <!-- Chart click tooltip -->
             <template if:true={dotTooltip}>
-                <div class="chart-tooltip" style={dotTooltip.style}>
-                    <div class="tt-date">{dotTooltip.dateLabel}</div>
+                <div class="chart-tooltip" style={dotTooltip.style} onclick={stopProp}>
+                    <div class="tt-header-row">
+                        <div class="tt-date">{dotTooltip.dateLabel}</div>
+                        <button class="tt-close" onclick={handleTooltipClose}>&times;</button>
+                    </div>
                     <div class="tt-section">
                         <div class="tt-section-lbl">On-Time Demand — <span class="tt-total">{dotTooltip.totalDemand}h</span></div>
                         <template for:each={dotTooltip.projects} for:item="p">

@@ -358,7 +358,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         }
     }
 
-    handleChartMouseMove(e) {
+    handleChartClick(e) {
+        e.stopPropagation();
         const svg  = e.currentTarget;
         const rect = svg.getBoundingClientRect();
         const SVG_W = 1400, ML = 42, MR = 16, WEEKS = 24;
@@ -369,14 +370,18 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             const dist = Math.abs(svgX - (ML + (i / (WEEKS - 1)) * CW));
             if (dist < minDist) { minDist = dist; weekIdx = i; }
         }
-        if (weekIdx === null) { if (this._hoveredWeek !== null) this._hoveredWeek = null; return; }
-        if (!this._hoveredWeek || this._hoveredWeek.weekIdx !== weekIdx ||
-            this._hoveredWeek.clientX !== e.clientX || this._hoveredWeek.clientY !== e.clientY) {
-            this._hoveredWeek = { weekIdx, clientX: e.clientX, clientY: e.clientY };
+        // Toggle off if clicking same week or no week close enough
+        if (weekIdx === null || (this._hoveredWeek && this._hoveredWeek.weekIdx === weekIdx)) {
+            this._hoveredWeek = null;
+            return;
         }
+        this._hoveredWeek = { weekIdx, clientX: e.clientX, clientY: e.clientY };
     }
 
-    handleChartMouseLeave() { if (this._hoveredWeek !== null) this._hoveredWeek = null; }
+    handleTooltipClose(e) {
+        e.stopPropagation();
+        this._hoveredWeek = null;
+    }
 
     get dotTooltip() {
         if (!this._hoveredWeek || !this._raw) return null;
