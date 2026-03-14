@@ -385,7 +385,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!this._raw || !this._showChart) return null;
 
         const WEEKS = 24;
-        const SVG_W = 900, SVG_H = 220;
+        const SVG_W = 1400, SVG_H = 340;
         const ML = 42, MR = 16, MT = 14, MB = 44;
         const CW = SVG_W - ML - MR;   // 842
         const CH = SVG_H - MT - MB;   // 162
@@ -414,8 +414,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const xOf = i => ML + (i / (WEEKS - 1)) * CW;
         const yOf = v => MT + CH - (Math.min(Math.max(v, 0), yMax) / yMax) * CH;
 
-        // Y-axis grid lines
-        const gridStep = yMax <= 80 ? 10 : yMax <= 160 ? 20 : 30;
+        // Y-axis grid lines — always increment by 10
+        const gridStep = 10;
         const yGridLines = [];
         for (let v = 0; v <= yMax; v += gridStep) {
             yGridLines.push({ key: `yg${v}`, x1: ML, x2: ML + CW, y1: yOf(v), y2: yOf(v), lx: ML - 5, ly: yOf(v) + 3.5, v });
