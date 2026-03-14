@@ -298,7 +298,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         return [
             { label: 'FTE Capacity',      value: `${totalCap}h`,                                        trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
             { label: 'On-Time Demand',    value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
-            { label: 'Demand Forecast',   value: `${this._round(pipWt)}h`,                              trend: 'neutral', sub: `probability-adjusted${wkStr}` },
+            { label: 'Demand Forecast',   value: `${this._round(fteDemand + pipWt)}h`,                  trend: (fteDemand + pipWt) > totalCap ? 'down' : 'neutral', sub: `on-time + pipeline${wkStr}` },
             { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: `${netAvail >= 0 ? 'surplus' : 'overallocated'}${wkStr}` },
             { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' }
         ].map(k => ({

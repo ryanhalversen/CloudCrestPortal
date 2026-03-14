@@ -169,8 +169,8 @@
 .board-kpi--up   .kpi-trend { color: #22c55e; }
 .board-kpi--down .kpi-trend { color: #ef4444; }
 .board-kpi--neutral .kpi-trend { color: transparent; }
-.kpi-lbl { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-.kpi-sub { font-size: 11px; color: #334155; }
+.kpi-lbl { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-sub { font-size: 11px; color: #64748b; }
 
 /* ── Loading / Error ───────────────────────────────────────────────────────── */
 .plan-loading {
