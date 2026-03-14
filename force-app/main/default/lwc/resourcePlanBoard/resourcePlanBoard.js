@@ -541,7 +541,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                     id:            o.id,
                     name:          o.name,
                     client:        o.client,
-                    weeklyHrs:     this._round((o.weeklyHrs || 0) * ((o.probability || 0) / 100)),
+                    weeklyHrs:     this._round(o.weeklyHrs || 0),
                     probability:   o.probability || 0,
                     expectedStart: o.expectedStart || '—',
                     started,
