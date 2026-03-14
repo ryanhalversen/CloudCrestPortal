@@ -266,30 +266,41 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     get kpis() {
         if (!this._raw) return [];
-        const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
-        // Exclude FTEs with weeklyTarget = 0 (e.g. Head of Delivery) from capacity total
-        const totalCap  = (this._raw.fteRows || []).reduce((s, f) => {
+
+        // When the chart is visible, sync KPIs to the selected week
+        const weekIdx   = this._showChart ? this._selectedWeek : 0;
+        const weekStart = this._getWeekStart(weekIdx);
+        const isProjected = weekIdx > 0;
+        const wkStr = isProjected ? ` · wk ${weekIdx + 1}` : '';
+
+        const totalCap = (this._raw.fteRows || []).reduce((s, f) => {
             const t = f.weeklyTarget != null ? f.weeklyTarget : 35;
             return s + t;
         }, 0);
-        // fteDemand = owner hours (after split) + support hours, excluding Block projects
-        const fteDemand = (this._raw.projectCards || [])
-            .filter(p => fteIds.has(p.ownerId) && !p.isBlock)
-            .reduce((s, p) => s + (p.weeklyPace || 0), 0);
+
+        // Use the same demand helper as the chart for consistency
+        const fteDemand = this._demandForWeek(weekStart);
+
         const contrHrs = this._assignments
             .filter(a => a.contractorId && !a._deleted)
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
-        const netAvail  = totalCap - fteDemand;
-        const pipWt     = (this._raw.pipelineShelf || []).reduce(
-            (s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0
-        );
+        const netAvail = totalCap - fteDemand;
+
+        // Pipeline: for projected weeks show only opps that have started by then
+        const pipWt = isProjected
+            ? (this._raw.pipelineShelf || [])
+                .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
+                .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0)
+            : (this._raw.pipelineShelf || [])
+                .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0);
+
         const trend = v => v >= 0 ? 'up' : 'down';
         return [
-            { label: 'FTE Capacity',      value: `${totalCap}h`,                              trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
-            { label: 'FTE Demand',        value: `${this._round(fteDemand)}h`,                 trend: fteDemand > totalCap ? 'down' : 'up', sub: 'active assignments' },
-            { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: netAvail >= 0 ? 'surplus' : 'overallocated' },
-            { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                trend: 'neutral', sub: 'contractor support' },
-            { label: 'Pipeline (wtd)',    value: `${this._round(pipWt)}h`,                   trend: 'neutral', sub: 'probability-adjusted' }
+            { label: 'FTE Capacity',      value: `${totalCap}h`,                                        trend: 'neutral', sub: `${(this._raw.fteRows||[]).length} team members` },
+            { label: 'FTE Demand',        value: `${this._round(fteDemand)}h`,                           trend: fteDemand > totalCap ? 'down' : 'up', sub: `active assignments${wkStr}` },
+            { label: 'Net Available',     value: `${netAvail >= 0 ? '+' : ''}${this._round(netAvail)}h`, trend: trend(netAvail), sub: `${netAvail >= 0 ? 'surplus' : 'overallocated'}${wkStr}` },
+            { label: 'Contractor hrs/wk', value: `${this._round(contrHrs)}h`,                           trend: 'neutral', sub: 'contractor support' },
+            { label: 'Pipeline (wtd)',    value: `${this._round(pipWt)}h`,                              trend: 'neutral', sub: `probability-adjusted${wkStr}` }
         ].map(k => ({
             ...k,
             cls:       `board-kpi board-kpi--${k.trend}`,
