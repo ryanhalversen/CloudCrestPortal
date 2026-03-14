@@ -40,6 +40,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _selectedWeek       = 0;
     _breakdownSort      = 'name';   // 'name' | 'endDate' | 'hours'
     _breakdownSortDir   = 1;        // 1 = asc, -1 = desc
+    _hoveredWeek        = null;     // { weekIdx, clientX, clientY }
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -357,6 +358,52 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         }
     }
 
+    handleChartMouseMove(e) {
+        const svg  = e.currentTarget;
+        const rect = svg.getBoundingClientRect();
+        const SVG_W = 1400, ML = 42, MR = 16, WEEKS = 24;
+        const CW = SVG_W - ML - MR;
+        const svgX = (e.clientX - rect.left) / rect.width * SVG_W;
+        let minDist = 28, weekIdx = null;
+        for (let i = 0; i < WEEKS; i++) {
+            const dist = Math.abs(svgX - (ML + (i / (WEEKS - 1)) * CW));
+            if (dist < minDist) { minDist = dist; weekIdx = i; }
+        }
+        if (weekIdx === null) { if (this._hoveredWeek !== null) this._hoveredWeek = null; return; }
+        if (!this._hoveredWeek || this._hoveredWeek.weekIdx !== weekIdx ||
+            this._hoveredWeek.clientX !== e.clientX || this._hoveredWeek.clientY !== e.clientY) {
+            this._hoveredWeek = { weekIdx, clientX: e.clientX, clientY: e.clientY };
+        }
+    }
+
+    handleChartMouseLeave() { if (this._hoveredWeek !== null) this._hoveredWeek = null; }
+
+    get dotTooltip() {
+        if (!this._hoveredWeek || !this._raw) return null;
+        const { weekIdx, clientX, clientY } = this._hoveredWeek;
+        const weekStart = this._getWeekStart(weekIdx);
+        const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
+        const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const day       = weekStart.getDate();
+        const ord       = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+        const dateLabel = `${MONTHS[weekStart.getMonth()]} ${day}${ord}`;
+
+        const projects = (this._raw.projectCards || [])
+            .filter(p => !p.isBlock && (fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId)))
+            .filter(p => !p.endDate || new Date(p.endDate) >= weekStart)
+            .map(p => ({ id: p.id, name: p.name, hrs: this._round(p.weeklyPace || 0), colorStyle: `background:${p.color};` }));
+
+        const pipeline = (this._raw.pipelineShelf || [])
+            .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
+            .map(o => ({ id: o.id, name: o.name, hrs: this._round(o.weeklyHrs || 0) }));
+
+        const totalDemand   = this._round(projects.reduce((s, p) => s + p.hrs, 0));
+        const totalForecast = this._round(totalDemand + pipeline.reduce((s, o) => s + o.hrs, 0));
+        const left = Math.min(clientX + 14, (typeof window !== 'undefined' ? window.innerWidth : 1400) - 310);
+        const top  = Math.max(10, clientY - 50);
+        return { style: `left:${left}px;top:${top}px;`, dateLabel, projects, pipeline, hasPipeline: pipeline.length > 0, totalDemand, totalForecast };
+    }
+
     _getWeekStart(n) {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -432,10 +479,21 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const demandDots   = weeks.map(w => ({ key: `dd${w.i}`, cx: xOf(w.i).toFixed(1), cy: yOf(w.demand).toFixed(1) }));
         const forecastDots = weeks.map(w => ({ key: `fd${w.i}`, cx: xOf(w.i).toFixed(1), cy: yOf(w.forecast).toFixed(1) }));
 
-        // X-axis labels (every 3 weeks)
+        // X-axis labels: 1st of each month across the chart range
+        const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const xLabels = [];
-        for (let i = 0; i < WEEKS; i += 3) {
-            xLabels.push({ key: `xl${i}`, x: xOf(i).toFixed(1), y: MT + CH + 13, label: weeks[i].dateLabel });
+        const timeStart = weeks[0].ws.getTime();
+        const totalChartDays = (WEEKS - 1) * 7;
+        let lblDate = new Date(weeks[0].ws.getFullYear(), weeks[0].ws.getMonth(), 1);
+        if (lblDate < weeks[0].ws) lblDate = new Date(lblDate.getFullYear(), lblDate.getMonth() + 1, 1);
+        const chartEndMs = weeks[WEEKS - 1].ws.getTime() + 6 * 86400000;
+        while (lblDate.getTime() <= chartEndMs) {
+            const daysDiff = (lblDate.getTime() - timeStart) / 86400000;
+            const x = ML + (daysDiff / totalChartDays) * CW;
+            if (x >= ML && x <= ML + CW) {
+                xLabels.push({ key: `xl${lblDate.getTime()}`, x: x.toFixed(1), y: MT + CH + 13, label: `${MONTH_ABBR[lblDate.getMonth()]} 1` });
+            }
+            lblDate = new Date(lblDate.getFullYear(), lblDate.getMonth() + 1, 1);
         }
 
         // Utilization % labels (every other week)

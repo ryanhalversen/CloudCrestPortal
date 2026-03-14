@@ -98,7 +98,9 @@
                         </div>
 
                         <!-- SVG Chart -->
-                        <svg class="forecast-svg" viewBox={chartData.viewBox}>
+                        <svg class="forecast-svg" viewBox={chartData.viewBox}
+                             onmousemove={handleChartMouseMove}
+                             onmouseleave={handleChartMouseLeave}>
 
                             <!-- Chart background -->
                             <rect x={chartData.chartLeft} y={chartData.chartTop}
@@ -448,6 +450,34 @@
                         </template>
 
                     </div>
+                </div>
+            </template>
+
+            <!-- Chart hover tooltip -->
+            <template if:true={dotTooltip}>
+                <div class="chart-tooltip" style={dotTooltip.style}>
+                    <div class="tt-date">{dotTooltip.dateLabel}</div>
+                    <div class="tt-section">
+                        <div class="tt-section-lbl">On-Time Demand — <span class="tt-total">{dotTooltip.totalDemand}h</span></div>
+                        <template for:each={dotTooltip.projects} for:item="p">
+                            <div key={p.id} class="tt-row">
+                                <span class="tt-dot" style={p.colorStyle}></span>
+                                <span class="tt-name">{p.name}</span>
+                                <span class="tt-hrs">{p.hrs}h</span>
+                            </div>
+                        </template>
+                    </div>
+                    <template if:true={dotTooltip.hasPipeline}>
+                        <div class="tt-section tt-section--pipe">
+                            <div class="tt-section-lbl tt-section-lbl--pipe">+ Pipeline — <span class="tt-total">{dotTooltip.totalForecast}h forecast</span></div>
+                            <template for:each={dotTooltip.pipeline} for:item="o">
+                                <div key={o.id} class="tt-row tt-row--pipe">
+                                    <span class="tt-name">{o.name}</span>
+                                    <span class="tt-hrs">{o.hrs}h</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                 </div>
             </template>
 
