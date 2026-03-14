@@ -50,6 +50,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public String  supportLeadId;
         @AuraEnabled public Decimal supportSplit;
         @AuraEnabled public Boolean isBlock;
+        @AuraEnabled public Decimal remainingHours;
     }
 
     public class ContractorRow {
@@ -92,7 +93,8 @@ public with sharing class ResourcePlanningController {
         List<Sprint__c> sprints = [
             SELECT Id, Name, OwnerId, Support_Lead__c, Support_Split__c,
                    Accountlu__r.Name, Weekly_Pace_Estimate__c, On_Time_Weekly_Pace__c,
-                   Project_End_Date__c, Pace_Status__c, Contract_Type__c
+                   Project_End_Date__c, Pace_Status__c, Contract_Type__c,
+                   Completed_Delta_Sprint__c
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             AND (NOT Name LIKE '%CloudCrest%')
@@ -171,7 +173,8 @@ public with sharing class ResourcePlanningController {
             pc.name         = s.Name;
             pc.client       = s.Accountlu__r != null ? s.Accountlu__r.Name : '—';
             pc.weeklyPace   = s.On_Time_Weekly_Pace__c != null ? s.On_Time_Weekly_Pace__c : 0;
-            pc.isBlock      = 'Block'.equalsIgnoreCase(s.Contract_Type__c);
+            pc.isBlock        = 'Block'.equalsIgnoreCase(s.Contract_Type__c);
+            pc.remainingHours = s.Completed_Delta_Sprint__c != null ? s.Completed_Delta_Sprint__c.setScale(1) : null;
             Integer daysLeft = s.Project_End_Date__c != null
                 ? Date.today().daysBetween(s.Project_End_Date__c)
                 : 9999;

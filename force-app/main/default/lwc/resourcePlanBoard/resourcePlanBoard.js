@@ -36,6 +36,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _rightTab       = 'contractor';
     _viewMode       = 'full';
     _tempId         = 1;
+    _showChart      = true;
+    _selectedWeek   = 0;
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -100,20 +102,22 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 name:         proj.name,
                 client:       proj.client,
                 hoursPerWeek: ownerHours,
-                isBlock:      !!proj.isBlock,
-                endDate:      proj.endDate || '—',
-                urgency:      urg,
-                urgencyLabel: URGENCY_LABEL[urg] || '',
-                urgencyCls:   urg ? `urg-badge urg-badge--${urg}` : '',
-                showUrgency:  !!urg,
-                color:        proj.color,
-                colorStyle:   `border-left-color:${proj.color};`,
-                cardCls:      `plan-card plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}`,
+                isBlock:        !!proj.isBlock,
+                remainingHours: proj.remainingHours != null ? proj.remainingHours : null,
+                showRemaining:  proj.remainingHours != null && !proj.isBlock,
+                endDate:        proj.endDate || '—',
+                urgency:        urg,
+                urgencyLabel:   URGENCY_LABEL[urg] || '',
+                urgencyCls:     urg ? `urg-badge urg-badge--${urg}` : '',
+                showUrgency:    !!urg,
+                color:          proj.color,
+                colorStyle:     `border-left-color:${proj.color};`,
+                cardCls:        `plan-card plan-card--${this._viewMode}${urg ? ` plan-card--${urg}` : ''}`,
                 chips,
-                hasChips:     chips.length > 0,
-                isPipeline:   false,
-                isSupport:    false,
-                canRemove:    false
+                hasChips:       chips.length > 0,
+                isPipeline:     false,
+                isSupport:      false,
+                canRemove:      false
             };
         });
 
@@ -131,9 +135,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 name:         proj.name,
                 client:       proj.client,
                 hoursPerWeek: supportHours,
-                isBlock:      !!proj.isBlock,
-                splitPct:     Math.round(splitPct * 100),
-                endDate:      proj.endDate || '—',
+                isBlock:        !!proj.isBlock,
+                remainingHours: proj.remainingHours != null ? proj.remainingHours : null,
+                showRemaining:  proj.remainingHours != null && !proj.isBlock,
+                splitPct:       Math.round(splitPct * 100),
+                endDate:        proj.endDate || '—',
                 urgency:      urg,
                 urgencyLabel: URGENCY_LABEL[urg] || '',
                 urgencyCls:   urg ? `urg-badge urg-badge--${urg}` : '',
@@ -318,6 +324,158 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .map(p => ({ ...p, cardStyle: `border-left-color:${p.color};` }));
     }
     get hasUnassigned() { return this.unassignedProjects.length > 0; }
+
+    // ── Forecast Chart ────────────────────────────────────────────────────────
+
+    get showChart()        { return this._showChart; }
+    get chartToggleLabel() { return this._showChart ? 'Hide Forecast' : 'Forecast'; }
+
+    handleToggleChart() { this._showChart = !this._showChart; }
+
+    handlePrevWeek() {
+        if (this._selectedWeek > 0) this._selectedWeek = this._selectedWeek - 1;
+    }
+    handleNextWeek() {
+        if (this._selectedWeek < 23) this._selectedWeek = this._selectedWeek + 1;
+    }
+
+    _getWeekStart(n) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;  // back to Monday
+        d.setDate(d.getDate() + diff + n * 7);
+        return d;
+    }
+
+    _demandForWeek(weekStart) {
+        const fteIds = new Set((this._raw.fteRows || []).map(f => f.id));
+        return (this._raw.projectCards || [])
+            .filter(p => !p.isBlock && (fteIds.has(p.ownerId) || fteIds.has(p.supportLeadId)))
+            .filter(p => !p.endDate || new Date(p.endDate) >= weekStart)
+            .reduce((s, p) => s + (p.weeklyPace || 0), 0);
+    }
+
+    _forecastForWeek(weekStart, baseDemand) {
+        const pipeAdded = (this._raw.pipelineShelf || [])
+            .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
+            .reduce((s, o) => s + (o.weeklyHrs || 0) * ((o.probability || 0) / 100), 0);
+        return baseDemand + pipeAdded;
+    }
+
+    get chartData() {
+        if (!this._raw || !this._showChart) return null;
+
+        const WEEKS = 24;
+        const SVG_W = 900, SVG_H = 220;
+        const ML = 42, MR = 16, MT = 14, MB = 44;
+        const CW = SVG_W - ML - MR;   // 842
+        const CH = SVG_H - MT - MB;   // 162
+
+        const capacity = (this._raw.fteRows || []).reduce((s, f) => {
+            return s + (f.weeklyTarget != null ? f.weeklyTarget : 35);
+        }, 0);
+
+        // Build per-week data
+        const weeks = [];
+        for (let i = 0; i < WEEKS; i++) {
+            const ws   = this._getWeekStart(i);
+            const dem  = this._demandForWeek(ws);
+            const fore = this._forecastForWeek(ws, dem);
+            weeks.push({
+                i, ws,
+                demand:   Math.round(dem  * 10) / 10,
+                forecast: Math.round(fore * 10) / 10,
+                dateLabel: `${ws.getMonth() + 1}/${ws.getDate()}`
+            });
+        }
+
+        const allVals = weeks.flatMap(w => [w.demand, w.forecast, capacity]);
+        const yMax = Math.ceil(Math.max(...allVals) / 20) * 20 || 140;
+
+        const xOf = i => ML + (i / (WEEKS - 1)) * CW;
+        const yOf = v => MT + CH - (Math.min(Math.max(v, 0), yMax) / yMax) * CH;
+
+        // Y-axis grid lines
+        const gridStep = yMax <= 80 ? 10 : yMax <= 160 ? 20 : 30;
+        const yGridLines = [];
+        for (let v = 0; v <= yMax; v += gridStep) {
+            yGridLines.push({ key: `yg${v}`, x1: ML, x2: ML + CW, y1: yOf(v), y2: yOf(v), lx: ML - 5, ly: yOf(v) + 3.5, v });
+        }
+
+        // Capacity flat line
+        const capY = yOf(capacity);
+
+        // Polylines
+        const demandPoints  = weeks.map(w => `${xOf(w.i).toFixed(1)},${yOf(w.demand).toFixed(1)}`).join(' ');
+        const forecastPoints = weeks.map(w => `${xOf(w.i).toFixed(1)},${yOf(w.forecast).toFixed(1)}`).join(' ');
+
+        // Dots
+        const demandDots   = weeks.map(w => ({ key: `dd${w.i}`, cx: xOf(w.i).toFixed(1), cy: yOf(w.demand).toFixed(1) }));
+        const forecastDots = weeks.map(w => ({ key: `fd${w.i}`, cx: xOf(w.i).toFixed(1), cy: yOf(w.forecast).toFixed(1) }));
+
+        // X-axis labels (every 3 weeks)
+        const xLabels = [];
+        for (let i = 0; i < WEEKS; i += 3) {
+            xLabels.push({ key: `xl${i}`, x: xOf(i).toFixed(1), y: MT + CH + 13, label: weeks[i].dateLabel });
+        }
+
+        // Utilization % labels (every other week)
+        const utilLabels = [];
+        for (let i = 0; i < WEEKS; i += 2) {
+            const diff  = capacity > 0 ? Math.round(weeks[i].demand / capacity * 100) - 100 : 0;
+            const label = diff > 0 ? `+${diff}%` : `${diff}%`;
+            utilLabels.push({
+                key: `ul${i}`, x: xOf(i).toFixed(1), y: MT + CH + 28,
+                label,
+                color: diff > 0 ? '#ef4444' : diff < 0 ? '#22c55e' : '#475569'
+            });
+        }
+
+        // Project end markers
+        const endMarkers = [];
+        for (const p of (this._raw.projectCards || [])) {
+            if (!p.endDate || p.isBlock) continue;
+            const end = new Date(p.endDate);
+            for (let i = 1; i < WEEKS; i++) {
+                const ws = weeks[i].ws;
+                const we = new Date(ws); we.setDate(we.getDate() + 6);
+                if (end >= ws && end <= we) {
+                    endMarkers.push({ key: `em${p.id}`, x: xOf(i).toFixed(1), y1: MT, y2: MT + CH });
+                    break;
+                }
+            }
+        }
+
+        // Selected week
+        const sel   = Math.min(this._selectedWeek, WEEKS - 1);
+        const selW  = weeks[sel];
+        const selUtil = capacity > 0 ? Math.round(selW.demand / capacity * 100) : 0;
+        const selNetBal = Math.round((capacity - selW.demand) * 10) / 10;
+
+        const wk4Util = capacity > 0 ? Math.round(weeks[3].demand / capacity * 100) : 0;
+        const wk8Util = capacity > 0 ? Math.round(weeks[7].demand / capacity * 100) : 0;
+
+        return {
+            viewBox: `0 0 ${SVG_W} ${SVG_H}`,
+            capY: capY.toFixed(1), capX1: ML, capX2: ML + CW,
+            chartLeft: ML, chartRight: ML + CW, chartTop: MT, chartBottom: MT + CH,
+            demandPoints, forecastPoints,
+            demandDots, forecastDots,
+            yGridLines, xLabels, utilLabels, endMarkers,
+            cursorX: xOf(sel).toFixed(1), cursorTop: MT, cursorBottom: MT + CH,
+            selDate:    selW.dateLabel,
+            selDemand:  selW.demand,
+            selUtil,    selUtilOver: selUtil > 100,
+            selNetBal,  selNetOver:  selNetBal < 0,
+            selNetStr:  `${selNetBal >= 0 ? '+' : ''}${selNetBal}h`,
+            wk4Util,    wk4Over: wk4Util > 100,
+            wk8Util,    wk8Over: wk8Util > 100,
+            weekLabel:  `Week ${sel + 1} of ${WEEKS} — ${selW.dateLabel}`,
+            cannotPrev: sel <= 0,
+            cannotNext: sel >= WEEKS - 1
+        };
+    }
 
     // ── Drag & Drop ───────────────────────────────────────────────────────────
 
