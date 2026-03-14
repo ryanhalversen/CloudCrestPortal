@@ -387,7 +387,8 @@
     min-width: 52px;
     text-align: right;
 }
-.breakdown-date--overdue { color: #ef4444; }
+.breakdown-date--overdue  { color: #ef4444; }
+.breakdown-date--upcoming { color: #64748b; }
 .breakdown-sort-btn {
     font-size: 9px;
     font-weight: 600;

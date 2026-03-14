@@ -535,15 +535,26 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const mkCls = f => `breakdown-sort-btn${this._breakdownSort === f ? ' breakdown-sort-btn--active' : ''}`;
 
         const pipeline = (this._raw.pipelineShelf || [])
-            .filter(o => o.expectedStart && new Date(o.expectedStart) <= weekStart)
-            .map(o => ({
-                id:            o.id,
-                name:          o.name,
-                client:        o.client,
-                weeklyHrs:     this._round((o.weeklyHrs || 0) * ((o.probability || 0) / 100)),
-                probability:   o.probability || 0,
-                expectedStart: o.expectedStart || '—'
-            }));
+            .map(o => {
+                const started = o.expectedStart && new Date(o.expectedStart) <= weekStart;
+                return {
+                    id:            o.id,
+                    name:          o.name,
+                    client:        o.client,
+                    weeklyHrs:     this._round((o.weeklyHrs || 0) * ((o.probability || 0) / 100)),
+                    probability:   o.probability || 0,
+                    expectedStart: o.expectedStart || '—',
+                    started,
+                    startCls:      started ? 'breakdown-date' : 'breakdown-date breakdown-date--upcoming'
+                };
+            })
+            .sort((a, b) => {
+                // started opps first, then by start date
+                if (a.started !== b.started) return a.started ? -1 : 1;
+                const da = a.expectedStart === '—' ? Infinity : new Date(a.expectedStart).getTime();
+                const db = b.expectedStart === '—' ? Infinity : new Date(b.expectedStart).getTime();
+                return da - db;
+            });
 
         return {
             projects: sorted,
