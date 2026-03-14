@@ -183,7 +183,9 @@
                                     <template for:each={forecastBreakdown.projects} for:item="proj">
                                         <div key={proj.id} class="breakdown-row">
                                             <span class="breakdown-dot" style={proj.colorStyle}></span>
-                                            <span class="breakdown-name">{proj.name}</span>
+                                            <span class="breakdown-name card-name--link"
+                                                  data-record-id={proj.id}
+                                                  onclick={handleRecordClick}>{proj.name}</span>
                                             <template if:true={proj.isBlock}>
                                                 <span class="breakdown-block-lbl">Block</span>
                                             </template>
@@ -203,7 +205,9 @@
                                     <template if:true={forecastBreakdown.hasPipeline}>
                                         <template for:each={forecastBreakdown.pipeline} for:item="opp">
                                             <div key={opp.id} class="breakdown-row">
-                                                <span class="breakdown-name">{opp.name}</span>
+                                                <span class="breakdown-name card-name--link"
+                                                      data-record-id={opp.id}
+                                                      onclick={handleRecordClick}>{opp.name}</span>
                                                 <span class="breakdown-hrs">{opp.weeklyHrs}h/wk</span>
                                                 <span class="breakdown-prob">{opp.probability}%</span>
                                                 <span class="breakdown-date">{opp.expectedStart}</span>
