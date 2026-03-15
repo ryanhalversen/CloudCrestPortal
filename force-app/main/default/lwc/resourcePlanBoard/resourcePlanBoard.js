@@ -216,32 +216,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const pipeAssignments = this._assignments.filter(
             a => a.userId === fte.id && !a._deleted && a.assignmentType === 'Pipeline'
         );
-        const pipeCards = pipeAssignments
-            .filter(a => {
-                if (!planDate) return false; // current view: pipeline cards never show in FTE lanes
-                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-                return !_isOppActiveAt(opp, planDate); // not yet projected → stay as pipeline card
-            })
-            .map(a => {
-                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-                const isEditing = this._editCell?.assignmentId === a.id;
-                return {
-                    assignmentId: a.id,
-                    oppId:        a.opportunityId,
-                    recordId:     a.opportunityId,
-                    name:         opp?.name || a.opportunityId,
-                    client:       opp?.client || '',
-                    hoursPerWeek: a.hoursPerWeek || 0,
-                    stage:        opp?.stage || '',
-                    probability:  opp?.probability || 0,
-                    isPipeline:   true,
-                    canRemove:    true,
-                    isEditing,
-                    editValue:    isEditing ? this._editCell.value : a.hoursPerWeek,
-                    cardCls:      'plan-card plan-card--pipeline'
-                };
-            });
-
         // When projecting forward: pipeline opps active at planDate become projected cards
         const projectedCards = planDate ? pipeAssignments
             .filter(a => {
@@ -277,7 +251,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 };
             }) : [];
 
-        const allCards = [...cards, ...supportCards, ...pipeCards, ...projectedCards];
+        const allCards = [...cards, ...supportCards, ...projectedCards];
 
         // Gross project demand (FTE's share, excluding blocks)
         const alloc =
