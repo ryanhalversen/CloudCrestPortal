@@ -140,6 +140,7 @@ export default class StoryBoardPortal extends LightningElement {
             : 'modal-container';
     }
 
+    get isReadOnly()       { return true; }
     get showNormalModal()  { return !!(this.modalCard && !this._openedAttachment); }
     get hasAttachments()   { return this._attachments.length > 0; }
     get imgZoomStyle()     { return `width: ${this._imgZoom * 100}%; max-width: none; height: auto;`; }
