@@ -28,13 +28,22 @@
             </div>
         </div>
 
-        <!-- ── Epic Strip ── -->
-        <c-epic-management-panel
-            project-id={selectedProjectId}
-            selected-epic-id={selectedEpicId}
-            hide-controls={isReadOnly}
-            onepicselect={handleEpicSelect}>
-        </c-epic-management-panel>
+        <!-- ── Epic Strip (read-only) ── -->
+        <div class="epic-strip">
+            <span class="epic-strip-label">Epics</span>
+            <div class={allChipClass} onclick={handleAllEpics} title="Show all stories">
+                <span class="chip-label">All Stories</span>
+            </div>
+            <template for:each={epicList} for:item="e">
+                <div key={e.epicId}
+                     class={e.chipClass}
+                     data-id={e.epicId}
+                     onclick={handleEpicClick}
+                     title={e.name}>
+                    <div class="chip-name">{e.name}</div>
+                </div>
+            </template>
+        </div>
 
         <!-- ── Loading ── -->
         <template if:true={isLoading}>

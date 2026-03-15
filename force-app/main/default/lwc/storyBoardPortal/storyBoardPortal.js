@@ -2,9 +2,10 @@
 import { LightningElement, track, wire } from 'lwc';
 import { subscribe, MessageContext } from 'lightning/messageService';
 import PROJECT_SELECTED_CHANNEL from '@salesforce/messageChannel/ProjectSelected__c';
-import getStories     from '@salesforce/apex/StoryBoardPortalController.getStories';
-import getProjects    from '@salesforce/apex/StoryBoardPortalController.getProjects';
-import getAttachments from '@salesforce/apex/StoryBoardPortalController.getAttachments';
+import getStories        from '@salesforce/apex/StoryBoardPortalController.getStories';
+import getProjects       from '@salesforce/apex/StoryBoardPortalController.getProjects';
+import getAttachments    from '@salesforce/apex/StoryBoardPortalController.getAttachments';
+import getEpicsForProject from '@salesforce/apex/EpicManagementPanelController.getEpicsForProject';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 const PRIORITY_ORDER = { 'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, '': 4 };
@@ -57,6 +58,7 @@ export default class StoryBoardPortal extends LightningElement {
 
     @track selectedProjectId = null;
     @track selectedEpicId    = null;
+    @track _epics            = [];
     _selectedEpicName        = null;
 
     _wiredStoriesResult;
@@ -80,6 +82,12 @@ export default class StoryBoardPortal extends LightningElement {
         } else if (error) {
             console.error('Failed to load projects', error);
         }
+    }
+
+    // ── Epics Wire ────────────────────────────────────────────────────────
+    @wire(getEpicsForProject, { projectId: '$selectedProjectId' })
+    wiredEpics({ data }) {
+        if (data) this._epics = data;
     }
 
     // ── Message Service ───────────────────────────────────────────────────
@@ -140,7 +148,18 @@ export default class StoryBoardPortal extends LightningElement {
             : 'modal-container';
     }
 
-    get isReadOnly()       { return true; }
+    get epicList() {
+        return this._epics.map(e => ({
+            epicId:    e.epicId,
+            name:      e.name,
+            chipClass: 'epic-chip' + (e.epicId === this.selectedEpicId ? ' epic-chip-selected' : '')
+        }));
+    }
+
+    get allChipClass() {
+        return 'epic-chip epic-chip-all' + (!this.selectedEpicId ? ' epic-chip-selected' : '');
+    }
+
     get showNormalModal()  { return !!(this.modalCard && !this._openedAttachment); }
     get hasAttachments()   { return this._attachments.length > 0; }
     get imgZoomStyle()     { return `width: ${this._imgZoom * 100}%; max-width: none; height: auto;`; }
@@ -200,9 +219,16 @@ export default class StoryBoardPortal extends LightningElement {
         this.isLoading = true;
     }
 
-    handleEpicSelect(evt) {
-        this.selectedEpicId    = evt.detail.epicId   || null;
-        this._selectedEpicName = evt.detail.epicName || null;
+    handleEpicClick(e) {
+        const id = e.currentTarget.dataset.id;
+        this.selectedEpicId    = id || null;
+        this._selectedEpicName = this._epics.find(ep => ep.epicId === id)?.name || null;
+        this.isLoading = true;
+    }
+
+    handleAllEpics() {
+        this.selectedEpicId    = null;
+        this._selectedEpicName = null;
         this.isLoading = true;
     }
 
