@@ -3,6 +3,15 @@ public without sharing class StoryBoardPortalController {
     // ── Get Stories ───────────────────────────────────────────────────────
     @AuraEnabled(cacheable=true)
     public static List<Case> getStories(Id projectId, Id epicId) {
+        // Resolve the running user's Contact → Account
+        List<User> users = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        if (users.isEmpty() || users[0].ContactId == null) return new List<Case>();
+
+        List<Contact> contacts = [SELECT AccountId FROM Contact WHERE Id = :users[0].ContactId LIMIT 1];
+        if (contacts.isEmpty() || contacts[0].AccountId == null) return new List<Case>();
+
+        Id accountId = contacts[0].AccountId;
+
         String q =
             'SELECT Id, CaseNumber, Subject, Status, Priority, Type, Department__c, ' +
             'CreatedDate, Description, Projects__c, ' +
@@ -13,7 +22,8 @@ public without sharing class StoryBoardPortalController {
             'FROM Case';
 
         List<String> filters = new List<String>{
-            'Subject NOT IN (\'Meetings\', \'Project Management\', \'Helpdesk\')'
+            'Subject NOT IN (\'Meetings\', \'Project Management\', \'Helpdesk\')',
+            'Projects__c IN (SELECT Id FROM Sprint__c WHERE Accountlu__c = \'' + accountId + '\' AND Status__c = \'In Progress\')'
         };
         if (projectId != null) {
             filters.add('Projects__c = \'' + projectId + '\'');

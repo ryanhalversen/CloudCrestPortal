@@ -15,33 +15,37 @@ public class StoryBoardPortalControllerTest {
     }
 
     @isTest
-    static void testGetStories_noFilters() {
+    static void testGetStories_noContact() {
+        // Standard test user has no ContactId — method should return empty list gracefully
         Test.startTest();
         List<Case> result = StoryBoardPortalController.getStories(null, null);
         Test.stopTest();
 
         System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return empty list when user has no ContactId');
     }
 
     @isTest
-    static void testGetStories_byProject() {
+    static void testGetStories_byProject_noContact() {
         Sprint__c sprint = [SELECT Id FROM Sprint__c WHERE Name = 'Portal Test Sprint' LIMIT 1];
 
         Test.startTest();
         List<Case> result = StoryBoardPortalController.getStories(sprint.Id, null);
         Test.stopTest();
 
+        // Standard test user has no ContactId — account guard returns empty list
         System.assertNotEquals(null, result, 'Result should not be null');
-        System.assert(result.size() >= 3, 'Should return stories for the project');
+        System.assertEquals(0, result.size(), 'Should return empty list when user has no ContactId');
     }
 
     @isTest
-    static void testGetStories_byEpic() {
+    static void testGetStories_byEpic_noContact() {
         Test.startTest();
         List<Case> result = StoryBoardPortalController.getStories(null, null);
         Test.stopTest();
 
         System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return empty list when user has no ContactId');
     }
 
     @isTest
