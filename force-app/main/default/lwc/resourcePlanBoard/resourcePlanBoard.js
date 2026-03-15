@@ -83,15 +83,22 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         try {
             const data = await getBoardData();
             this._raw  = data;
-            // Deduplicate assignments from server (guard against persisted duplicates)
+            // Deduplicate assignments from server; delete extra records in Salesforce
             const rawAssignments = (data.assignments || []).map(a => ({ ...a, _local: false, _deleted: false }));
             const seenKeys = new Set();
+            const duplicateIds = [];
             this._assignments = rawAssignments.filter(a => {
                 const key = `${a.contractorId||''}|${a.sprintId||''}|${a.userId||''}|${a.opportunityId||''}`;
-                if (seenKeys.has(key)) return false;
+                if (seenKeys.has(key)) {
+                    if (a.id && a.id.startsWith('0')) duplicateIds.push(a.id);
+                    return false;
+                }
                 seenKeys.add(key);
                 return true;
             });
+            for (const dupId of duplicateIds) {
+                deleteAssignment({ assignmentId: dupId }).catch(console.error);
+            }
             this.isLoading = false;
         } catch (e) {
             this.error    = e.body?.message || 'Failed to load board data.';
