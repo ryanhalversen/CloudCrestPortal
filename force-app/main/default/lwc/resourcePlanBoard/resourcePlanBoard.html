@@ -562,13 +562,18 @@
                             </div>
                         </template>
 
-                        <!-- Contractor Pool -->
-                        <template if:true={hasContractorPool}>
-                            <div class="cont-pool-section">
-                                <div class="cont-pool-header">
-                                    <span class="cont-pool-title">Contractor Pool</span>
-                                    <span class="cont-pool-hint">Drag to an FTE column or onto a project card</span>
+                        <!-- Resource Pool (Contractors + Pipeline) -->
+                        <div class="cont-pool-section">
+                            <div class="cont-pool-header">
+                                <div class="pool-tabs">
+                                    <button class={poolContractorCls} onclick={handlePoolTabContractor}>Contractor Pool</button>
+                                    <button class={poolPipelineCls}   onclick={handlePoolTabPipeline}>Pipeline</button>
                                 </div>
+                                <span class="cont-pool-hint">{poolHint}</span>
+                            </div>
+
+                            <!-- Contractor tab -->
+                            <template if:true={isPoolContractor}>
                                 <div class="cont-pool-cards">
                                     <template for:each={contractorPoolUnassigned} for:item="c">
                                         <div key={c.id} class={c.cardCls}
@@ -588,8 +593,35 @@
                                         </div>
                                     </template>
                                 </div>
-                            </div>
-                        </template>
+                            </template>
+
+                            <!-- Pipeline tab -->
+                            <template if:true={isPoolPipeline}>
+                                <div class="cont-pool-cards">
+                                    <template for:each={pipelinePoolCards} for:item="opp">
+                                        <div key={opp.id} class="pipe-pool-card"
+                                             draggable={opp.draggableStr}
+                                             data-drag-type="pipeline"
+                                             data-id={opp.id}
+                                             ondragstart={handleDragStart}
+                                             ondragend={handleDragEnd}>
+                                            <div class="pipe-pool-top">
+                                                <span class="pipe-pool-name">{opp.name}</span>
+                                                <span class={opp.probCls}>{opp.probability}%</span>
+                                            </div>
+                                            <span class="pipe-pool-client">{opp.client}</span>
+                                            <div class="pipe-pool-meta">
+                                                <span class="pipe-pool-start">{opp.expectedStart}</span>
+                                                <span class="pipe-pool-hrs">{opp.weeklyHrs}h/wk</span>
+                                            </div>
+                                            <template if:true={opp.isAssigned}>
+                                                <span class="cont-pool-assigned-lbl">{opp.assignedLabel}</span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
 
                     </div>
 

@@ -1447,7 +1447,7 @@
 }
 .cont-pool-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 12px;
     margin-bottom: 10px;
 }
@@ -1457,6 +1457,80 @@
     color: #a78bfa;
     text-transform: uppercase;
     letter-spacing: 0.07em;
+}
+
+/* Pool tab toggle */
+.pool-tabs {
+    display: flex;
+    gap: 4px;
+}
+.pool-tab-btn {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.pool-tab-btn:hover { color: #94a3b8; border-color: #475569; }
+.pool-tab-btn--active {
+    background: rgba(168,85,247,0.15);
+    border-color: rgba(168,85,247,0.5);
+    color: #a78bfa;
+}
+
+/* Pipeline pool cards */
+.pipe-pool-card {
+    background: #111827;
+    border: 1px dashed #334155;
+    border-radius: 8px;
+    padding: 8px 10px;
+    width: 185px;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: border-color 0.15s;
+    user-select: none;
+}
+.pipe-pool-card:hover { border-color: #22c55e; }
+.pipe-pool-card:active { cursor: grabbing; }
+
+.pipe-pool-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+}
+.pipe-pool-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1.3;
+    flex: 1;
+}
+.pipe-pool-client {
+    font-size: 10px;
+    color: #64748b;
+}
+.pipe-pool-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+}
+.pipe-pool-start {
+    font-size: 10px;
+    color: #475569;
+}
+.pipe-pool-hrs {
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
 }
 .cont-pool-hint {
     font-size: 10px;

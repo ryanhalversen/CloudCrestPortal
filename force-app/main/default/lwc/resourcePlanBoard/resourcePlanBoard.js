@@ -56,6 +56,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _chartMode          = 'demand'; // 'demand' | 'timeline'
     _drillFteId         = null;     // FTE id being drilled, or null
     _hodProjectsOpen    = false;    // HoD projects modal open
+    _poolTab            = 'contractor'; // 'contractor' | 'pipeline'
     _planOffset         = 0;        // weeks forward for plan projection
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
@@ -241,7 +242,6 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             })
             .map(a => {
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-                const endD = opp?.expectedEnd ? this._daysLeft2(opp.expectedEnd, planDate) : null;
                 return {
                     assignmentId:  `proj-${a.id}`,
                     projectId:     a.opportunityId,
@@ -616,6 +616,33 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     }
     get hasContractorPool() { return (this._raw?.contractorPool || []).length > 0; }
     get noUnassignedContractors() { return this.contractorPoolUnassigned.every(c => c.isAssigned); }
+    get isPoolContractor() { return this._poolTab === 'contractor'; }
+    get isPoolPipeline()   { return this._poolTab === 'pipeline'; }
+    get poolContractorCls() { return `pool-tab-btn${this._poolTab === 'contractor' ? ' pool-tab-btn--active' : ''}`; }
+    get poolPipelineCls()   { return `pool-tab-btn${this._poolTab === 'pipeline'   ? ' pool-tab-btn--active' : ''}`; }
+    get poolHint() {
+        return this._poolTab === 'contractor'
+            ? 'Drag to an FTE column or onto a project card'
+            : 'Drag onto an FTE column to assign pipeline';
+    }
+    get pipelinePoolCards() {
+        if (!this._raw) return [];
+        return (this._raw.pipelineShelf || []).map(o => {
+            const assignedCount = this._assignments.filter(a => a.opportunityId === o.id && !a._deleted).length;
+            return {
+                ...o,
+                assignedCount,
+                isAssigned:   assignedCount > 0,
+                assignedLabel: assignedCount > 0 ? `${assignedCount} FTE assigned` : '',
+                draggableStr: 'true',
+                probCls:      `prob-pill${(o.probability || 0) >= 70 ? ' prob-pill--high' : ''}`
+            };
+        });
+    }
+    get hasPipelinePool() { return (this._raw?.pipelineShelf || []).length > 0; }
+
+    handlePoolTabContractor() { this._poolTab = 'contractor'; this._refresh(); }
+    handlePoolTabPipeline()   { this._poolTab = 'pipeline';   this._refresh(); }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
 
