@@ -218,7 +218,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         );
         const pipeCards = pipeAssignments
             .filter(a => {
-                if (!planDate) return true;
+                if (!planDate) return false; // current view: pipeline cards never show in FTE lanes
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
                 return !_isOppActiveAt(opp, planDate); // not yet projected → stay as pipeline card
             })
