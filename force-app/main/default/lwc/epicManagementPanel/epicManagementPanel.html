@@ -23,7 +23,7 @@
                      onclick={handleEpicClick}
                      title={e.name}>
 
-                    <template if:false={readOnly}>
+                    <template if:false={hideControls}>
                         <a class="chip-record"
                            href={e.recordUrl}
                            target="_blank"
@@ -53,7 +53,7 @@
 
         <!-- New Epic button: hidden in read-only (portal) mode -->
         <template if:true={projectId}>
-            <template if:false={readOnly}>
+            <template if:false={hideControls}>
                 <button class="chip-add" onclick={handleNewClick}>+ New Epic</button>
             </template>
         </template>
@@ -131,7 +131,7 @@
                         </template>
 
                         <!-- Add milestone button (hidden in read-only mode) -->
-                        <template if:false={readOnly}>
+                        <template if:false={hideControls}>
                             <button class="tl-add-ms"
                                     data-id={ep.epicId}
                                     onclick={handleAddMilestone}
