@@ -6,6 +6,7 @@ import updateSprintOwner   from '@salesforce/apex/ResourcePlanningController.upd
 import upsertAssignment     from '@salesforce/apex/ResourcePlanningController.upsertAssignment';
 import deleteAssignment     from '@salesforce/apex/ResourcePlanningController.deleteAssignment';
 import batchSaveAssignments from '@salesforce/apex/ResourcePlanningController.batchSaveAssignments';
+import getMonthlyHours     from '@salesforce/apex/ResourcePlanningController.getMonthlyHours';
 
 const UNDO_LIMIT = 20;
 const URGENCY_LABEL = { critical: '< 2 wks', warning: '2–8 wks' };
@@ -55,6 +56,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _hoveredWeek        = null;     // { weekIdx, clientX, clientY }
     _chartMode          = 'demand'; // 'demand' | 'timeline'
     _drillFteId         = null;     // FTE id being drilled, or null
+    _monthlyHours       = [];       // WeekSlot[] for current drill FTE
     _hodProjectsOpen    = false;    // HoD projects modal open
     _poolTab            = 'contractor'; // 'contractor' | 'pipeline'
     _planOffset         = 0;        // weeks forward for plan projection
@@ -548,6 +550,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!this._drillFteId) return null;
         return this.fteTeamLanes.find(l => l.id === this._drillFteId) || null;
     }
+    get drillMonthLabel() {
+        return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    get drillMonthlyHours() { return this._monthlyHours; }
+    get hasDrillMonthlyHours() { return this._monthlyHours.length > 0; }
 
     // ── Plan Week Projection ─────────────────────────────────────────────────
 
@@ -1288,12 +1295,32 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     handleFteCardClick(e) {
         e.stopPropagation();
-        this._drillFteId = e.currentTarget.dataset.fteId;
+        const fteId = e.currentTarget.dataset.fteId;
+        this._drillFteId   = fteId;
+        this._monthlyHours = [];
         this._refresh();
+        // Load monthly hours for this FTE
+        const lane = this.fteTeamLanes.find(l => l.id === fteId);
+        const planned = lane ? (lane.alloc || 0) : 0;
+        getMonthlyHours({ userId: fteId, weeklyPlanned: planned })
+            .then(slots => {
+                this._monthlyHours = slots.map(s => {
+                    const pct   = Math.min(100, Math.round(((s.hours || 0) / 35) * 100));
+                    const color = s.isActual ? '#00b4d8' : '#334155';
+                    return {
+                        ...s,
+                        hoursLabel: `${s.hours}h`,
+                        barStyle:  `width:${pct}%;background:${color};`
+                    };
+                });
+                this._refresh();
+            })
+            .catch(console.error);
     }
 
     handleDrillClose() {
-        this._drillFteId = null;
+        this._drillFteId   = null;
+        this._monthlyHours = [];
         this._refresh();
     }
 

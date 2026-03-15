@@ -326,6 +326,87 @@ public with sharing class ResourcePlanningController {
         if (!toUpsert.isEmpty()) upsert toUpsert;
     }
 
+    // ── Monthly Hours ─────────────────────────────────────────────────────────
+
+    public class WeekSlot {
+        @AuraEnabled public String  weekLabel;    // e.g. "Mar 2 – 7"
+        @AuraEnabled public String  weekStart;    // ISO date string
+        @AuraEnabled public Boolean isPast;
+        @AuraEnabled public Boolean isCurrent;
+        @AuraEnabled public Decimal hours;        // actual (past) or planned (future/current)
+        @AuraEnabled public Boolean isActual;     // true = from Time__c, false = planned
+    }
+
+    @AuraEnabled
+    public static List<WeekSlot> getMonthlyHours(String userId, Decimal weeklyPlanned) {
+        Date today     = Date.today();
+        Date firstDay  = today.toStartOfMonth();
+        Date lastDay   = firstDay.addMonths(1).addDays(-1);
+
+        // Sum minutes logged per day for this user this month
+        Map<Date, Decimal> minsByDay = new Map<Date, Decimal>();
+        for (Time__c t : [
+            SELECT Logged_Date__c, Minutes_Logged__c
+            FROM Time__c
+            WHERE CreatedById = :userId
+            AND Logged_Date__c >= :firstDay
+            AND Logged_Date__c <= :lastDay
+        ]) {
+            Date d = t.Logged_Date__c;
+            Decimal m = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
+            minsByDay.put(d, (minsByDay.containsKey(d) ? minsByDay.get(d) : 0) + m);
+        }
+
+        // Build Mon-anchored week slots covering the month
+        // Find the Monday of the week containing firstDay
+        Integer firstDow = Math.mod(Date.newInstance(1900,1,1).daysBetween(firstDay), 7); // 0=Mon
+        Date cursor = firstDay.addDays(-firstDow); // Monday of first partial week
+
+        List<WeekSlot> slots = new List<WeekSlot>();
+        while (cursor <= lastDay) {
+            Date wMon = cursor;
+            Date wFri = cursor.addDays(4);
+            Date wEnd = cursor.addDays(6); // Sunday
+
+            // Does this week overlap the month?
+            if (wEnd >= firstDay && wMon <= lastDay) {
+                // Clamp to month boundaries for display
+                Date displayStart = wMon < firstDay ? firstDay : wMon;
+                Date displayEnd   = wFri > lastDay  ? lastDay  : wFri;
+
+                Boolean isPast    = wEnd < today;
+                Boolean isCurrent = !isPast && wMon <= today;
+
+                // Sum actual hours for the week (Mon–Sun)
+                Decimal totalMins = 0;
+                Date d2 = wMon;
+                while (d2 <= wEnd) {
+                    if (minsByDay.containsKey(d2)) totalMins += minsByDay.get(d2);
+                    d2 = d2.addDays(1);
+                }
+                Decimal actualHrs = (totalMins / 60).setScale(1);
+
+                WeekSlot ws  = new WeekSlot();
+                ws.weekStart = String.valueOf(wMon);
+                ws.isPast    = isPast;
+                ws.isCurrent = isCurrent;
+                ws.isActual  = isPast || isCurrent;
+                ws.hours     = isPast || isCurrent
+                    ? actualHrs
+                    : (weeklyPlanned != null ? weeklyPlanned.setScale(1) : 0);
+
+                // Label: "Mar 2 – 7" (using month of displayStart)
+                String[] MONTHS = new String[]{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
+                String mon = MONTHS[displayStart.month() - 1];
+                ws.weekLabel = mon + ' ' + displayStart.day() + ' – ' + displayEnd.day();
+
+                slots.add(ws);
+            }
+            cursor = cursor.addDays(7);
+        }
+        return slots;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static String initials(String name) {

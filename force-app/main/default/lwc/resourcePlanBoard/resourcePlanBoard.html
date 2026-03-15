@@ -800,6 +800,32 @@
                         </template>
                     </div>
 
+                    <!-- Monthly Hours -->
+                    <div class="fte-drill-sect-lbl drill-month-lbl">{drillMonthLabel}</div>
+                    <template if:true={hasDrillMonthlyHours}>
+                        <div class="drill-month-grid">
+                            <template for:each={drillMonthlyHours} for:item="ws">
+                                <div key={ws.weekStart} class="drill-week-row">
+                                    <span class="drill-week-label">{ws.weekLabel}</span>
+                                    <div class="drill-week-bar-track">
+                                        <div class="drill-week-bar-fill"
+                                             style={ws.barStyle}></div>
+                                    </div>
+                                    <span class="drill-week-hrs">{ws.hoursLabel}</span>
+                                    <template if:true={ws.isActual}>
+                                        <span class="drill-week-tag drill-week-tag--actual">Actual</span>
+                                    </template>
+                                    <template if:false={ws.isActual}>
+                                        <span class="drill-week-tag drill-week-tag--planned">Planned</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasDrillMonthlyHours}>
+                        <div class="drill-month-loading">Loading…</div>
+                    </template>
+
                     <!-- FTE-level contractors — bottom connection -->
                     <template if:true={drillFte.hasFteContractors}>
                         <div class="fte-drill-bottom-vline"></div>
