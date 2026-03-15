@@ -1,0 +1,386 @@
+<!-- force-app/main/default/lwc/storyBoardPortal/storyBoardPortal.html -->
+<template>
+    <div class="board-wrapper">
+
+        <!-- ── Header ── -->
+        <div class="board-header">
+            <div class="header-left">
+                <div class="header-icon">
+                    <lightning-icon icon-name="utility:kanban" size="small" style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                </div>
+                <div>
+                    <h2 class="board-title">Story Board</h2>
+                    <p class="board-subtitle">{totalCount} stories total</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <lightning-combobox
+                    name="projectFilter"
+                    variant="label-hidden"
+                    placeholder="All Projects"
+                    options={projectOptions}
+                    value={selectedProjectId}
+                    onchange={handleProjectChange}
+                    dropdown-alignment="right">
+                </lightning-combobox>
+            </div>
+        </div>
+
+        <!-- ── Epic Strip ── -->
+        <c-epic-management-panel
+            project-id={selectedProjectId}
+            selected-epic-id={selectedEpicId}
+            onepicselect={handleEpicSelect}>
+        </c-epic-management-panel>
+
+        <!-- ── Loading ── -->
+        <template if:true={isLoading}>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- ── Error ── -->
+        <template if:true={errorMessage}>
+            <div class="error-banner">
+                <lightning-icon icon-name="utility:error" size="x-small"></lightning-icon>
+                <span>{errorMessage}</span>
+            </div>
+        </template>
+
+        <!-- ── Board ── -->
+        <template if:false={isLoading}>
+            <div class="board-scroll">
+                <div class="board-columns">
+                    <template for:each={displayColumns} for:item="col">
+                        <div key={col.status}
+                             class="board-col"
+                             data-status={col.status}>
+                            <div class="col-header" style={col.headerStyle}>
+                                <div class="col-title-group" onclick={handleColSortClick} title="Click to change sort">
+                                    <span class="col-title">{col.status}</span>
+                                    <span class="col-sort-label">{colSortLabel}</span>
+                                </div>
+                                <div class="col-header-right">
+                                    <span class="col-badge">{col.count}</span>
+                                    <span class="col-est-hours">{col.estHoursLabel}</span>
+                                </div>
+                            </div>
+                            <div class="col-cards" data-status={col.status}>
+                                <template if:true={col.hasCards}>
+                                    <template for:each={col.cards} for:item="card">
+                                        <div key={card.id}
+                                             class={card.cardClass}
+                                             data-id={card.id}
+                                             data-status={col.status}
+                                             onclick={handleCardClick}>
+                                            <template if:true={card.hasSupportMessage}>
+                                                <div class="card-support-badge" title="Support message pending">!!</div>
+                                            </template>
+                                            <div class="card-subject">{card.subject}</div>
+                                            <div class="card-meta">
+                                                <span class={card.priorityClass}>{card.priority}</span>
+                                                <template if:true={card.type}>
+                                                    <span class="meta-type">{card.type}</span>
+                                                </template>
+                                                <template if:false={card.type}>
+                                                    <span class="meta-type meta-type-none">No Type</span>
+                                                </template>
+                                            </div>
+                                            <div class="card-footer">
+                                                <template if:true={card.estimatedHours}>
+                                                    <span class="card-est-hours">est {card.estimatedHours}h</span>
+                                                </template>
+                                                <template if:false={card.estimatedHours}>
+                                                    <span class="card-est-hours card-est-missing">est 0h</span>
+                                                </template>
+                                                <span class="card-date">{card.cardAge}</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={col.hasCards}>
+                                    <div class="col-empty" data-status={col.status}>No stories</div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Distribution Bar ── -->
+        <template if:false={isLoading}>
+            <div class="dist-bar-wrapper">
+                <div class="dist-bar-track">
+                    <template for:each={distBarSegments} for:item="seg">
+                        <div key={seg.status}
+                             class="dist-bar-segment"
+                             style={seg.style}
+                             title={seg.tooltip}>
+                        </div>
+                    </template>
+                </div>
+                <div class="dist-bar-legend">
+                    <template for:each={distBarLegend} for:item="item">
+                        <div key={item.status} class="legend-item" style={item.dimStyle}>
+                            <span class="legend-dot" style={item.dotStyle}></span>
+                            <span class="legend-status">{item.status}</span>
+                            <span class="legend-stats" style={item.statsStyle}>{item.statsLabel}</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Story Detail Modal (no viewer open) ── -->
+        <template if:true={showNormalModal}>
+            <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+                <div class={modalContainerClass} onclick={handleModalContainerClick}>
+                <div class="modal-story-pane">
+
+                    <!-- Header -->
+                    <div class="modal-header">
+                        <div class="modal-header-top">
+                            <div class="modal-header-id">
+                                <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                                <span class="modal-case-number">#{modalCard.caseNumber}</span>
+                                <template if:true={modalCard.type}>
+                                    <span class="meta-type">{modalCard.type}</span>
+                                </template>
+                            </div>
+                            <div class="modal-header-actions">
+                                <button class="modal-close" onclick={handleModalClose}>✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Owner · Project · Epic · Contact · Est. Hours -->
+                        <div class="modal-header-meta">
+                            <span class="modal-meta-label">Owner</span>
+                            <span class="modal-owner-name">{modalCard.ownerName}</span>
+
+                            <template if:true={modalCard.projectName}>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Project</span>
+                                <span class="modal-epic-name">{modalCard.projectName}</span>
+                            </template>
+
+                            <span class="modal-meta-sep">·</span>
+                            <span class="modal-meta-label">Epic</span>
+                            <span class="modal-epic-name">{modalEpicDisplay}</span>
+
+                            <template if:true={modalCard.contactName}>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Contact</span>
+                                <span class="modal-contact-name">{modalCard.contactName}</span>
+                            </template>
+
+                            <template if:true={modalCard.estimatedHours}>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Est.</span>
+                                <span class="modal-epic-name">{modalCard.estimatedHours}h</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="modal-body">
+
+                        <!-- Subject + Description -->
+                        <h3 class="modal-subject">{modalCard.subject}</h3>
+                        <template if:true={modalCard.description}>
+                            <p class="modal-description">{modalCard.description}</p>
+                        </template>
+                        <template if:false={modalCard.description}>
+                            <p class="modal-no-desc">No description provided.</p>
+                        </template>
+
+                        <!-- Priority / Status / Type -->
+                        <div class="priority-status-row">
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Priority</label>
+                                <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                            </div>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Status</label>
+                                <span class="modal-status-value">{modalCard.status}</span>
+                            </div>
+                            <template if:true={modalCard.type}>
+                                <div class="modal-field-row">
+                                    <label class="modal-field-label">Type</label>
+                                    <span class="meta-type">{modalCard.type}</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Solution -->
+                        <template if:true={modalCard.solution}>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Solution</label>
+                                <p class="modal-description">{modalCard.solution}</p>
+                            </div>
+                        </template>
+
+                        <!-- Components to Deploy -->
+                        <template if:true={modalCard.componentsToDeploy}>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Components to Deploy</label>
+                                <p class="modal-description">{modalCard.componentsToDeploy}</p>
+                            </div>
+                        </template>
+
+                        <!-- Q&A -->
+                        <template if:true={modalCard.qa}>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Q&amp;A</label>
+                                <p class="modal-description">{modalCard.qa}</p>
+                            </div>
+                        </template>
+
+                        <!-- Documentation -->
+                        <template if:true={modalCard.documentation}>
+                            <div class="modal-field-row">
+                                <label class="modal-field-label">Documentation</label>
+                                <p class="modal-description">{modalCard.documentation}</p>
+                            </div>
+                        </template>
+
+                        <!-- Closing Comments (only if closed/cancelled) -->
+                        <template if:true={isClosedStatus}>
+                            <template if:true={modalCard.closingComments}>
+                                <div class="modal-field-row modal-closing-comments-row">
+                                    <label class="modal-field-label">Closing Comments</label>
+                                    <p class="modal-closing-comments-text">{modalCard.closingComments}</p>
+                                </div>
+                            </template>
+                        </template>
+
+                    </div>
+
+                    <!-- Attachments (view + download only) -->
+                    <div class="attach-section">
+                        <div class="attach-section-header">
+                            <span class="attach-section-title">Attachments</span>
+                        </div>
+                        <template if:true={_isLoadingAttachments}>
+                            <div class="attach-empty">Loading…</div>
+                        </template>
+                        <template if:false={_isLoadingAttachments}>
+                            <template if:true={hasAttachments}>
+                                <div class="attach-list">
+                                    <template for:each={_attachments} for:item="a">
+                                        <div key={a.contentDocumentId} class="attach-chip">
+                                            <span class="attach-ext">{a.fileExtension}</span>
+                                            <span class="attach-name" title={a.title}>{a.title}</span>
+                                            <button class="attach-btn-open" data-id={a.contentDocumentId} onclick={handleOpenAttachment}>View</button>
+                                            <a class="attach-btn-dl" href={a.downloadUrl} target="_blank" onclick={handleAttachLinkClick}>↓</a>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                            <template if:false={hasAttachments}>
+                                <div class="attach-empty">No attachments.</div>
+                            </template>
+                        </template>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick={handleModalClose}>Close</button>
+                    </div>
+
+                </div><!-- end modal-story-pane -->
+                </div><!-- end modal-container -->
+            </div>
+        </template>
+
+        <!-- ── Story Modal WITH Attachment Viewer (side-by-side) ── -->
+        <template if:true={_openedAttachment}>
+            <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+                <div class="modal-container modal-container-with-viewer" onclick={handleModalContainerClick}>
+
+                    <!-- LEFT: Attachment Viewer -->
+                    <div class="modal-viewer-pane">
+                        <div class="viewer-topbar">
+                            <span class="viewer-title" title={_openedAttachment.title}>{_openedAttachment.title}</span>
+                            <div class="viewer-topbar-actions">
+                                <template if:true={_openedAttachment.isImage}>
+                                    <button class="btn-viewer-zoom" onclick={handleZoomOut}>−</button>
+                                    <span class="viewer-zoom-label" onclick={handleZoomReset}>{imgZoomLabel}</span>
+                                    <button class="btn-viewer-zoom" onclick={handleZoomIn}>+</button>
+                                </template>
+                                <a class="btn-viewer-dl" href={_openedAttachment.downloadUrl} target="_blank">⬇ Download</a>
+                                <button class="btn-viewer-close" onclick={handleCloseAttachmentViewer}>✕</button>
+                            </div>
+                        </div>
+                        <div class="viewer-body">
+                            <template if:true={_openedAttachment.isImage}>
+                                <img src={_openedAttachment.downloadUrl} class="viewer-img" style={imgZoomStyle} alt={_openedAttachment.title} />
+                            </template>
+                            <template if:false={_openedAttachment.isImage}>
+                                <iframe src={_openedAttachment.downloadUrl} class="viewer-iframe" title={_openedAttachment.title}></iframe>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Story pane (minimal, while viewer is open) -->
+                    <div class="modal-story-pane">
+                        <div class="modal-header">
+                            <div class="modal-header-top">
+                                <div class="modal-header-id">
+                                    <span class={modalCard.priorityClass}>{modalCard.priority}</span>
+                                    <span class="modal-case-number">#{modalCard.caseNumber}</span>
+                                    <template if:true={modalCard.type}>
+                                        <span class="meta-type">{modalCard.type}</span>
+                                    </template>
+                                </div>
+                                <div class="modal-header-actions">
+                                    <button class="btn-viewer-close" onclick={handleCloseAttachmentViewer} title="Back to normal view">← Back</button>
+                                    <button class="modal-close" onclick={handleModalClose}>✕</button>
+                                </div>
+                            </div>
+                            <div class="modal-header-meta">
+                                <span class="modal-meta-label">Project</span>
+                                <span class="modal-epic-name">{modalCard.projectName}</span>
+                                <span class="modal-meta-sep">·</span>
+                                <span class="modal-meta-label">Status</span>
+                                <span class="modal-epic-name">{modalCard.status}</span>
+                            </div>
+                        </div>
+                        <div style="padding: 16px 20px; flex:1; overflow-y:auto;">
+                            <h3 style="font-size:1rem; font-weight:700; color:#111827; margin:0 0 8px;">{modalCard.subject}</h3>
+                            <p style="font-size:0.85rem; color:#4b5563; margin:0 0 16px;">{modalCard.description}</p>
+                            <div style="display:flex; flex-direction:column; gap:10px;">
+                                <template if:true={modalCard.solution}>
+                                    <div class="modal-field-row">
+                                        <label class="modal-field-label">Solution</label>
+                                        <p class="modal-description">{modalCard.solution}</p>
+                                    </div>
+                                </template>
+                                <template if:true={modalCard.componentsToDeploy}>
+                                    <div class="modal-field-row">
+                                        <label class="modal-field-label">Components to Deploy</label>
+                                        <p class="modal-description">{modalCard.componentsToDeploy}</p>
+                                    </div>
+                                </template>
+                                <template if:true={modalCard.qa}>
+                                    <div class="modal-field-row">
+                                        <label class="modal-field-label">Q&amp;A</label>
+                                        <p class="modal-description">{modalCard.qa}</p>
+                                    </div>
+                                </template>
+                                <template if:true={modalCard.documentation}>
+                                    <div class="modal-field-row">
+                                        <label class="modal-field-label">Documentation</label>
+                                        <p class="modal-description">{modalCard.documentation}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+    </div>
+</template>
