@@ -119,6 +119,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _getPlanDate() {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
+        // Snap to Monday of the current week, then step forward by offset weeks
+        const dow = d.getDay(); // 0=Sun, 1=Mon … 6=Sat
+        d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // rewind to Monday
         d.setDate(d.getDate() + this._planOffset * 7);
         return d;
     }
@@ -550,11 +553,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get planWeekLabel() {
         if (this._planOffset === 0) return 'Current';
         const d = this._getPlanDate();
-        return `+${this._planOffset}w · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        return `+${this._planOffset}w · Mon ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
     get planBannerLabel() {
         const d = this._getPlanDate();
-        return `Projected plan: week of ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+        return `Projected plan: week of ${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`;
     }
 
     handlePlanPrev() { if (this._planOffset > 0) { this._planOffset--; this._refresh(); } }
