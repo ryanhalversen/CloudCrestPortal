@@ -42,11 +42,12 @@ const STATUS_MAP = {
 
 export default class StoryBoardPortal extends LightningElement {
 
-    @track columns        = [];
-    @track isLoading      = true;
-    @track colSortMode    = 'priority-asc';
-    @track errorMessage   = '';
-    @track projectOptions = [];
+    @track columns             = [];
+    @track isLoading           = true;
+    @track colSortMode         = 'priority-asc';
+    @track errorMessage        = '';
+    @track projectOptions      = [];
+    @track showProjectDropdown = false;
 
     @track modalCard             = null;
     @track _attachments          = [];
@@ -65,13 +66,17 @@ export default class StoryBoardPortal extends LightningElement {
     @wire(getProjects)
     wiredProjects({ data, error }) {
         if (data) {
-            this.projectOptions = [
-                { label: 'All Projects', value: '' },
-                ...data.map(p => ({ label: p.Name, value: p.Id }))
-            ];
-            if (data.length > 0) {
-                this.selectedProjectId = data[0].Id;
+            if (data.length === 1) {
+                // Single project — auto-select and hide the dropdown
+                this.selectedProjectId    = data[0].Id;
+                this.showProjectDropdown  = false;
+            } else if (data.length > 1) {
+                // Multiple projects — show dropdown scoped to the user's account
+                this.projectOptions       = data.map(p => ({ label: p.Name, value: p.Id }));
+                this.selectedProjectId    = data[0].Id;
+                this.showProjectDropdown  = true;
             }
+            // data.length === 0: no matching projects — board stays empty
         } else if (error) {
             console.error('Failed to load projects', error);
         }

@@ -29,13 +29,22 @@ public without sharing class StoryBoardPortalController {
         return Database.query(q);
     }
 
-    // ── Get Projects ──────────────────────────────────────────────────────
+    // ── Get Projects (scoped to the portal user's Account) ───────────────
     @AuraEnabled(cacheable=true)
     public static List<Sprint__c> getProjects() {
+        // Resolve the running user's Contact → Account
+        List<User> users = [SELECT ContactId FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        if (users.isEmpty() || users[0].ContactId == null) return new List<Sprint__c>();
+
+        List<Contact> contacts = [SELECT AccountId FROM Contact WHERE Id = :users[0].ContactId LIMIT 1];
+        if (contacts.isEmpty() || contacts[0].AccountId == null) return new List<Sprint__c>();
+
+        Id accountId = contacts[0].AccountId;
         return [
             SELECT Id, Name, OwnerId
             FROM Sprint__c
-            WHERE Status__c = 'In Progress'
+            WHERE Accountlu__c = :accountId
+            AND   Status__c    = 'In Progress'
             ORDER BY Name ASC
             LIMIT 100
         ];

@@ -14,15 +14,17 @@
                 </div>
             </div>
             <div class="header-right">
-                <lightning-combobox
-                    name="projectFilter"
-                    variant="label-hidden"
-                    placeholder="All Projects"
-                    options={projectOptions}
-                    value={selectedProjectId}
-                    onchange={handleProjectChange}
-                    dropdown-alignment="right">
-                </lightning-combobox>
+                <template if:true={showProjectDropdown}>
+                    <lightning-combobox
+                        name="projectFilter"
+                        variant="label-hidden"
+                        placeholder="Select Project"
+                        options={projectOptions}
+                        value={selectedProjectId}
+                        onchange={handleProjectChange}
+                        dropdown-alignment="right">
+                    </lightning-combobox>
+                </template>
             </div>
         </div>
 

@@ -45,13 +45,14 @@ public class StoryBoardPortalControllerTest {
     }
 
     @isTest
-    static void testGetProjects() {
+    static void testGetProjects_noContact() {
+        // Standard test user has no ContactId — method should return empty list gracefully
         Test.startTest();
         List<Sprint__c> result = StoryBoardPortalController.getProjects();
         Test.stopTest();
 
         System.assertNotEquals(null, result, 'Result should not be null');
-        System.assert(result.size() >= 1, 'Should return at least the test sprint');
+        System.assertEquals(0, result.size(), 'Should return empty list when user has no ContactId');
     }
 
     @isTest
