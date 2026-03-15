@@ -265,11 +265,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             projectedCards.reduce((s, c) => s + (c.hoursPerWeek || 0), 0);
 
         // Contractor hours offsetting this FTE's project demand
-        const ownedIds   = new Set(ownedProjects.map(p => p.id));
-        const supportIds = new Set(supportProjects.map(p => p.id));
+        const ownedIds       = new Set(ownedProjects.map(p => p.id));
+        const supportIds     = new Set(supportProjects.map(p => p.id));
+        const projectedOppIds = new Set(projectedCards.map(c => c.projectId));
         const contrOffset = this._assignments
-            .filter(a => a.contractorId && a.sprintId && !a.userId && !a._deleted)
-            .filter(a => ownedIds.has(a.sprintId) || supportIds.has(a.sprintId))
+            .filter(a => a.contractorId && !a.userId && !a._deleted)
+            .filter(a =>
+                (a.sprintId && (ownedIds.has(a.sprintId) || supportIds.has(a.sprintId))) ||
+                (a.opportunityId && projectedOppIds.has(a.opportunityId))
+            )
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
 
         const grossAlloc  = Math.round(alloc * 10) / 10;
@@ -1218,30 +1222,57 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         this._cardDropTarget = null;
         if (this._drag?.type !== 'contractor') return;
 
-        const sprintId = e.currentTarget.dataset.projectId;
-        const contId   = this._drag.id;
-        const cont     = (this._raw.contractorPool || []).find(c => c.id === contId);
-        if (!cont || !sprintId) return;
+        const projectId   = e.currentTarget.dataset.projectId;
+        const isProjected = e.currentTarget.dataset.isProjected === 'true';
+        const contId      = this._drag.id;
+        const cont        = (this._raw.contractorPool || []).find(c => c.id === contId);
+        if (!cont || !projectId) return;
 
-        if (!this._assignments.some(a => a.contractorId === contId && a.sprintId === sprintId && !a._deleted)) {
-            this._pushUndo();
-            const newA = {
-                id:             `tmp-${this._tempId++}`,
-                sprintId,
-                userId:         null,
-                contractorId:   contId,
-                opportunityId:  null,
-                hoursPerWeek:   10,
-                role:           'Contractor',
-                assignmentType: 'Active',
-                isDerived:      false,
-                _local:         true,
-                _deleted:       false
-            };
-            this._assignments = [...this._assignments, newA];
-            this._recordOp({ action: 'add-contractor', contractorId: contId, sprintId });
-            this._autoSave(newA);
-            this._refresh();
+        if (isProjected) {
+            // Contractor dropped on a projected opportunity card
+            if (!this._assignments.some(a => a.contractorId === contId && a.opportunityId === projectId && !a._deleted)) {
+                this._pushUndo();
+                const newA = {
+                    id:             `tmp-${this._tempId++}`,
+                    sprintId:       null,
+                    userId:         null,
+                    contractorId:   contId,
+                    opportunityId:  projectId,
+                    hoursPerWeek:   10,
+                    role:           'Contractor',
+                    assignmentType: 'Active',
+                    isDerived:      false,
+                    _local:         true,
+                    _deleted:       false
+                };
+                this._assignments = [...this._assignments, newA];
+                this._recordOp({ action: 'add-contractor-proj', contractorId: contId, opportunityId: projectId });
+                this._autoSave(newA);
+                this._refresh();
+            }
+        } else {
+            // Contractor dropped on an active sprint card
+            const sprintId = projectId;
+            if (!this._assignments.some(a => a.contractorId === contId && a.sprintId === sprintId && !a._deleted)) {
+                this._pushUndo();
+                const newA = {
+                    id:             `tmp-${this._tempId++}`,
+                    sprintId,
+                    userId:         null,
+                    contractorId:   contId,
+                    opportunityId:  null,
+                    hoursPerWeek:   10,
+                    role:           'Contractor',
+                    assignmentType: 'Active',
+                    isDerived:      false,
+                    _local:         true,
+                    _deleted:       false
+                };
+                this._assignments = [...this._assignments, newA];
+                this._recordOp({ action: 'add-contractor', contractorId: contId, sprintId });
+                this._autoSave(newA);
+                this._refresh();
+            }
         }
     }
 
