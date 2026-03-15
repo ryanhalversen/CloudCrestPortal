@@ -42,8 +42,8 @@
 /* ── Header ────────────────────────────────────────────────────────────────── */
 .plan-header {
     flex-shrink: 0;
-    border-bottom: 1px solid #1e293b;
-    background: #0f172a;
+    border-bottom: 1px solid #1a1a1a;
+    background: #000;
 }
 
 .plan-title-row {
@@ -80,8 +80,8 @@
 }
 
 .ctrl-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #334155;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #2a2a2a;
     color: #94a3b8;
     font-size: 12px;
     font-weight: 500;
@@ -91,7 +91,7 @@
     transition: all 0.15s;
     white-space: nowrap;
 }
-.ctrl-btn:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+.ctrl-btn:hover { background: rgba(255,255,255,0.09); color: #e2e8f0; }
 .ctrl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .ctrl-btn--undo     { color: #00b4d8; border-color: rgba(0,180,216,0.3); }
@@ -150,7 +150,8 @@
     display: flex;
     padding: 10px 20px;
     gap: 0;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid #1a1a1a;
+    background: #000;
 }
 
 .board-kpi {
@@ -159,7 +160,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 0 16px;
-    border-left: 1px solid #1e293b;
+    border-left: 1px solid #222;
 }
 .board-kpi:first-child { border-left: none; padding-left: 0; }
 
@@ -195,8 +196,8 @@
 /* ── Forecast Chart ────────────────────────────────────────────────────────── */
 .forecast-section {
     flex-shrink: 0;
-    border-bottom: 1px solid #1e293b;
-    background: #0a1628;
+    border-bottom: 1px solid #1a1a1a;
+    background: #000;
     padding: 8px 0 0;
 }
 
@@ -225,8 +226,8 @@
 }
 
 .step-btn {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #334155;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #2a2a2a;
     color: #94a3b8;
     font-size: 13px;
     width: 24px;
@@ -306,14 +307,15 @@
     display: flex;
     gap: 0;
     padding: 8px 16px 12px;
-    border-top: 1px solid #1e293b;
+    border-top: 1px solid #1a1a1a;
+    background: #000;
 }
 .breakdown-col {
     flex: 1;
     min-width: 0;
 }
 .breakdown-col--pipe {
-    border-left: 1px solid #1e293b;
+    border-left: 1px solid #1a1a1a;
     padding-left: 14px;
     margin-left: 14px;
 }
@@ -339,7 +341,7 @@
     align-items: center;
     gap: 7px;
     padding: 4px 0;
-    border-bottom: 1px solid rgba(30,41,59,0.6);
+    border-bottom: 1px solid rgba(40,40,40,0.8);
     font-size: 11px;
 }
 .breakdown-row:last-child { border-bottom: none; }
