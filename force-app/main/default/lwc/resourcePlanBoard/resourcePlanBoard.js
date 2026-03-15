@@ -56,6 +56,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _chartMode          = 'demand'; // 'demand' | 'timeline'
     _drillFteId         = null;     // FTE id being drilled, or null
     _hodProjectsOpen    = false;    // HoD projects modal open
+    _planOffset         = 0;        // weeks forward for plan projection
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -110,16 +111,30 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     get lanes() {
         if (!this._raw) return [];
-        return (this._raw.fteRows || []).map(fte => this._buildLane(fte));
+        const planDate = this._planOffset > 0 ? this._getPlanDate() : null;
+        return (this._raw.fteRows || []).map(fte => this._buildLane(fte, planDate));
     }
 
-    _buildLane(fte) {
+    _getPlanDate() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + this._planOffset * 7);
+        return d;
+    }
+
+    _buildLane(fte, planDate = null) {
         // Project cards: Sprint__c records owned by this FTE
-        const ownedProjects = (this._raw.projectCards || []).filter(p => p.ownerId === fte.id);
+        let ownedProjects = (this._raw.projectCards || []).filter(p => p.ownerId === fte.id);
         // Projects where this FTE is the support lead
-        const supportProjects = (this._raw.projectCards || []).filter(
+        let supportProjects = (this._raw.projectCards || []).filter(
             p => p.supportLeadId === fte.id
         );
+
+        // When projecting forward, hide projects that have already ended
+        if (planDate) {
+            ownedProjects   = ownedProjects.filter(p => !p.endDate || new Date(p.endDate) >= planDate);
+            supportProjects = supportProjects.filter(p => !p.endDate || new Date(p.endDate) >= planDate);
+        }
 
         const cards = ownedProjects.map(proj => {
             const splitPct   = (proj.supportLeadId && proj.supportSplit) ? proj.supportSplit / 100 : 0;
@@ -188,30 +203,75 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             };
         });
 
-        // Pipeline cards from RA records
-        const pipeCards = this._assignments.filter(
+        // Pipeline cards — split into still-pipeline vs projected-active
+        const pipeAssignments = this._assignments.filter(
             a => a.userId === fte.id && !a._deleted && a.assignmentType === 'Pipeline'
-        ).map(a => {
-            const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-            const isEditing = this._editCell?.assignmentId === a.id;
-            return {
-                assignmentId: a.id,
-                oppId:        a.opportunityId,
-                recordId:     a.opportunityId,
-                name:         opp?.name || a.opportunityId,
-                client:       opp?.client || '',
-                hoursPerWeek: a.hoursPerWeek || 0,
-                stage:        opp?.stage || '',
-                probability:  opp?.probability || 0,
-                isPipeline:   true,
-                canRemove:    true,
-                isEditing,
-                editValue:    isEditing ? this._editCell.value : a.hoursPerWeek,
-                cardCls:      'plan-card plan-card--pipeline'
-            };
-        });
+        );
+        const pipeCards = pipeAssignments
+            .filter(a => {
+                if (!planDate) return true;
+                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
+                return !opp?.expectedStart || new Date(opp.expectedStart) > planDate;
+            })
+            .map(a => {
+                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
+                const isEditing = this._editCell?.assignmentId === a.id;
+                return {
+                    assignmentId: a.id,
+                    oppId:        a.opportunityId,
+                    recordId:     a.opportunityId,
+                    name:         opp?.name || a.opportunityId,
+                    client:       opp?.client || '',
+                    hoursPerWeek: a.hoursPerWeek || 0,
+                    stage:        opp?.stage || '',
+                    probability:  opp?.probability || 0,
+                    isPipeline:   true,
+                    canRemove:    true,
+                    isEditing,
+                    editValue:    isEditing ? this._editCell.value : a.hoursPerWeek,
+                    cardCls:      'plan-card plan-card--pipeline'
+                };
+            });
 
-        const allCards = [...cards, ...supportCards, ...pipeCards];
+        // When projecting forward: pipeline opps that would have started become projected cards
+        const projectedCards = planDate ? pipeAssignments
+            .filter(a => {
+                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
+                return opp?.expectedStart && new Date(opp.expectedStart) <= planDate;
+            })
+            .map(a => {
+                const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
+                const endD = opp?.expectedEnd ? this._daysLeft2(opp.expectedEnd, planDate) : null;
+                return {
+                    assignmentId:  `proj-${a.id}`,
+                    projectId:     a.opportunityId,
+                    recordId:      a.opportunityId,
+                    name:          opp?.name || a.opportunityId,
+                    client:        opp?.client || '',
+                    hoursPerWeek:  a.hoursPerWeek || 0,
+                    isBlock:       false,
+                    remainingHours: null,
+                    showRemaining:  false,
+                    endDate:       opp?.expectedEnd || '—',
+                    urgency:       '',
+                    urgencyLabel:  '',
+                    urgencyCls:    '',
+                    showUrgency:   false,
+                    color:         '#6366f1',
+                    colorStyle:    'border-left-color:#6366f1;',
+                    cardCls:       `plan-card plan-card--${this._viewMode} plan-card--projected`,
+                    chips:         [],
+                    hasChips:      false,
+                    isPipeline:    false,
+                    isProjected:   true,
+                    isSupport:     false,
+                    canRemove:     false
+                };
+            }) : [];
+
+        const allCards = [...cards, ...supportCards, ...pipeCards, ...projectedCards];
+
+        // Gross project demand (FTE's share, excluding blocks)
         const alloc =
             ownedProjects.filter(p => !p.isBlock).reduce((s, p) => {
                 const splitPct = (p.supportLeadId && p.supportSplit) ? p.supportSplit / 100 : 0;
@@ -219,28 +279,53 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             }, 0) +
             supportProjects.filter(p => !p.isBlock).reduce((s, p) => {
                 return s + (p.weeklyPace || 0) * ((p.supportSplit || 0) / 100);
-            }, 0);
-        const cap      = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
-        const pct      = cap > 0 ? (alloc / cap) * 100 : 0;
-        const barPct   = Math.min(pct, 100);
-        const barColor = pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
+            }, 0) +
+            projectedCards.reduce((s, c) => s + (c.hoursPerWeek || 0), 0);
+
+        // Contractor hours offsetting this FTE's project demand
+        const ownedIds   = new Set(ownedProjects.map(p => p.id));
+        const supportIds = new Set(supportProjects.map(p => p.id));
+        const contrOffset = this._assignments
+            .filter(a => a.contractorId && a.sprintId && !a.userId && !a._deleted)
+            .filter(a => ownedIds.has(a.sprintId) || supportIds.has(a.sprintId))
+            .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
+
+        const grossAlloc = Math.round(alloc * 10) / 10;
+        const netAlloc   = Math.round(Math.max(0, alloc - contrOffset) * 10) / 10;
+        const cap        = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
+        const pct        = cap > 0 ? (netAlloc / cap) * 100 : 0;
+        const barPct     = Math.min(pct, 100);
+        const barColor   = pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
+        const hasContr   = contrOffset > 0;
 
         return {
             ...fte,
             cards:       allCards,
             hasCards:    allCards.length > 0,
-            alloc:       Math.round(alloc * 10) / 10,
+            alloc:       grossAlloc,
+            contrOffset: Math.round(contrOffset * 10) / 10,
+            netAlloc,
+            hasContrOffset: hasContr,
             cap,
             pct:         Math.round(pct),
-            isOver:      alloc > cap,
+            isOver:      netAlloc > cap,
             barStyle:    `width:${barPct}%;background:${barColor};`,
-            utilLabel:   `${Math.round(alloc * 10) / 10}h / ${cap}h`,
-            availLabel:  alloc <= cap
-                ? `${Math.round((cap - alloc) * 10) / 10}h available`
-                : `${Math.round((alloc - cap) * 10) / 10}h over`,
+            utilLabel:   hasContr ? `${netAlloc}h / ${cap}h` : `${grossAlloc}h / ${cap}h`,
+            availLabel:  netAlloc <= cap
+                ? `${Math.round((cap - netAlloc) * 10) / 10}h available`
+                : `${Math.round((netAlloc - cap) * 10) / 10}h over`,
+            contrLabel:  hasContr ? `-${Math.round(contrOffset * 10) / 10}h contractor` : '',
+            grossLabel:  hasContr ? `${grossAlloc}h gross demand` : '',
             laneCls:     `plan-lane${this._dropTarget === fte.id ? ' plan-lane--over' : ''}`,
             isCompact:   this._viewMode === 'compact'
         };
+    }
+
+    _daysLeft2(dateStr, fromDate) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return null;
+        return Math.round((d - fromDate) / 86400000);
     }
 
     _contractorChipsForProject(sprintId) {
@@ -468,6 +553,23 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         if (!this._drillFteId) return null;
         return this.fteTeamLanes.find(l => l.id === this._drillFteId) || null;
     }
+
+    // ── Plan Week Projection ─────────────────────────────────────────────────
+
+    get isPlanCurrent()  { return this._planOffset === 0; }
+    get isPlanFuture()   { return this._planOffset > 0; }
+    get planWeekLabel() {
+        if (this._planOffset === 0) return 'Current';
+        const d = this._getPlanDate();
+        return `+${this._planOffset}w · ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    }
+    get planBannerLabel() {
+        const d = this._getPlanDate();
+        return `Projected plan: week of ${d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+    }
+
+    handlePlanPrev() { if (this._planOffset > 0) { this._planOffset--; this._refresh(); } }
+    handlePlanNext() { if (this._planOffset < 52) { this._planOffset++; this._refresh(); } }
 
     // ── HoD Projects ─────────────────────────────────────────────────────────
 

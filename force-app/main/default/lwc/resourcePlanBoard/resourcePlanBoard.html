@@ -306,6 +306,16 @@
                     <!-- Org Chart Tree -->
                     <div class="org-tree">
 
+                        <!-- Plan Week Stepper -->
+                        <div class="plan-week-bar">
+                            <button class="plan-week-btn" onclick={handlePlanPrev} disabled={isPlanCurrent}>&#8592;</button>
+                            <span class="plan-week-label">{planWeekLabel}</span>
+                            <button class="plan-week-btn" onclick={handlePlanNext}>&#8594;</button>
+                        </div>
+                        <template if:true={isPlanFuture}>
+                            <div class="plan-future-banner">{planBannerLabel} — pipeline opportunities projected as active</div>
+                        </template>
+
                         <!-- Tier 1: Leader card (centered) + HoD Projects card (right) -->
                         <template if:true={leaderLane}>
                             <div class="org-leader-outer-row">
@@ -376,6 +386,12 @@
                                                 <span class="cap-alloc">{lane.utilLabel}</span>
                                                 <span class="cap-avail">{lane.availLabel}</span>
                                             </div>
+                                            <template if:true={lane.hasContrOffset}>
+                                                <div class="fte-contr-offset-row">
+                                                    <span class="fte-contr-gross">{lane.grossLabel}</span>
+                                                    <span class="fte-contr-badge">{lane.contrLabel}</span>
+                                                </div>
+                                            </template>
                                         </div>
                                     </div>
 
@@ -434,8 +450,15 @@
                                                         </div>
                                                         <span class="card-client">{card.client}</span>
 
+                                                        <!-- Projected badge (plan view) -->
+                                                        <template if:true={card.isProjected}>
+                                                            <span class="proj-badge--projected">Projected</span>
+                                                        </template>
+
                                                         <!-- Delivery type badge -->
-                                                        <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+                                                        <template if:false={card.isProjected}>
+                                                            <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+                                                        </template>
 
                                                         <template if:false={card.isBlock}>
                                                             <div class="card-hours-row">
