@@ -454,10 +454,18 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const assignedIds = new Set(
             this._assignments.filter(a => a.contractorId && !a._deleted).map(a => a.contractorId)
         );
-        return (this._raw.contractorPool || []).filter(c => !assignedIds.has(c.id));
+        return (this._raw.contractorPool || []).map(c => {
+            const assigned = assignedIds.has(c.id);
+            return {
+                ...c,
+                isAssigned:   assigned,
+                cardCls:      `cont-pool-card${assigned ? ' cont-pool-card--assigned' : ''}`,
+                draggableStr: assigned ? 'false' : 'true'
+            };
+        });
     }
     get hasContractorPool() { return (this._raw?.contractorPool || []).length > 0; }
-    get noUnassignedContractors() { return this.contractorPoolUnassigned.length === 0; }
+    get noUnassignedContractors() { return this.contractorPoolUnassigned.every(c => c.isAssigned); }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
 

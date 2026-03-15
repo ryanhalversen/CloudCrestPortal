@@ -534,27 +534,25 @@
                                     <span class="cont-pool-title">Contractor Pool</span>
                                     <span class="cont-pool-hint">Drag to an FTE column or onto a project card</span>
                                 </div>
-                                <template if:false={noUnassignedContractors}>
-                                    <div class="cont-pool-cards">
-                                        <template for:each={contractorPoolUnassigned} for:item="c">
-                                            <div key={c.id} class="cont-pool-card"
-                                                 draggable="true"
-                                                 data-drag-type="contractor"
-                                                 data-id={c.id}
-                                                 ondragstart={handleDragStart}
-                                                 ondragend={handleDragEnd}>
-                                                <div class="cont-pool-avatar">{c.initials}</div>
-                                                <div class="cont-pool-info">
-                                                    <span class="cont-pool-name">{c.name}</span>
-                                                    <span class="cont-pool-avail">{c.availableHours}h/wk</span>
-                                                </div>
+                                <div class="cont-pool-cards">
+                                    <template for:each={contractorPoolUnassigned} for:item="c">
+                                        <div key={c.id} class={c.cardCls}
+                                             draggable={c.draggableStr}
+                                             data-drag-type="contractor"
+                                             data-id={c.id}
+                                             ondragstart={handleDragStart}
+                                             ondragend={handleDragEnd}>
+                                            <div class="cont-pool-avatar">{c.initials}</div>
+                                            <div class="cont-pool-info">
+                                                <span class="cont-pool-name">{c.name}</span>
+                                                <span class="cont-pool-avail">{c.availableHours}h/wk</span>
+                                                <template if:true={c.isAssigned}>
+                                                    <span class="cont-pool-assigned-lbl">Assigned</span>
+                                                </template>
                                             </div>
-                                        </template>
-                                    </div>
-                                </template>
-                                <template if:true={noUnassignedContractors}>
-                                    <p class="cont-pool-empty">All contractors assigned</p>
-                                </template>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </template>
 
@@ -588,22 +586,6 @@
                                 </div>
                                 <span class="delivery-badge delivery-badge--drill" style={drillFte.deliveryBadgeStyle}>{drillFte.deliveryShort}</span>
                             </div>
-
-                            <!-- FTE-level contractors -->
-                            <template if:true={drillFte.hasFteContractors}>
-                                <div class="fte-drill-sect-lbl">Supporting this FTE</div>
-                                <div class="fte-drill-cont-row">
-                                    <template for:each={drillFte.fteContractors} for:item="fc">
-                                        <div key={fc.assignmentId} class="fte-drill-cont-card">
-                                            <div class="org-fte-cont-avatar">{fc.initials}</div>
-                                            <div class="org-fte-cont-info">
-                                                <span class="org-fte-cont-name">{fc.name}</span>
-                                                <span class="org-fte-cont-hrs">{fc.availableHours}h/wk</span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
 
                             <!-- Projects -->
                             <div class="fte-drill-sect-lbl">Projects</div>
@@ -652,6 +634,23 @@
                                     </div>
                                 </template>
                             </div>
+
+                            <!-- FTE-level contractors — bottom connection -->
+                            <template if:true={drillFte.hasFteContractors}>
+                                <div class="fte-drill-bottom-vline"></div>
+                                <div class="fte-drill-sect-lbl">Generally Supporting this FTE</div>
+                                <div class="fte-drill-cont-row">
+                                    <template for:each={drillFte.fteContractors} for:item="fc">
+                                        <div key={fc.assignmentId} class="fte-drill-cont-card">
+                                            <div class="org-fte-cont-avatar">{fc.initials}</div>
+                                            <div class="org-fte-cont-info">
+                                                <span class="org-fte-cont-name">{fc.name}</span>
+                                                <span class="org-fte-cont-hrs">{fc.availableHours}h/wk</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
