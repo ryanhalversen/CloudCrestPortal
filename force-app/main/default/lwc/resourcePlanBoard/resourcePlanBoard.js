@@ -39,6 +39,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     // ── Drag state ────────────────────────────────────────────────────────────
     _drag           = null;
     _dropTarget     = null;
+    _cardDropTarget = null;  // projectId of card being hovered by contractor drag
 
     // ── Inline edit (pipeline cards only) ────────────────────────────────────
     _editCell       = null;   // { assignmentId, value }
@@ -54,6 +55,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _hoveredWeek        = null;     // { weekIdx, clientX, clientY }
     _chartMode          = 'demand'; // 'demand' | 'timeline'
     _drillFteId         = null;     // FTE id being drilled, or null
+    _hodProjectsOpen    = false;    // HoD projects modal open
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -403,8 +405,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                         const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
                         return c ? { ...c, assignmentId: a.id } : null;
                     }).filter(Boolean);
+                const isContOver = this._cardDropTarget === card.projectId;
+                const baseCls = card.cardCls || `plan-card plan-card--${this._viewMode}`;
                 return {
                     ...card,
+                    cardCls: isContOver ? `${baseCls} plan-card--cont-over` : baseCls,
                     projBranchCls: [
                         'org-proj-branch',
                         isFirstCard && !isOnlyCard ? 'org-proj-branch--first' : '',
@@ -425,6 +430,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                     const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
                     return c ? { ...c, assignmentId: a.id } : null;
                 }).filter(Boolean);
+            const isFteContOver = this._dropTarget === lane.id && this._drag?.type === 'contractor';
             return {
                 ...lane,
                 deliveryType,
@@ -432,6 +438,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 deliveryBadgeStyle: `background:${dm.bg};color:${dm.text};`,
                 roleLabel:          `FTE · ${deliveryType}`,
                 branchCls,
+                fteCardCls: `org-card--fte org-card--fte-clickable${isFteContOver ? ' org-card--fte-cont-over' : ''}`,
                 cards,
                 fteContractors,
                 hasFteContractors:  fteContractors.length > 0
@@ -445,6 +452,32 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get drillFte()  {
         if (!this._drillFteId) return null;
         return this.fteTeamLanes.find(l => l.id === this._drillFteId) || null;
+    }
+
+    // ── HoD Projects ─────────────────────────────────────────────────────────
+
+    get hodProjectCards() {
+        const cards = this.leaderLane?.cards || [];
+        return cards.map(card => {
+            let dbadge, dbadgeCls, dbadgeStyle;
+            if (card.isBlock) {
+                dbadge = 'Blocked'; dbadgeCls = 'delivery-badge delivery-badge--blocked'; dbadgeStyle = '';
+            } else if (card.isSupport) {
+                dbadge = `Support ${card.splitPct}%`; dbadgeCls = 'delivery-badge delivery-badge--support'; dbadgeStyle = '';
+            } else {
+                dbadge = 'HoD'; dbadgeCls = 'delivery-badge delivery-badge--dev'; dbadgeStyle = 'background:rgba(0,180,216,0.12);color:#00b4d8;';
+            }
+            return { ...card, deliveryBadge: dbadge, deliveryBadgeCls: dbadgeCls, deliveryBadgeStyle: dbadgeStyle };
+        });
+    }
+    get hodProjectCount() {
+        return this.hodProjectCards.length;
+    }
+    get hasHodProjects() {
+        return this.hodProjectCount > 0;
+    }
+    get showHodProjects() {
+        return this._hodProjectsOpen;
     }
 
     // ── Contractor Pool (unassigned) ─────────────────────────────────────────
@@ -922,8 +955,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     }
 
     handleDragEnd() {
-        this._drag       = null;
-        this._dropTarget = null;
+        this._drag           = null;
+        this._dropTarget     = null;
+        this._cardDropTarget = null;
         this._refresh();
     }
 
@@ -1033,12 +1067,28 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     // Drop zone: project card (for contractors)
     handleCardDragOver(e) {
-        if (this._drag?.type === 'contractor') e.preventDefault();
+        if (this._drag?.type !== 'contractor') return;
+        e.preventDefault();
+        const pid = e.currentTarget.dataset.projectId;
+        if (this._cardDropTarget !== pid) {
+            this._cardDropTarget = pid;
+            this._refresh();
+        }
+    }
+
+    handleCardDragLeave(e) {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            if (this._cardDropTarget !== null) {
+                this._cardDropTarget = null;
+                this._refresh();
+            }
+        }
     }
 
     handleCardDrop(e) {
         e.preventDefault();
         e.stopPropagation();
+        this._cardDropTarget = null;
         if (this._drag?.type !== 'contractor') return;
 
         const sprintId = e.currentTarget.dataset.projectId;
@@ -1083,6 +1133,23 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     handleDrillBackdrop(e) {
         if (e.target === e.currentTarget) this.handleDrillClose();
+    }
+
+    // ── HoD Projects modal ───────────────────────────────────────────────────
+
+    handleHodProjectsClick(e) {
+        e.stopPropagation();
+        this._hodProjectsOpen = true;
+        this._refresh();
+    }
+
+    handleHodProjectsClose() {
+        this._hodProjectsOpen = false;
+        this._refresh();
+    }
+
+    handleHodProjectsBackdrop(e) {
+        if (e.target === e.currentTarget) this.handleHodProjectsClose();
     }
 
     // ── Inline hour editing (pipeline cards only) ─────────────────────────────

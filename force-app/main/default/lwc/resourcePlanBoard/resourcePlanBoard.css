@@ -645,6 +645,75 @@
     flex-shrink: 0;
 }
 
+/* ── HoD Projects Card ─────────────────────────────────────────────────────── */
+.org-leader-outer-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.org-hod-side {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.org-hod-hline {
+    width: 48px;
+    height: 1px;
+    background: rgba(255,255,255,0.18);
+    flex-shrink: 0;
+}
+
+.org-hod-card {
+    background: #111827;
+    border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 10px;
+    padding: 10px 18px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 110px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.org-hod-card:hover {
+    border-color: rgba(0,180,216,0.65);
+    background: #162032;
+    box-shadow: 0 0 0 2px rgba(0,180,216,0.15), 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.org-hod-count {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1;
+}
+
+.org-hod-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #00b4d8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+/* HoD projects grid — wrapping row layout */
+.hod-proj-grid {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.hod-proj-grid .fte-drill-proj-wrap {
+    width: 200px;
+}
+
 /* ── FTE Level (Tier 2) ────────────────────────────────────────────────────── */
 .org-fte-row {
     display: flex;
@@ -702,11 +771,17 @@
 /* FTE card is clickable to open drill-down */
 .org-card--fte-clickable {
     cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
+    transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .org-card--fte-clickable:hover {
     background: #182640;
     box-shadow: 0 0 0 1px rgba(0,180,216,0.35), 0 4px 16px rgba(0,0,0,0.5);
+}
+/* FTE card highlight when contractor is dragged over it */
+.org-card--fte-cont-over {
+    border-color: rgba(168,85,247,0.7) !important;
+    background: #160d24 !important;
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.35), 0 4px 20px rgba(168,85,247,0.2) !important;
 }
 
 /* FTE Card */
@@ -860,9 +935,9 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    width: 100%;
+    width: 210px;
     gap: 6px;
-    padding: 0 6px;
+    padding: 0;
 }
 
 .org-proj-branch {
@@ -1146,6 +1221,12 @@
     flex-shrink: 0;
 }
 .plan-card--new { border-right: 2px solid #22c55e; }
+/* Contractor drag-over highlight */
+.plan-card--cont-over {
+    border-color: rgba(168,85,247,0.7) !important;
+    background: #1a1035 !important;
+    box-shadow: 0 0 0 2px rgba(168,85,247,0.3) !important;
+}
 .plan-card--unassigned { opacity: 0.8; width: 200px; flex-shrink: 0; background: #111827; }
 
 .plan-card.dragging { opacity: 0.4; transform: rotate(2deg); }

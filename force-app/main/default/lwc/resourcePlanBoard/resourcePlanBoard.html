@@ -306,9 +306,9 @@
                     <!-- Org Chart Tree -->
                     <div class="org-tree">
 
-                        <!-- Tier 1: Leader card (centered) -->
+                        <!-- Tier 1: Leader card (centered) + HoD Projects card (right) -->
                         <template if:true={leaderLane}>
-                            <div class="org-leader-row">
+                            <div class="org-leader-outer-row">
                                 <div class="org-card--leader">
                                     <div class="org-leader-left">
                                         <div class="org-leader-avatar">{leaderLane.initials}</div>
@@ -332,6 +332,17 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- HoD Projects branch (to the right) -->
+                                <template if:true={hasHodProjects}>
+                                    <div class="org-hod-side">
+                                        <div class="org-hod-hline"></div>
+                                        <div class="org-hod-card" onclick={handleHodProjectsClick}>
+                                            <span class="org-hod-count">{hodProjectCount}</span>
+                                            <span class="org-hod-label">HoD Projects</span>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                             <div class="org-root-vline"></div>
                         </template>
@@ -345,8 +356,8 @@
                                      ondragleave={handleLaneDragLeave}
                                      ondrop={handleLaneDrop}>
 
-                                    <!-- FTE Card (click to drill down) -->
-                                    <div class="org-card--fte org-card--fte-clickable"
+                                    <!-- FTE Card (click to drill down, accepts contractor drops) -->
+                                    <div class={lane.fteCardCls}
                                          data-fte-id={lane.id}
                                          onclick={handleFteCardClick}>
                                         <div class="org-fte-top">
@@ -407,6 +418,7 @@
                                                          ondragstart={handleDragStart}
                                                          ondragend={handleDragEnd}
                                                          ondragover={handleCardDragOver}
+                                                         ondragleave={handleCardDragLeave}
                                                          ondrop={handleCardDrop}>
 
                                                         <div class="card-top-row">
@@ -558,6 +570,51 @@
 
                     </div>
 
+                </div>
+            </template>
+
+            <!-- HoD Projects Overlay -->
+            <template if:true={showHodProjects}>
+                <div class="fte-drill-overlay" onclick={handleHodProjectsBackdrop}>
+                    <div class="fte-drill-panel">
+                        <div class="fte-drill-topbar">
+                            <span class="fte-drill-topbar-title">HoD Projects — {leaderLane.name}</span>
+                            <button class="plan-close" onclick={handleHodProjectsClose}>&times;</button>
+                        </div>
+                        <div class="fte-drill-body">
+                            <div class="fte-drill-sect-lbl">Active Projects ({hodProjectCount})</div>
+                            <div class="fte-drill-proj-grid hod-proj-grid">
+                                <template for:each={hodProjectCards} for:item="card">
+                                    <div key={card.assignmentId} class="fte-drill-proj-wrap">
+                                        <div class={card.cardCls} style={card.colorStyle}>
+                                            <div class="card-top-row">
+                                                <span class="card-name card-name--link"
+                                                      data-record-id={card.recordId}
+                                                      onclick={handleRecordClick}>{card.name}</span>
+                                            </div>
+                                            <span class="card-client">{card.client}</span>
+                                            <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+                                            <template if:false={card.isBlock}>
+                                                <div class="card-hours-row">
+                                                    <span class="card-hrs-label">hrs/wk</span>
+                                                    <span class="card-hrs">{card.hoursPerWeek}</span>
+                                                </div>
+                                            </template>
+                                            <div class="card-footer">
+                                                <span class="card-end">{card.endDate}</span>
+                                                <template if:true={card.showRemaining}>
+                                                    <span class="card-remaining">{card.remainingHours}h left</span>
+                                                </template>
+                                                <template if:true={card.showUrgency}>
+                                                    <span class={card.urgencyCls}>{card.urgencyLabel}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </template>
 
