@@ -626,6 +626,14 @@
     color: #22c55e;
 }
 
+.fte-metric-val--avail {
+    color: #22c55e;
+}
+
+.fte-metric-val--over {
+    color: #ef4444;
+}
+
 .fte-metric-lbl {
     font-size: 8px;
     color: #475569;
@@ -634,12 +642,6 @@
     white-space: nowrap;
 }
 
-.fte-net-label {
-    font-size: 10px;
-    color: #475569;
-    text-align: right;
-    margin-top: 2px;
-}
 
 /* ── Org Chart Tree ────────────────────────────────────────────────────────── */
 .org-tree {

@@ -385,7 +385,7 @@
                                             <div class="fte-metrics-row">
                                                 <div class="fte-metric">
                                                     <span class="fte-metric-val">{lane.alloc}h</span>
-                                                    <span class="fte-metric-lbl">Total Demand</span>
+                                                    <span class="fte-metric-lbl">Demand</span>
                                                 </div>
                                                 <div class="fte-metric">
                                                     <span class="fte-metric-val">{lane.cap}h</span>
@@ -395,8 +395,11 @@
                                                     <span class="fte-metric-val fte-metric-val--contr">{lane.contrOffset}h</span>
                                                     <span class="fte-metric-lbl">Contractor</span>
                                                 </div>
+                                                <div class="fte-metric">
+                                                    <span class={lane.netCls}>{lane.netLabel}</span>
+                                                    <span class="fte-metric-lbl">Net</span>
+                                                </div>
                                             </div>
-                                            <span class="fte-net-label">{lane.availLabel}</span>
                                         </div>
                                     </div>
 

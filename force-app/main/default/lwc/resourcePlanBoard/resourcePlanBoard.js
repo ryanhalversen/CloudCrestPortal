@@ -272,30 +272,33 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .filter(a => ownedIds.has(a.sprintId) || supportIds.has(a.sprintId))
             .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
 
-        const grossAlloc = Math.round(alloc * 10) / 10;
-        const netAlloc   = Math.round(Math.max(0, alloc - contrOffset) * 10) / 10;
-        const cap        = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
-        const pct        = cap > 0 ? (netAlloc / cap) * 100 : 0;
-        const barPct     = Math.min(pct, 100);
-        const barColor   = pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
-        const hasContr   = contrOffset > 0;
+        const grossAlloc  = Math.round(alloc * 10) / 10;
+        const contrRound  = Math.round(contrOffset * 10) / 10;
+        const cap         = fte.weeklyTarget != null ? fte.weeklyTarget : 35;
+        const net         = Math.round((cap + contrOffset - alloc) * 10) / 10;
+        const netLabel    = net >= 0 ? `+${net}h` : `${net}h`;
+        const netCls      = net >= 0 ? 'fte-metric-val fte-metric-val--avail' : 'fte-metric-val fte-metric-val--over';
+        const pct         = cap > 0 ? (grossAlloc / cap) * 100 : 0;
+        const barPct      = Math.min(pct, 100);
+        const barColor    = pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
+        const hasContr    = contrOffset > 0;
 
         return {
             ...fte,
             cards:       allCards,
             hasCards:    allCards.length > 0,
-            alloc:       grossAlloc,
-            contrOffset: Math.round(contrOffset * 10) / 10,
-            netAlloc,
+            alloc:          grossAlloc,
+            contrOffset:    contrRound,
+            net,
+            netLabel,
+            netCls,
             hasContrOffset: hasContr,
             cap,
-            pct:         Math.round(pct),
-            isOver:      netAlloc > cap,
-            barStyle:    `width:${barPct}%;background:${barColor};`,
-            utilLabel:   `${netAlloc}h / ${cap}h`,
-            availLabel:  netAlloc <= cap
-                ? `${Math.round((cap - netAlloc) * 10) / 10}h available`
-                : `${Math.round((netAlloc - cap) * 10) / 10}h over`,
+            pct:            Math.round(pct),
+            isOver:         net < 0,
+            barStyle:       `width:${barPct}%;background:${barColor};`,
+            utilLabel:      `${grossAlloc}h / ${cap}h`,
+            availLabel:     netLabel,
             laneCls:     `plan-lane${this._dropTarget === fte.id ? ' plan-lane--over' : ''}`,
             isCompact:   this._viewMode === 'compact'
         };
