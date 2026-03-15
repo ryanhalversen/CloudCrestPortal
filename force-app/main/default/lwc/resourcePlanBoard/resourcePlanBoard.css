@@ -599,28 +599,46 @@
     margin-bottom: 4px;
 }
 
-/* FTE card contractor offset row */
-.fte-contr-offset-row {
+/* FTE card three-metric row */
+.fte-metrics-row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-top: 4px;
-    gap: 6px;
+    gap: 4px;
+    margin-top: 5px;
 }
 
-.fte-contr-gross {
+.fte-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex: 1;
+}
+
+.fte-metric-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1;
+}
+
+.fte-metric-val--contr {
+    color: #22c55e;
+}
+
+.fte-metric-lbl {
+    font-size: 8px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.fte-net-label {
     font-size: 10px;
     color: #475569;
-}
-
-.fte-contr-badge {
-    font-size: 10px;
-    font-weight: 600;
-    color: #22c55e;
-    background: rgba(34,197,94,0.1);
-    border-radius: 4px;
-    padding: 1px 6px;
-    white-space: nowrap;
+    text-align: right;
+    margin-top: 2px;
 }
 
 /* ── Org Chart Tree ────────────────────────────────────────────────────────── */

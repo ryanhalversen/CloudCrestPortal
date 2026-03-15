@@ -205,6 +205,14 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         });
 
         // Pipeline cards — split into still-pipeline vs projected-active
+        // An opp is "projected active" at planDate if it has started AND not yet ended
+        const _isOppActiveAt = (opp, date) => {
+            if (!opp?.expectedStart) return false;
+            const start = new Date(opp.expectedStart);
+            const end   = opp.expectedEnd ? new Date(opp.expectedEnd) : null;
+            return start <= date && (!end || end >= date);
+        };
+
         const pipeAssignments = this._assignments.filter(
             a => a.userId === fte.id && !a._deleted && a.assignmentType === 'Pipeline'
         );
@@ -212,7 +220,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             .filter(a => {
                 if (!planDate) return true;
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-                return !opp?.expectedStart || new Date(opp.expectedStart) > planDate;
+                return !_isOppActiveAt(opp, planDate); // not yet projected → stay as pipeline card
             })
             .map(a => {
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
@@ -234,11 +242,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 };
             });
 
-        // When projecting forward: pipeline opps that would have started become projected cards
+        // When projecting forward: pipeline opps active at planDate become projected cards
         const projectedCards = planDate ? pipeAssignments
             .filter(a => {
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
-                return opp?.expectedStart && new Date(opp.expectedStart) <= planDate;
+                return _isOppActiveAt(opp, planDate);
             })
             .map(a => {
                 const opp = (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId);
@@ -310,12 +318,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             pct:         Math.round(pct),
             isOver:      netAlloc > cap,
             barStyle:    `width:${barPct}%;background:${barColor};`,
-            utilLabel:   hasContr ? `${netAlloc}h / ${cap}h` : `${grossAlloc}h / ${cap}h`,
+            utilLabel:   `${netAlloc}h / ${cap}h`,
             availLabel:  netAlloc <= cap
                 ? `${Math.round((cap - netAlloc) * 10) / 10}h available`
                 : `${Math.round((netAlloc - cap) * 10) / 10}h over`,
-            contrLabel:  hasContr ? `-${Math.round(contrOffset * 10) / 10}h contractor` : '',
-            grossLabel:  hasContr ? `${grossAlloc}h gross demand` : '',
             laneCls:     `plan-lane${this._dropTarget === fte.id ? ' plan-lane--over' : ''}`,
             isCompact:   this._viewMode === 'compact'
         };

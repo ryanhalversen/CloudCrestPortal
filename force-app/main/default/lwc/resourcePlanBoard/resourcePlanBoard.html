@@ -382,16 +382,21 @@
                                             <div class="cap-bar-track">
                                                 <div class="cap-bar-fill" style={lane.barStyle}></div>
                                             </div>
-                                            <div class="cap-labels">
-                                                <span class="cap-alloc">{lane.utilLabel}</span>
-                                                <span class="cap-avail">{lane.availLabel}</span>
-                                            </div>
-                                            <template if:true={lane.hasContrOffset}>
-                                                <div class="fte-contr-offset-row">
-                                                    <span class="fte-contr-gross">{lane.grossLabel}</span>
-                                                    <span class="fte-contr-badge">{lane.contrLabel}</span>
+                                            <div class="fte-metrics-row">
+                                                <div class="fte-metric">
+                                                    <span class="fte-metric-val">{lane.alloc}h</span>
+                                                    <span class="fte-metric-lbl">Total Demand</span>
                                                 </div>
-                                            </template>
+                                                <div class="fte-metric">
+                                                    <span class="fte-metric-val">{lane.cap}h</span>
+                                                    <span class="fte-metric-lbl">Capacity</span>
+                                                </div>
+                                                <div class="fte-metric">
+                                                    <span class="fte-metric-val fte-metric-val--contr">{lane.contrOffset}h</span>
+                                                    <span class="fte-metric-lbl">Contractor</span>
+                                                </div>
+                                            </div>
+                                            <span class="fte-net-label">{lane.availLabel}</span>
                                         </div>
                                     </div>
 
