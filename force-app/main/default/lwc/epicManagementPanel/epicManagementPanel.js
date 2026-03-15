@@ -39,6 +39,7 @@ export default class EpicManagementPanel extends LightningElement {
     @api projectId;
     @api selectedEpicId = null;  // controlled by parent (storyBoard)
     @api isDragging     = false; // true while a story card is being dragged
+    @api readOnly       = false; // portal mode: hide all write controls
 
     @track _epics = [];
 

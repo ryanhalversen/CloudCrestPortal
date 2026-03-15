@@ -23,16 +23,18 @@
                      onclick={handleEpicClick}
                      title={e.name}>
 
-                    <a class="chip-record"
-                       href={e.recordUrl}
-                       target="_blank"
-                       onclick={handleRecordClick}
-                       title="Open record">↗</a>
+                    <template if:false={readOnly}>
+                        <a class="chip-record"
+                           href={e.recordUrl}
+                           target="_blank"
+                           onclick={handleRecordClick}
+                           title="Open record">↗</a>
 
-                    <button class="chip-edit"
-                            data-id={e.epicId}
-                            onclick={handleEditClick}
-                            title="Edit epic">✎</button>
+                        <button class="chip-edit"
+                                data-id={e.epicId}
+                                onclick={handleEditClick}
+                                title="Edit epic">✎</button>
+                    </template>
 
                     <div class="chip-name">{e.name}</div>
 
@@ -49,9 +51,11 @@
 
         </template>
 
-        <!-- New Epic button: always visible when projectId is set -->
+        <!-- New Epic button: hidden in read-only (portal) mode -->
         <template if:true={projectId}>
-            <button class="chip-add" onclick={handleNewClick}>+ New Epic</button>
+            <template if:false={readOnly}>
+                <button class="chip-add" onclick={handleNewClick}>+ New Epic</button>
+            </template>
         </template>
 
     </div>
@@ -126,11 +130,13 @@
                             </div>
                         </template>
 
-                        <!-- Add milestone button -->
-                        <button class="tl-add-ms"
-                                data-id={ep.epicId}
-                                onclick={handleAddMilestone}
-                                title="Add milestone">+</button>
+                        <!-- Add milestone button (hidden in read-only mode) -->
+                        <template if:false={readOnly}>
+                            <button class="tl-add-ms"
+                                    data-id={ep.epicId}
+                                    onclick={handleAddMilestone}
+                                    title="Add milestone">+</button>
+                        </template>
 
                     </div>
                 </div>
