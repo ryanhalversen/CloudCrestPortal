@@ -488,7 +488,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                     dbadge = dm.short; dbadgeCls = `delivery-badge ${dm.cls}`; dbadgeStyle = `background:${dm.bg};color:${dm.text};`;
                 }
                 const projContractors = this._assignments
-                    .filter(a => a.contractorId && a.sprintId === card.projectId && !a.userId && !a._deleted)
+                    .filter(a => a.contractorId && !a.userId && !a._deleted &&
+                        (card.isProjected ? a.opportunityId === card.projectId : a.sprintId === card.projectId))
                     .map(a => {
                         const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
                         return c ? { ...c, assignmentId: a.id } : null;
