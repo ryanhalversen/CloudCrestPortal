@@ -277,7 +277,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 (a.sprintId && (ownedIds.has(a.sprintId) || supportIds.has(a.sprintId))) ||
                 (a.opportunityId && projectedOppIds.has(a.opportunityId))
             )
-            .reduce((s, a) => s + (a.hoursPerWeek || 0), 0);
+            .reduce((s, a) => {
+                const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
+                return s + (c?.availableHours || a.hoursPerWeek || 0);
+            }, 0);
 
         const grossAlloc  = Math.round(alloc * 10) / 10;
         const contrRound  = Math.round(contrOffset * 10) / 10;
@@ -495,7 +498,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                         (card.isProjected ? a.opportunityId === card.projectId : a.sprintId === card.projectId))
                     .map(a => {
                         const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
-                        return c ? { ...c, assignmentId: a.id, hoursPerWeek: a.hoursPerWeek || 0 } : null;
+                        return c ? { ...c, assignmentId: a.id, hoursPerWeek: c.availableHours || 0 } : null;
                     }).filter(Boolean);
                 const isContOver = this._cardDropTarget === card.projectId;
                 const baseCls = card.cardCls || `plan-card plan-card--${this._viewMode}`;
