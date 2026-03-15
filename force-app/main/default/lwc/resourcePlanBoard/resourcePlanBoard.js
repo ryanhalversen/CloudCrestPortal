@@ -1243,7 +1243,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                     userId:         null,
                     contractorId:   contId,
                     opportunityId:  projectId,
-                    hoursPerWeek:   10,
+                    hoursPerWeek:   cont.availableHours || 10,
                     role:           'Contractor',
                     assignmentType: 'Active',
                     isDerived:      false,
