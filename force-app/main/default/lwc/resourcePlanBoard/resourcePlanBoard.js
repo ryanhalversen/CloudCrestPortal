@@ -90,7 +90,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             this._assignments = rawAssignments.filter(a => {
                 const key = `${a.contractorId||''}|${a.sprintId||''}|${a.userId||''}|${a.opportunityId||''}`;
                 if (seenKeys.has(key)) {
-                    if (a.id && a.id.startsWith('0')) duplicateIds.push(a.id);
+                    if (a.id && !a.id.startsWith('tmp-')) duplicateIds.push(a.id);
                     return false;
                 }
                 seenKeys.add(key);
@@ -1220,13 +1220,13 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const a  = this._assignments.find(x => x.id === id);
         if (!a) return;
         this._pushUndo();
-        if (a._local && !a.id.startsWith('0')) {
+        if (a._local && a.id.startsWith('tmp-')) {
             this._assignments = this._assignments.filter(x => x.id !== id);
         } else {
             this._assignments = this._assignments.map(x =>
                 x.id === id ? { ...x, _deleted: true } : x
             );
-            if (!this._whatIfMode && a.id.startsWith('0')) {
+            if (!this._whatIfMode && !a.id.startsWith('tmp-')) {
                 deleteAssignment({ assignmentId: a.id }).catch(console.error);
             }
         }
@@ -1343,11 +1343,11 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _autoSave(a) {
         if (this._whatIfMode || !a) return;
         if (a._deleted) {
-            if (a.id.startsWith('0')) deleteAssignment({ assignmentId: a.id }).catch(console.error);
+            if (!a.id.startsWith('tmp-')) deleteAssignment({ assignmentId: a.id }).catch(console.error);
             return;
         }
         upsertAssignment({
-            assignmentId:   a.id.startsWith('0') ? a.id : null,
+            assignmentId:   a.id.startsWith('tmp-') ? null : a.id,
             sprintId:       a.sprintId || null,
             userId:         a.userId || null,
             contractorId:   a.contractorId || null,

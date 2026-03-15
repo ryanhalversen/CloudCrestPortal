@@ -255,7 +255,7 @@ public with sharing class ResourcePlanningController {
         Boolean isDerived
     ) {
         Resource_Assignment__c a = new Resource_Assignment__c();
-        if (String.isNotBlank(assignmentId) && assignmentId.startsWith('0')) {
+        if (String.isNotBlank(assignmentId) && !assignmentId.startsWith('tmp')) {
             a.Id = (Id) assignmentId;
         }
         a.Sprint__c         = String.isNotBlank(sprintId)      ? (Id) sprintId      : null;
@@ -279,7 +279,7 @@ public with sharing class ResourcePlanningController {
 
     @AuraEnabled
     public static void deleteAssignment(String assignmentId) {
-        if (String.isNotBlank(assignmentId) && assignmentId.startsWith('0')) {
+        if (String.isNotBlank(assignmentId) && !assignmentId.startsWith('tmp')) {
             delete new Resource_Assignment__c(Id = (Id) assignmentId);
         }
     }
@@ -296,11 +296,11 @@ public with sharing class ResourcePlanningController {
 
             if (action == 'delete') {
                 String rid = (String) m.get('id');
-                if (String.isNotBlank(rid) && rid.startsWith('0')) toDeleteIds.add((Id) rid);
+                if (String.isNotBlank(rid) && !rid.startsWith('tmp')) toDeleteIds.add((Id) rid);
             } else {
                 Resource_Assignment__c a = new Resource_Assignment__c();
                 String rid = (String) m.get('id');
-                if (String.isNotBlank(rid) && rid.startsWith('0')) a.Id = (Id) rid;
+                if (String.isNotBlank(rid) && !rid.startsWith('tmp')) a.Id = (Id) rid;
                 String spId = (String) m.get('sprintId');
                 String uId  = (String) m.get('userId');
                 String cId  = (String) m.get('contractorId');
