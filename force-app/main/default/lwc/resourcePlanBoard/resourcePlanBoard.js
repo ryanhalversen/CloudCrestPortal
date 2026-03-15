@@ -83,7 +83,15 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         try {
             const data = await getBoardData();
             this._raw  = data;
-            this._assignments = (data.assignments || []).map(a => ({ ...a, _local: false, _deleted: false }));
+            // Deduplicate assignments from server (guard against persisted duplicates)
+            const rawAssignments = (data.assignments || []).map(a => ({ ...a, _local: false, _deleted: false }));
+            const seenKeys = new Set();
+            this._assignments = rawAssignments.filter(a => {
+                const key = `${a.contractorId||''}|${a.sprintId||''}|${a.userId||''}|${a.opportunityId||''}`;
+                if (seenKeys.has(key)) return false;
+                seenKeys.add(key);
+                return true;
+            });
             this.isLoading = false;
         } catch (e) {
             this.error    = e.body?.message || 'Failed to load board data.';
