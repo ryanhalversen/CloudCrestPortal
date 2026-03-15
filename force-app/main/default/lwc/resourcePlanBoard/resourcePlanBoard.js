@@ -53,6 +53,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     _breakdownSortDir   = 1;        // 1 = asc, -1 = desc
     _hoveredWeek        = null;     // { weekIdx, clientX, clientY }
     _chartMode          = 'demand'; // 'demand' | 'timeline'
+    _drillFteId         = null;     // FTE id being drilled, or null
 
     // ── Keyboard undo listener ────────────────────────────────────────────────
     _keyHandler     = null;
@@ -396,6 +397,12 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 } else {
                     dbadge = dm.short; dbadgeCls = `delivery-badge ${dm.cls}`; dbadgeStyle = `background:${dm.bg};color:${dm.text};`;
                 }
+                const projContractors = this._assignments
+                    .filter(a => a.contractorId && a.sprintId === card.projectId && !a.userId && !a._deleted)
+                    .map(a => {
+                        const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
+                        return c ? { ...c, assignmentId: a.id } : null;
+                    }).filter(Boolean);
                 return {
                     ...card,
                     projBranchCls: [
@@ -404,12 +411,20 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                         isLastCard  && !isOnlyCard ? 'org-proj-branch--last'  : '',
                         isOnlyCard                 ? 'org-proj-branch--only'  : ''
                     ].filter(Boolean).join(' '),
+                    projContractors,
+                    hasProjContractors: projContractors.length > 0,
                     deliveryBadge:      dbadge,
                     deliveryBadgeCls:   dbadgeCls,
                     deliveryBadgeStyle: dbadgeStyle
                 };
             });
 
+            const fteContractors = this._assignments
+                .filter(a => a.contractorId && a.userId === lane.id && !a.sprintId && !a._deleted)
+                .map(a => {
+                    const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
+                    return c ? { ...c, assignmentId: a.id } : null;
+                }).filter(Boolean);
             return {
                 ...lane,
                 deliveryType,
@@ -417,10 +432,32 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 deliveryBadgeStyle: `background:${dm.bg};color:${dm.text};`,
                 roleLabel:          `FTE · ${deliveryType}`,
                 branchCls,
-                cards
+                cards,
+                fteContractors,
+                hasFteContractors:  fteContractors.length > 0
             };
         });
     }
+
+    // ── Org Chart drill-down ─────────────────────────────────────────────────
+
+    get showDrill() { return !!this._drillFteId; }
+    get drillFte()  {
+        if (!this._drillFteId) return null;
+        return this.fteTeamLanes.find(l => l.id === this._drillFteId) || null;
+    }
+
+    // ── Contractor Pool (unassigned) ─────────────────────────────────────────
+
+    get contractorPoolUnassigned() {
+        if (!this._raw) return [];
+        const assignedIds = new Set(
+            this._assignments.filter(a => a.contractorId && !a._deleted).map(a => a.contractorId)
+        );
+        return (this._raw.contractorPool || []).filter(c => !assignedIds.has(c.id));
+    }
+    get hasContractorPool() { return (this._raw?.contractorPool || []).length > 0; }
+    get noUnassignedContractors() { return this.contractorPoolUnassigned.length === 0; }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
 
@@ -952,6 +989,32 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 this._undoStack.pop();
             }
 
+        } else if (this._drag.type === 'contractor') {
+            const contId = this._drag.id;
+            const cont   = (this._raw.contractorPool || []).find(c => c.id === contId);
+            const alreadyAssignedToFte = this._assignments.some(
+                a => a.contractorId === contId && a.userId === toUserId && !a.sprintId && !a._deleted
+            );
+            if (cont && !alreadyAssignedToFte) {
+                const newA = {
+                    id:             `tmp-${this._tempId++}`,
+                    sprintId:       null,
+                    userId:         toUserId,
+                    contractorId:   contId,
+                    opportunityId:  null,
+                    hoursPerWeek:   cont.availableHours || 20,
+                    role:           'Contractor',
+                    assignmentType: 'Active',
+                    isDerived:      false,
+                    _local:         true,
+                    _deleted:       false
+                };
+                this._assignments = [...this._assignments, newA];
+                this._recordOp({ action: 'add-fte-contractor', contractorId: contId, userId: toUserId });
+                this._autoSave(newA);
+            } else {
+                this._undoStack.pop();
+            }
         } else {
             this._undoStack.pop();
         }
@@ -995,6 +1058,23 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             this._autoSave(newA);
             this._refresh();
         }
+    }
+
+    // ── FTE drill-down ────────────────────────────────────────────────────────
+
+    handleFteCardClick(e) {
+        e.stopPropagation();
+        this._drillFteId = e.currentTarget.dataset.fteId;
+        this._refresh();
+    }
+
+    handleDrillClose() {
+        this._drillFteId = null;
+        this._refresh();
+    }
+
+    handleDrillBackdrop(e) {
+        if (e.target === e.currentTarget) this.handleDrillClose();
     }
 
     // ── Inline hour editing (pipeline cards only) ─────────────────────────────

@@ -345,8 +345,10 @@
                                      ondragleave={handleLaneDragLeave}
                                      ondrop={handleLaneDrop}>
 
-                                    <!-- FTE Card -->
-                                    <div class="org-card--fte">
+                                    <!-- FTE Card (click to drill down) -->
+                                    <div class="org-card--fte org-card--fte-clickable"
+                                         data-fte-id={lane.id}
+                                         onclick={handleFteCardClick}>
                                         <div class="org-fte-top">
                                             <div class="org-fte-avatar">{lane.initials}</div>
                                             <div class="org-fte-info">
@@ -366,12 +368,35 @@
                                         </div>
                                     </div>
 
+                                    <!-- FTE-level contractors (docked directly under FTE card) -->
+                                    <template if:true={lane.hasFteContractors}>
+                                        <div class="org-fte-cont-section">
+                                            <template for:each={lane.fteContractors} for:item="fc">
+                                                <div key={fc.assignmentId} class="org-fte-cont-item">
+                                                    <div class="org-fte-cont-vline"></div>
+                                                    <div class="org-fte-cont-card">
+                                                        <div class="org-fte-cont-avatar">{fc.initials}</div>
+                                                        <div class="org-fte-cont-info">
+                                                            <span class="org-fte-cont-name">{fc.name}</span>
+                                                            <span class="org-fte-cont-hrs">{fc.availableHours}h/wk avail</span>
+                                                        </div>
+                                                        <button class="cont-remove-btn"
+                                                                data-assignment-id={fc.assignmentId}
+                                                                onclick={handleRemoveCard}
+                                                                title="Remove">&times;</button>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+
                                     <!-- Vertical drop + project row -->
                                     <template if:true={lane.hasCards}>
                                         <div class="org-fte-vline"></div>
                                         <div class="org-proj-row">
                                             <template for:each={lane.cards} for:item="card">
                                                 <div key={card.assignmentId} class={card.projBranchCls}>
+                                                    <div class="proj-and-cont-row">
                                                     <div class={card.cardCls}
                                                          style={card.colorStyle}
                                                          draggable="true"
@@ -436,14 +461,6 @@
                                                                     <span class={card.urgencyCls}>{card.urgencyLabel}</span>
                                                                 </template>
                                                             </div>
-                                                            <template if:true={card.hasChips}>
-                                                                <div class="card-chips">
-                                                                    <template for:each={card.chips} for:item="chip">
-                                                                        <span key={chip.id} class="chip"
-                                                                              title={chip.name}>{chip.name} {chip.hours}h</span>
-                                                                    </template>
-                                                                </div>
-                                                            </template>
                                                         </template>
 
                                                         <template if:true={card.isPipeline}>
@@ -454,6 +471,26 @@
                                                         </template>
 
                                                     </div>
+                                                    <!-- Project-level contractor (to the right) -->
+                                                    <template if:true={card.hasProjContractors}>
+                                                        <div class="proj-cont-connector"></div>
+                                                        <div class="proj-cont-stack">
+                                                            <template for:each={card.projContractors} for:item="pc">
+                                                                <div key={pc.assignmentId} class="proj-cont-card">
+                                                                    <div class="proj-cont-avatar">{pc.initials}</div>
+                                                                    <div class="proj-cont-info">
+                                                                        <span class="proj-cont-name">{pc.name}</span>
+                                                                        <span class="proj-cont-avail">{pc.availableHours}h/wk</span>
+                                                                    </div>
+                                                                    <button class="cont-remove-btn"
+                                                                            data-assignment-id={pc.assignmentId}
+                                                                            onclick={handleRemoveCard}
+                                                                            title="Remove">&times;</button>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                    </div><!-- end proj-and-cont-row -->
                                                 </div>
                                             </template>
                                         </div>
@@ -490,8 +527,133 @@
                             </div>
                         </template>
 
+                        <!-- Contractor Pool -->
+                        <template if:true={hasContractorPool}>
+                            <div class="cont-pool-section">
+                                <div class="cont-pool-header">
+                                    <span class="cont-pool-title">Contractor Pool</span>
+                                    <span class="cont-pool-hint">Drag to an FTE column or onto a project card</span>
+                                </div>
+                                <template if:false={noUnassignedContractors}>
+                                    <div class="cont-pool-cards">
+                                        <template for:each={contractorPoolUnassigned} for:item="c">
+                                            <div key={c.id} class="cont-pool-card"
+                                                 draggable="true"
+                                                 data-drag-type="contractor"
+                                                 data-id={c.id}
+                                                 ondragstart={handleDragStart}
+                                                 ondragend={handleDragEnd}>
+                                                <div class="cont-pool-avatar">{c.initials}</div>
+                                                <div class="cont-pool-info">
+                                                    <span class="cont-pool-name">{c.name}</span>
+                                                    <span class="cont-pool-avail">{c.availableHours}h/wk</span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template if:true={noUnassignedContractors}>
+                                    <p class="cont-pool-empty">All contractors assigned</p>
+                                </template>
+                            </div>
+                        </template>
+
                     </div>
 
+                </div>
+            </template>
+
+            <!-- FTE Drill-Down Overlay -->
+            <template if:true={showDrill}>
+                <div class="fte-drill-overlay" onclick={handleDrillBackdrop}>
+                    <div class="fte-drill-panel">
+                        <div class="fte-drill-topbar">
+                            <span class="fte-drill-topbar-title">Team Member Detail</span>
+                            <button class="plan-close" onclick={handleDrillClose}>&times;</button>
+                        </div>
+                        <div class="fte-drill-body">
+                            <!-- Enlarged FTE card -->
+                            <div class="fte-drill-fte-card">
+                                <div class="org-fte-avatar fte-drill-avatar">{drillFte.initials}</div>
+                                <div class="fte-drill-fte-info">
+                                    <span class="fte-drill-fte-name">{drillFte.name}</span>
+                                    <span class="fte-drill-fte-role">{drillFte.roleLabel}</span>
+                                    <div class="cap-bar-track fte-drill-bar-track">
+                                        <div class="cap-bar-fill" style={drillFte.barStyle}></div>
+                                    </div>
+                                    <div class="cap-labels">
+                                        <span class="cap-alloc">{drillFte.utilLabel}</span>
+                                        <span class="cap-avail">{drillFte.availLabel}</span>
+                                    </div>
+                                </div>
+                                <span class="delivery-badge delivery-badge--drill" style={drillFte.deliveryBadgeStyle}>{drillFte.deliveryShort}</span>
+                            </div>
+
+                            <!-- FTE-level contractors -->
+                            <template if:true={drillFte.hasFteContractors}>
+                                <div class="fte-drill-sect-lbl">Supporting this FTE</div>
+                                <div class="fte-drill-cont-row">
+                                    <template for:each={drillFte.fteContractors} for:item="fc">
+                                        <div key={fc.assignmentId} class="fte-drill-cont-card">
+                                            <div class="org-fte-cont-avatar">{fc.initials}</div>
+                                            <div class="org-fte-cont-info">
+                                                <span class="org-fte-cont-name">{fc.name}</span>
+                                                <span class="org-fte-cont-hrs">{fc.availableHours}h/wk</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <!-- Projects -->
+                            <div class="fte-drill-sect-lbl">Projects</div>
+                            <div class="fte-drill-proj-grid">
+                                <template for:each={drillFte.cards} for:item="card">
+                                    <div key={card.assignmentId} class="fte-drill-proj-wrap">
+                                        <div class={card.cardCls} style={card.colorStyle}>
+                                            <div class="card-top-row">
+                                                <span class="card-name card-name--link"
+                                                      data-record-id={card.recordId}
+                                                      onclick={handleRecordClick}>{card.name}</span>
+                                            </div>
+                                            <span class="card-client">{card.client}</span>
+                                            <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+                                            <template if:false={card.isBlock}>
+                                                <div class="card-hours-row">
+                                                    <span class="card-hrs-label">hrs/wk</span>
+                                                    <span class="card-hrs">{card.hoursPerWeek}</span>
+                                                </div>
+                                            </template>
+                                            <div class="card-footer">
+                                                <span class="card-end">{card.endDate}</span>
+                                                <template if:true={card.showRemaining}>
+                                                    <span class="card-remaining">{card.remainingHours}h left</span>
+                                                </template>
+                                                <template if:true={card.showUrgency}>
+                                                    <span class={card.urgencyCls}>{card.urgencyLabel}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <!-- Project-level contractors in drill view -->
+                                        <template if:true={card.hasProjContractors}>
+                                            <div class="proj-cont-connector"></div>
+                                            <div class="proj-cont-stack">
+                                                <template for:each={card.projContractors} for:item="pc">
+                                                    <div key={pc.assignmentId} class="proj-cont-card">
+                                                        <div class="proj-cont-avatar">{pc.initials}</div>
+                                                        <div class="proj-cont-info">
+                                                            <span class="proj-cont-name">{pc.name}</span>
+                                                            <span class="proj-cont-avail">{pc.availableHours}h/wk</span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </template>
 

@@ -699,6 +699,16 @@
     border-radius: 8px;
 }
 
+/* FTE card is clickable to open drill-down */
+.org-card--fte-clickable {
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+.org-card--fte-clickable:hover {
+    background: #182640;
+    box-shadow: 0 0 0 1px rgba(0,180,216,0.35), 0 4px 16px rgba(0,0,0,0.5);
+}
+
 /* FTE Card */
 .org-card--fte {
     background: #111827;
@@ -761,6 +771,82 @@
     gap: 3px;
 }
 
+/* FTE-level contractor section (docked directly under FTE card) */
+.org-fte-cont-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 210px;
+}
+.org-fte-cont-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 210px;
+}
+.org-fte-cont-vline {
+    width: 1px;
+    height: 14px;
+    background: rgba(168,85,247,0.4);
+    flex-shrink: 0;
+}
+.org-fte-cont-card {
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    width: 210px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+}
+.org-fte-cont-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+.org-fte-cont-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+.org-fte-cont-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #c4b5fd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.org-fte-cont-hrs {
+    font-size: 10px;
+    color: #7c3aed;
+    color: #a78bfa;
+}
+.cont-remove-btn {
+    background: none;
+    border: none;
+    color: #475569;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.cont-remove-btn:hover { color: #ef4444; }
+
 /* Vertical line from FTE card to project row */
 .org-fte-vline {
     width: 1px;
@@ -799,6 +885,70 @@
 
 .org-proj-branch::before {
     display: none;
+}
+
+/* ── Project-level contractor (right side of project card) ─────────────────── */
+.proj-and-cont-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+}
+.proj-cont-connector {
+    width: 20px;
+    height: 2px;
+    background: rgba(168,85,247,0.4);
+    align-self: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.proj-cont-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-self: center;
+}
+.proj-cont-card {
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 7px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+    max-width: 160px;
+}
+.proj-cont-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+.proj-cont-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+.proj-cont-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: #c4b5fd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.proj-cont-avail {
+    font-size: 9px;
+    color: #a78bfa;
 }
 
 /* ── Delivery Type Badges ──────────────────────────────────────────────────── */
@@ -1111,6 +1261,88 @@
 }
 .unassigned-cards { display: flex; flex-direction: column; gap: 8px; }
 
+/* ── Contractor Pool (bottom of org tree) ────────────────────────────────── */
+.cont-pool-section {
+    width: 100%;
+    margin-top: 24px;
+    border: 1px dashed rgba(168,85,247,0.3);
+    border-radius: 10px;
+    padding: 12px 16px 14px;
+    background: rgba(168,85,247,0.04);
+}
+.cont-pool-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.cont-pool-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #a78bfa;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+.cont-pool-hint {
+    font-size: 10px;
+    color: #475569;
+    font-style: italic;
+}
+.cont-pool-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.cont-pool-card {
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.25);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: grab;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+}
+.cont-pool-card:hover  { border-color: rgba(168,85,247,0.6); background: rgba(168,85,247,0.15); }
+.cont-pool-card:active { cursor: grabbing; }
+.cont-pool-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+.cont-pool-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.cont-pool-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c4b5fd;
+    white-space: nowrap;
+}
+.cont-pool-avail {
+    font-size: 10px;
+    color: #a78bfa;
+}
+.cont-pool-empty {
+    font-size: 11px;
+    color: #475569;
+    font-style: italic;
+    margin: 0;
+    padding: 4px 0;
+}
+
 /* ── Right Panel ───────────────────────────────────────────────────────────── */
 .plan-right {
     width: 260px;
@@ -1248,4 +1480,127 @@
     width: 100%;
     height: auto;
     display: block;
+}
+
+/* ── FTE Drill-Down Overlay ─────────────────────────────────────────────── */
+.fte-drill-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 9800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.fte-drill-panel {
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+    animation: slideUp 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+.fte-drill-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid #1e293b;
+    flex-shrink: 0;
+}
+.fte-drill-topbar-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.fte-drill-body {
+    padding: 20px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.fte-drill-fte-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #111827;
+    border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+.fte-drill-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 16px !important;
+}
+.fte-drill-fte-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+.fte-drill-fte-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+.fte-drill-fte-role {
+    font-size: 11px;
+    color: #475569;
+    margin-bottom: 2px;
+}
+.fte-drill-bar-track {
+    width: 200px !important;
+}
+.delivery-badge--drill {
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+}
+.fte-drill-sect-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: -8px;
+}
+.fte-drill-cont-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.fte-drill-cont-card {
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.fte-drill-proj-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.fte-drill-proj-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 280px;
+}
+.fte-drill-proj-wrap .plan-card {
+    flex: 1;
+    min-width: 200px;
 }
