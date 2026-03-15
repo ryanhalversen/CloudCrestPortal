@@ -800,31 +800,37 @@
                         </template>
                     </div>
 
-                    <!-- Monthly Hours -->
+                    <!-- Month-at-a-glance: week-by-week project onboarding view -->
                     <div class="fte-drill-sect-lbl drill-month-lbl">{drillMonthLabel}</div>
-                    <template if:true={hasDrillMonthlyHours}>
-                        <div class="drill-month-grid">
-                            <template for:each={drillMonthlyHours} for:item="ws">
-                                <div key={ws.weekStart} class="drill-week-row">
-                                    <span class="drill-week-label">{ws.weekLabel}</span>
-                                    <div class="drill-week-bar-track">
-                                        <div class="drill-week-bar-fill"
-                                             style={ws.barStyle}></div>
-                                    </div>
-                                    <span class="drill-week-hrs">{ws.hoursLabel}</span>
-                                    <template if:true={ws.isActual}>
-                                        <span class="drill-week-tag drill-week-tag--actual">Actual</span>
+                    <div class="dmw-grid">
+                        <template for:each={drillMonthWeeks} for:item="week">
+                            <div key={week.key} class={week.rowCls}>
+                                <span class="dmw-label">{week.label}</span>
+                                <div class="dmw-chips">
+                                    <template for:each={week.chips} for:item="chip">
+                                        <div key={chip.id} class="dmw-chip">
+                                            <span class="dmw-dot" style={chip.dotStyle}></span>
+                                            <span class="dmw-chip-name">{chip.name}</span>
+                                            <span class="dmw-chip-hrs">{chip.hrs}h</span>
+                                            <template if:true={chip.isNew}>
+                                                <span class="dmw-new">NEW</span>
+                                            </template>
+                                        </div>
                                     </template>
-                                    <template if:false={ws.isActual}>
-                                        <span class="drill-week-tag drill-week-tag--planned">Planned</span>
+                                    <template if:false={week.hasChips}>
+                                        <span class="dmw-empty">No active projects</span>
                                     </template>
                                 </div>
-                            </template>
-                        </div>
-                    </template>
-                    <template if:false={hasDrillMonthlyHours}>
-                        <div class="drill-month-loading">Loading…</div>
-                    </template>
+                                <div class="dmw-right">
+                                    <span class="dmw-total">{week.totalDemand}h</span>
+                                    <span class={week.netCls}>{week.netLabel}</span>
+                                    <template if:true={week.hasActual}>
+                                        <span class="dmw-actual">{week.actualLabel}</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
 
                     <!-- FTE-level contractors — bottom connection -->
                     <template if:true={drillFte.hasFteContractors}>

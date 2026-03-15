@@ -553,8 +553,114 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get drillMonthLabel() {
         return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     }
-    get drillMonthlyHours() { return this._monthlyHours; }
-    get hasDrillMonthlyHours() { return this._monthlyHours.length > 0; }
+
+    get drillMonthWeeks() {
+        if (!this._drillFteId || !this._raw) return [];
+        const fteId = this._drillFteId;
+
+        const today    = new Date(); today.setHours(0,0,0,0);
+        const yr = today.getFullYear(), mo = today.getMonth();
+        const firstDay = new Date(yr, mo, 1);
+        const lastDay  = new Date(yr, mo + 1, 0);
+
+        // Monday of week containing firstDay
+        const fdow     = (firstDay.getDay() + 6) % 7; // 0=Mon
+        const startMon = new Date(firstDay); startMon.setDate(firstDay.getDate() - fdow);
+
+        // FTE's projects from raw data
+        const ownedProjects   = (this._raw.projectCards || []).filter(p => p.ownerId === fteId && !p.isBlock);
+        const supportProjects = (this._raw.projectCards || []).filter(p => p.supportLeadId === fteId && !p.isBlock);
+        const pipeAssignments = this._assignments.filter(
+            a => a.userId === fteId && a.assignmentType === 'Pipeline' && !a._deleted
+        );
+
+        const isOppActiveAt = (opp, date) => {
+            if (!opp?.expectedStart) return false;
+            const start = new Date(opp.expectedStart);
+            const end   = opp.expectedEnd ? new Date(opp.expectedEnd) : null;
+            return start <= date && (!end || end >= date);
+        };
+
+        // Actual hours map from _monthlyHours (keyed by weekStart YYYY-MM-DD)
+        const actualMap = {};
+        for (const slot of (this._monthlyHours || [])) {
+            actualMap[slot.weekStart] = slot;
+        }
+
+        const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+        const weeks = [];
+        let cursor = new Date(startMon);
+        let prevPipeIds = new Set();
+
+        while (cursor <= lastDay) {
+            const wMon = new Date(cursor);
+            const wFri = new Date(cursor); wFri.setDate(cursor.getDate() + 4);
+            const wSun = new Date(cursor); wSun.setDate(cursor.getDate() + 6);
+
+            if (wSun >= firstDay && wMon <= lastDay) {
+                const isPast    = wSun < today;
+                const isCurrent = !isPast && wMon <= today;
+                const dStart    = wMon < firstDay ? firstDay : wMon;
+                const dEnd      = wFri > lastDay  ? lastDay  : wFri;
+
+                // Sprint chips active this week
+                const sprintChips = ownedProjects
+                    .filter(p => { const e = p.endDate ? new Date(p.endDate) : null; return !e || e >= wMon; })
+                    .map(p => {
+                        const split = (p.supportLeadId && p.supportSplit) ? p.supportSplit / 100 : 0;
+                        const hrs   = Math.round((p.weeklyPace || 0) * (1 - split) * 10) / 10;
+                        return { id: p.id, name: p.name, hrs, dotStyle: `background:${p.color};`, isNew: false };
+                    });
+
+                const supportChips = supportProjects
+                    .filter(p => { const e = p.endDate ? new Date(p.endDate) : null; return !e || e >= wMon; })
+                    .map(p => {
+                        const hrs = Math.round((p.weeklyPace || 0) * ((p.supportSplit || 0) / 100) * 10) / 10;
+                        return { id: `s-${p.id}`, name: p.name, hrs, dotStyle: `background:${p.color};`, isNew: false };
+                    });
+
+                // Pipeline chips active this week
+                const pipeChips = pipeAssignments
+                    .map(a => ({ a, opp: (this._raw.pipelineShelf || []).find(o => o.id === a.opportunityId) }))
+                    .filter(({ opp }) => isOppActiveAt(opp, wMon))
+                    .map(({ a, opp }) => ({
+                        id:       a.opportunityId,
+                        name:     opp?.name || a.opportunityId,
+                        hrs:      a.hoursPerWeek || 0,
+                        dotStyle: 'background:#6366f1;',
+                        isNew:    !prevPipeIds.has(a.opportunityId)
+                    }));
+
+                const allChips    = [...sprintChips, ...supportChips, ...pipeChips];
+                const totalDemand = Math.round(allChips.reduce((s, c) => s + c.hrs, 0) * 10) / 10;
+                const net         = Math.round((35 - totalDemand) * 10) / 10;
+                const weekKey     = fmtDate(wMon);
+                const actual      = actualMap[weekKey];
+
+                weeks.push({
+                    key:         weekKey,
+                    label:       `${MONTHS[dStart.getMonth()]} ${dStart.getDate()} – ${dEnd.getDate()}`,
+                    isPast,
+                    isCurrent,
+                    rowCls:      `dmw-row${isCurrent ? ' dmw-row--current' : ''}${isPast ? ' dmw-row--past' : ''}`,
+                    chips:       allChips,
+                    hasChips:    allChips.length > 0,
+                    totalDemand,
+                    net,
+                    netLabel:    `${net >= 0 ? '+' : ''}${net}h`,
+                    netCls:      `dmw-net${net < 0 ? ' dmw-net--over' : ' dmw-net--ok'}`,
+                    actualLabel: (actual?.isActual) ? `${actual.hours}h logged` : null,
+                    hasActual:   !!(actual?.isActual)
+                });
+
+                prevPipeIds = new Set(pipeChips.map(c => c.id));
+            }
+            cursor.setDate(cursor.getDate() + 7);
+        }
+        return weeks;
+    }
 
     // ── Plan Week Projection ─────────────────────────────────────────────────
 
