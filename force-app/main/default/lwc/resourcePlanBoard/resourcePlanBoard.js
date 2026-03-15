@@ -242,8 +242,8 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                     color:         '#6366f1',
                     colorStyle:    'border-left-color:#6366f1;',
                     cardCls:       `plan-card plan-card--${this._viewMode} plan-card--projected`,
-                    chips:         [],
-                    hasChips:      false,
+                    chips:         this._contractorChipsForProject(a.opportunityId, true),
+                    hasChips:      this._contractorChipsForProject(a.opportunityId, true).length > 0,
                     isPipeline:    false,
                     isProjected:   true,
                     isSupport:     false,
@@ -315,9 +315,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         return Math.round((d - fromDate) / 86400000);
     }
 
-    _contractorChipsForProject(sprintId) {
+    _contractorChipsForProject(projectId, isOpp = false) {
         return this._assignments
-            .filter(a => a.contractorId && a.sprintId === sprintId && !a._deleted)
+            .filter(a => a.contractorId && !a._deleted &&
+                (isOpp ? a.opportunityId === projectId : a.sprintId === projectId))
             .map(a => {
                 const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
                 return { id: a.id, name: c?.name || a.contractorId, hours: a.hoursPerWeek || 0 };
