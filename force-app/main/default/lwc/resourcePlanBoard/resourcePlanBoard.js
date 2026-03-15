@@ -495,7 +495,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                         (card.isProjected ? a.opportunityId === card.projectId : a.sprintId === card.projectId))
                     .map(a => {
                         const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
-                        return c ? { ...c, assignmentId: a.id } : null;
+                        return c ? { ...c, assignmentId: a.id, hoursPerWeek: a.hoursPerWeek || 0 } : null;
                     }).filter(Boolean);
                 const isContOver = this._cardDropTarget === card.projectId;
                 const baseCls = card.cardCls || `plan-card plan-card--${this._viewMode}`;
