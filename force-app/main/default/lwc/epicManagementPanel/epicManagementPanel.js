@@ -37,7 +37,7 @@ let _tlMsTrackWidth     = 600;
 export default class EpicManagementPanel extends LightningElement {
 
     @api projectId;
-    @api selectedEpicId = null;  // controlled by parent (storyBoard)
+    @api selectedEpicId = null;  // controlled by parent (internalStoryboard)
     @api isDragging     = false; // true while a story card is being dragged
 
 
@@ -248,7 +248,7 @@ export default class EpicManagementPanel extends LightningElement {
         return `top:${top}px;left:${adjustedLeft}px;transform:translateY(calc(-100% - 10px));`;
     }
 
-    // ── API methods (called by parent storyBoard) ─────────────────────────
+    // ── API methods (called by parent internalStoryboard) ────────────────────────
     @api getEpicIdAtPoint(x, y) {
         for (const chip of this.template.querySelectorAll('.epic-chip[data-id]')) {
             const r = chip.getBoundingClientRect();

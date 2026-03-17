@@ -139,7 +139,7 @@ export default class SubmitAStory extends LightningElement {
             this.submittedStoryVisible = true;
             this.submitted = true;
 
-            // Broadcast to sibling components (storyBoard, sprintPlanner) to refresh
+            // Broadcast to sibling components (internalStoryboard, sprintPlanner) to refresh
             console.log('Publishing StorySubmitted message', result);
             publish(this.messageContext, STORY_SUBMITTED_CHANNEL, { recordId: result });
             console.log('Published successfully');
