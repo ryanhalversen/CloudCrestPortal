@@ -795,22 +795,12 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             const dist = Math.abs(svgX - (ML + (i / (WEEKS - 1)) * CW));
             if (dist < minDist) { minDist = dist; weekIdx = i; }
         }
-        // Toggle off if clicking same week or no week close enough
-        if (weekIdx === null || (this._hoveredWeek && this._hoveredWeek.weekIdx === weekIdx)) {
-            this._hoveredWeek = null;
-            return;
-        }
-        this._hoveredWeek = { weekIdx, clientX: e.clientX, clientY: e.clientY };
+        if (weekIdx !== null) this._selectedWeek = weekIdx;
     }
 
-    handleTooltipClose(e) {
-        e.stopPropagation();
-        this._hoveredWeek = null;
-    }
-
-    get dotTooltip() {
-        if (!this._hoveredWeek || !this._raw) return null;
-        const { weekIdx, clientX, clientY } = this._hoveredWeek;
+    get weekCard() {
+        if (!this._raw) return null;
+        const weekIdx   = this._selectedWeek;
         const weekStart = this._getWeekStart(weekIdx);
         const fteIds    = new Set((this._raw.fteRows || []).map(f => f.id));
         const MONTHS    = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -830,9 +820,7 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
         const totalDemand   = this._round(projects.reduce((s, p) => s + p.hrs, 0));
         const pipelineTotal = this._round(pipeline.reduce((s, o) => s + o.hrs, 0));
         const totalForecast = this._round(totalDemand + pipelineTotal);
-        const left = Math.min(clientX + 14, (typeof window !== 'undefined' ? window.innerWidth : 1400) - 310);
-        const top  = Math.max(10, clientY - 50);
-        return { style: `left:${left}px;top:${top}px;`, dateLabel, projects, pipeline, hasPipeline: pipeline.length > 0, totalDemand, pipelineTotal, totalForecast };
+        return { dateLabel, projects, pipeline, hasPipeline: pipeline.length > 0, totalDemand, pipelineTotal, totalForecast };
     }
 
     _getWeekStart(n) {

@@ -201,6 +201,21 @@
     padding: 8px 0 0;
 }
 
+.forecast-body {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+
+.week-card {
+    flex-shrink: 0;
+    width: 240px;
+    background: #1e293b;
+    border-right: 1px solid #334155;
+    padding: 14px 14px 12px;
+    overflow-y: auto;
+}
+
 .forecast-header {
     display: flex;
     align-items: center;
@@ -414,7 +429,7 @@
     margin: 0;
 }
 
-/* ── Chart Tooltip ─────────────────────────────────────────────────────────── */
+/* ── Chart Tooltip (legacy — kept for tt-* child styles used by week-card) ── */
 .chart-tooltip {
     position: fixed;
     z-index: 9700;
