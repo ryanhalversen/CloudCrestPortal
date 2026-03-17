@@ -714,6 +714,29 @@ public class StoryBoardControllerTest {
     }
 
     @isTest
+    static void testGetSupportOptions() {
+        Account contractorAccount = new Account(Name = 'CloudCrest Contractors');
+        insert contractorAccount;
+
+        Contact con = new Contact(FirstName = 'Alice', LastName = 'Contractor', AccountId = contractorAccount.Id);
+        insert con;
+
+        Test.startTest();
+        List<StoryBoardController.SupportOption> results = StoryBoardController.getSupportOptions();
+        Test.stopTest();
+
+        System.assertNotEquals(null, results, 'Results should not be null');
+        Boolean hasUser    = false;
+        Boolean hasContact = false;
+        for (StoryBoardController.SupportOption o : results) {
+            if (o.type == 'user')    hasUser    = true;
+            if (o.type == 'contact') hasContact = true;
+        }
+        System.assert(hasUser,    'Should include at least one user');
+        System.assert(hasContact, 'Should include at least one contractor contact');
+    }
+
+    @isTest
     static void testSearchContractors() {
         Account contractorAccount = new Account(Name = 'CloudCrest Contractors');
         insert contractorAccount;

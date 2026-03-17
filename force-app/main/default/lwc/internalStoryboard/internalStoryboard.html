@@ -303,29 +303,43 @@
                         </div>
                     </template>
 
-                    <!-- Story Support search (expands between header and body) -->
+                    <!-- Story Support dropdown (expands between header and body) -->
                     <template if:true={showSupportSearch}>
                         <div class="modal-owner-search">
                             <div class="owner-search-wrap">
-                                <input class="new-story-input owner-search-input"
-                                       type="text"
-                                       placeholder="Search contractors by name…"
-                                       oninput={handleSupportSearchChange} />
+                                <span class="modal-meta-label" style="padding:6px 0;">Assign support</span>
                                 <button class="btn-cancel ns-cancel-btn" onclick={handleSupportSearchCancel}>Cancel</button>
                             </div>
                             <template if:true={isSearchingSupport}>
-                                <span class="owner-searching">Searching…</span>
+                                <span class="owner-searching">Loading…</span>
                             </template>
-                            <template if:true={supportSearchResults.length}>
+                            <template if:false={isSearchingSupport}>
                                 <div class="owner-results">
-                                    <template for:each={supportSearchResults} for:item="c">
-                                        <div key={c.id}
-                                             class="owner-result-item"
-                                             data-id={c.id}
-                                             data-name={c.name}
-                                             onclick={handleSupportResultSelect}>
-                                            {c.name}
-                                        </div>
+                                    <template if:true={supportUserResults.length}>
+                                        <div class="owner-result-group-label">Internal</div>
+                                        <template for:each={supportUserResults} for:item="u">
+                                            <div key={u.id}
+                                                 class="owner-result-item"
+                                                 data-id={u.id}
+                                                 data-name={u.name}
+                                                 data-type="user"
+                                                 onclick={handleSupportResultSelect}>
+                                                {u.name}
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:true={supportContractorResults.length}>
+                                        <div class="owner-result-group-label">Contractors</div>
+                                        <template for:each={supportContractorResults} for:item="c">
+                                            <div key={c.id}
+                                                 class="owner-result-item"
+                                                 data-id={c.id}
+                                                 data-name={c.name}
+                                                 data-type="contact"
+                                                 onclick={handleSupportResultSelect}>
+                                                {c.name}
+                                            </div>
+                                        </template>
                                     </template>
                                 </div>
                             </template>

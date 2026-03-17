@@ -29,6 +29,7 @@ import searchUsers             from '@salesforce/apex/StoryBoardController.searc
 import assignStorySupport      from '@salesforce/apex/StoryBoardController.assignStorySupport';
 import searchContractors       from '@salesforce/apex/StoryBoardController.searchContractors';
 import assignSupportContractor from '@salesforce/apex/StoryBoardController.assignSupportContractor';
+import getSupportOptions       from '@salesforce/apex/StoryBoardController.getSupportOptions';
 import getContactsForProject   from '@salesforce/apex/StoryBoardController.getContactsForProject';
 import assignContact           from '@salesforce/apex/StoryBoardController.assignContact';
 import updateSubjectDescription from '@salesforce/apex/StoryBoardController.updateSubjectDescription';
@@ -1088,57 +1089,79 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return this.modalCard?.supportContractorName || this.modalCard?.storySupportName || 'None';
     }
 
-    handleSupportAssignClick() {
+    async handleSupportAssignClick() {
         this.showOwnerSearch      = false;
         this.showEpicChange       = false;
-        this.showSupportSearch    = !this.showSupportSearch;
+        const opening = !this.showSupportSearch;
+        this.showSupportSearch    = opening;
         this.supportSearchResults = [];
         this.supportAssignError   = '';
-    }
-
-    handleSupportSearchChange(e) {
-        const term = e.target.value;
-        if (term.length < 2) {
-            this.supportSearchResults = [];
-            return;
-        }
-        this.isSearchingSupport = true;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        clearTimeout(_supportSearchTimer);
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        _supportSearchTimer = setTimeout(async () => {
+        if (opening) {
+            this.isSearchingSupport = true;
             try {
-                const results = await searchContractors({ searchTerm: term });
-                this.supportSearchResults = results.map(c => ({
-                    id:   c.Id,
-                    name: c.Name
+                const results = await getSupportOptions();
+                this.supportSearchResults = results.map(o => ({
+                    id:   o.id,
+                    name: o.name,
+                    type: o.type
                 }));
             } catch (err) {
+                this.supportAssignError = 'Could not load options';
                 console.error(err);
             } finally {
                 this.isSearchingSupport = false;
             }
-        }, 300);
+        }
+    }
+
+    get supportUserResults() {
+        return this.supportSearchResults.filter(o => o.type === 'user');
+    }
+
+    get supportContractorResults() {
+        return this.supportSearchResults.filter(o => o.type === 'contact');
     }
 
     async handleSupportResultSelect(e) {
-        const contactId   = e.currentTarget.dataset.id;
-        const contactName = e.currentTarget.dataset.name;
-        const caseId      = this.modalCard.id;
+        const selectId   = e.currentTarget.dataset.id;
+        const selectName = e.currentTarget.dataset.name;
+        const selectType = e.currentTarget.dataset.type;
+        const caseId     = this.modalCard.id;
         this.isAssigningSupport = true;
         this.supportAssignError = '';
         try {
-            await assignSupportContractor({ caseId, contactId });
-            this.modalCard = { ...this.modalCard, supportContractorId: contactId, supportContractorName: contactName };
-            this.columns = this.columns.map(col => ({
-                ...col,
-                cards: col.cards.map(c => c.id !== caseId ? c : {
-                    ...c,
-                    supportContractorId:   contactId,
-                    supportContractorName: contactName,
-                    cardClass:             'story-card story-card-support'
-                })
-            }));
+            if (selectType === 'user') {
+                await assignStorySupport({ caseId, userId: selectId });
+                await assignSupportContractor({ caseId, contactId: null });
+                this.modalCard = { ...this.modalCard, storySupportId: selectId, storySupportName: selectName, supportContractorId: null, supportContractorName: '' };
+                this.columns = this.columns.map(col => ({
+                    ...col,
+                    cards: col.cards.map(c => c.id !== caseId ? c : {
+                        ...c,
+                        storySupportId:        selectId,
+                        storySupportName:      selectName,
+                        supportContractorId:   null,
+                        supportContractorName: '',
+                        cardClass:             'story-card story-card-support'
+                    })
+                }));
+                this._loadChatMessages(caseId);
+            } else {
+                await assignSupportContractor({ caseId, contactId: selectId });
+                await assignStorySupport({ caseId, userId: null });
+                this.modalCard = { ...this.modalCard, supportContractorId: selectId, supportContractorName: selectName, storySupportId: null, storySupportName: '' };
+                this.columns = this.columns.map(col => ({
+                    ...col,
+                    cards: col.cards.map(c => c.id !== caseId ? c : {
+                        ...c,
+                        supportContractorId:   selectId,
+                        supportContractorName: selectName,
+                        storySupportId:        null,
+                        storySupportName:      '',
+                        cardClass:             'story-card story-card-support'
+                    })
+                }));
+            }
             this.showSupportSearch = false;
         } catch (err) {
             this.supportAssignError = 'Failed to assign — please try again';
@@ -1153,17 +1176,21 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.isAssigningSupport = true;
         this.supportAssignError = '';
         try {
+            await assignStorySupport({ caseId, userId: null });
             await assignSupportContractor({ caseId, contactId: null });
-            this.modalCard = { ...this.modalCard, supportContractorId: null, supportContractorName: '' };
+            this.modalCard = { ...this.modalCard, storySupportId: null, storySupportName: '', supportContractorId: null, supportContractorName: '' };
             this.columns = this.columns.map(col => ({
                 ...col,
                 cards: col.cards.map(c => c.id !== caseId ? c : {
                     ...c,
+                    storySupportId:        null,
+                    storySupportName:      '',
                     supportContractorId:   null,
                     supportContractorName: '',
                     cardClass:             'story-card'
                 })
             }));
+            this.chatMessages = [];
         } catch (err) {
             this.supportAssignError = 'Failed to remove — please try again';
             console.error(err);

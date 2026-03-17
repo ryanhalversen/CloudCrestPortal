@@ -370,6 +370,45 @@ public without sharing class StoryBoardController {
         ];
     }
 
+    // ── Get all support options (internal users + CloudCrest Contractors) ─
+    public class SupportOption {
+        @AuraEnabled public Id     id;
+        @AuraEnabled public String name;
+        @AuraEnabled public String type; // 'user' or 'contact'
+    }
+
+    @AuraEnabled
+    public static List<SupportOption> getSupportOptions() {
+        List<SupportOption> options = new List<SupportOption>();
+        for (User u : [
+            SELECT Id, Name
+            FROM User
+            WHERE IsActive = true
+            ORDER BY Name ASC
+            LIMIT 100
+        ]) {
+            SupportOption o = new SupportOption();
+            o.id   = u.Id;
+            o.name = u.Name;
+            o.type = 'user';
+            options.add(o);
+        }
+        for (Contact c : [
+            SELECT Id, Name
+            FROM Contact
+            WHERE Account.Name = 'CloudCrest Contractors'
+            ORDER BY Name ASC
+            LIMIT 100
+        ]) {
+            SupportOption o = new SupportOption();
+            o.id   = c.Id;
+            o.name = c.Name;
+            o.type = 'contact';
+            options.add(o);
+        }
+        return options;
+    }
+
     // ── Assign Support Contact to Story ───────────────────────────────────
     @AuraEnabled
     public static void assignSupportContractor(Id caseId, Id contactId) {

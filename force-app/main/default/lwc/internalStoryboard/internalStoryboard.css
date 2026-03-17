@@ -1543,6 +1543,22 @@
     background: #fff;
 }
 
+.owner-result-group-label {
+    padding: 5px 12px 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    border-top: 1px solid #f3f4f6;
+    margin-top: 4px;
+}
+
+.owner-result-group-label:first-child {
+    border-top: none;
+    margin-top: 0;
+}
+
 .owner-result-item {
     padding: 7px 12px;
     font-size: 0.85rem;
