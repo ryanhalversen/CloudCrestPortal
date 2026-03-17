@@ -317,19 +317,6 @@
                             </template>
                             <template if:false={isSearchingSupport}>
                                 <div class="owner-results">
-                                    <template if:true={supportUserResults.length}>
-                                        <div class="owner-result-group-label">Internal</div>
-                                        <template for:each={supportUserResults} for:item="u">
-                                            <div key={u.id}
-                                                 class="owner-result-item"
-                                                 data-id={u.id}
-                                                 data-name={u.name}
-                                                 data-type="user"
-                                                 onclick={handleSupportResultSelect}>
-                                                {u.name}
-                                            </div>
-                                        </template>
-                                    </template>
                                     <template if:true={supportContractorResults.length}>
                                         <div class="owner-result-group-label">Contractors</div>
                                         <template for:each={supportContractorResults} for:item="c">
@@ -340,6 +327,19 @@
                                                  data-type="contact"
                                                  onclick={handleSupportResultSelect}>
                                                 {c.name}
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template if:true={supportUserResults.length}>
+                                        <div class="owner-result-group-label">Internal</div>
+                                        <template for:each={supportUserResults} for:item="u">
+                                            <div key={u.id}
+                                                 class="owner-result-item"
+                                                 data-id={u.id}
+                                                 data-name={u.name}
+                                                 data-type="user"
+                                                 onclick={handleSupportResultSelect}>
+                                                {u.name}
                                             </div>
                                         </template>
                                     </template>
