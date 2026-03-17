@@ -7,6 +7,7 @@ public without sharing class StoryBoardController {
             'CreatedDate, Description, Sprint_Week__c, Sprint_Start_Date__c, Projects__c, ' +
             'Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c, OwnerId, Owner.Name, Projects__r.Name, Epic__c, Epic__r.Name, ' +
             'ContactId, Contact.Name, Story_Support__c, Story_Support__r.Name, Support_Message_Pending__c, ' +
+            'Support_Contact__c, Support_Contact__r.Name, ' +
             'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c, Closing_Comments__c ' +
             'FROM Case';
 
@@ -353,6 +354,32 @@ public without sharing class StoryBoardController {
             ORDER BY Name ASC
             LIMIT 10
         ];
+    }
+
+    // ── Search Contractors (Contacts on CloudCrest Contractors account) ──
+    @AuraEnabled
+    public static List<Contact> searchContractors(String searchTerm) {
+        String term = '%' + String.escapeSingleQuotes(searchTerm) + '%';
+        return [
+            SELECT Id, Name
+            FROM Contact
+            WHERE Account.Name = 'CloudCrest Contractors'
+              AND Name LIKE :term
+            ORDER BY Name ASC
+            LIMIT 10
+        ];
+    }
+
+    // ── Assign Support Contact to Story ───────────────────────────────────
+    @AuraEnabled
+    public static void assignSupportContractor(Id caseId, Id contactId) {
+        try {
+            update new Case(Id = caseId, Support_Contact__c = contactId);
+        } catch (DmlException ex) {
+            throw new AuraHandledException(ex.getDmlMessage(0));
+        } catch (Exception ex) {
+            throw new AuraHandledException(ex.getMessage());
+        }
     }
 
     // ── Support Chat (Chatter FeedItem) ──────────────────────────────────

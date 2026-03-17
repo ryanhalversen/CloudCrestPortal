@@ -712,4 +712,50 @@ public class StoryBoardControllerTest {
         System.assertEquals(60,               t.Minutes_Logged__c,       'Minutes should be unchanged');
         System.assertEquals('Updated notes only', t.Additional_Comments__c, 'Notes should be updated');
     }
+
+    @isTest
+    static void testSearchContractors() {
+        Account contractorAccount = new Account(Name = 'CloudCrest Contractors');
+        insert contractorAccount;
+
+        Contact con = new Contact(FirstName = 'Jane', LastName = 'Contractor', AccountId = contractorAccount.Id);
+        insert con;
+
+        Test.startTest();
+        List<Contact> results = StoryBoardController.searchContractors('Jane');
+        Test.stopTest();
+
+        System.assertNotEquals(null, results, 'Results should not be null');
+        System.assert(results.size() >= 1, 'Should find the contractor contact');
+    }
+
+    @isTest
+    static void testAssignSupportContractor() {
+        Account contractorAccount = new Account(Name = 'CloudCrest Contractors');
+        insert contractorAccount;
+
+        Contact con = new Contact(FirstName = 'Bob', LastName = 'Contractor', AccountId = contractorAccount.Id);
+        insert con;
+
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.assignSupportContractor(c.Id, con.Id);
+        Test.stopTest();
+
+        Case updated = [SELECT Support_Contact__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals(con.Id, updated.Support_Contact__c, 'Support Contact should be assigned');
+    }
+
+    @isTest
+    static void testAssignSupportContractor_remove() {
+        Case c = [SELECT Id FROM Case WHERE Subject = 'Story 1' LIMIT 1];
+
+        Test.startTest();
+        StoryBoardController.assignSupportContractor(c.Id, null);
+        Test.stopTest();
+
+        Case updated = [SELECT Support_Contact__c FROM Case WHERE Id = :c.Id];
+        System.assertEquals(null, updated.Support_Contact__c, 'Support Contact should be cleared');
+    }
 }

@@ -27,6 +27,8 @@ import updateTimeEntry      from '@salesforce/apex/StoryBoardController.updateTi
 import closeStory           from '@salesforce/apex/StoryBoardController.closeStory';
 import searchUsers             from '@salesforce/apex/StoryBoardController.searchUsers';
 import assignStorySupport      from '@salesforce/apex/StoryBoardController.assignStorySupport';
+import searchContractors       from '@salesforce/apex/StoryBoardController.searchContractors';
+import assignSupportContractor from '@salesforce/apex/StoryBoardController.assignSupportContractor';
 import getContactsForProject   from '@salesforce/apex/StoryBoardController.getContactsForProject';
 import assignContact           from '@salesforce/apex/StoryBoardController.assignContact';
 import updateSubjectDescription from '@salesforce/apex/StoryBoardController.updateSubjectDescription';
@@ -1083,7 +1085,7 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
 
     // ── Story Support ─────────────────────────────────────────────────────
     get modalSupportDisplay() {
-        return this.modalCard?.storySupportName || 'None';
+        return this.modalCard?.supportContractorName || this.modalCard?.storySupportName || 'None';
     }
 
     handleSupportAssignClick() {
@@ -1106,10 +1108,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         _supportSearchTimer = setTimeout(async () => {
             try {
-                const results = await searchUsers({ searchTerm: term });
-                this.supportSearchResults = results.map(u => ({
-                    id:   u.Id,
-                    name: u.Name
+                const results = await searchContractors({ searchTerm: term });
+                this.supportSearchResults = results.map(c => ({
+                    id:   c.Id,
+                    name: c.Name
                 }));
             } catch (err) {
                 console.error(err);
@@ -1120,25 +1122,24 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
     }
 
     async handleSupportResultSelect(e) {
-        const userId   = e.currentTarget.dataset.id;
-        const userName = e.currentTarget.dataset.name;
-        const caseId   = this.modalCard.id;
+        const contactId   = e.currentTarget.dataset.id;
+        const contactName = e.currentTarget.dataset.name;
+        const caseId      = this.modalCard.id;
         this.isAssigningSupport = true;
         this.supportAssignError = '';
         try {
-            await assignStorySupport({ caseId, userId });
-            this.modalCard = { ...this.modalCard, storySupportId: userId, storySupportName: userName };
+            await assignSupportContractor({ caseId, contactId });
+            this.modalCard = { ...this.modalCard, supportContractorId: contactId, supportContractorName: contactName };
             this.columns = this.columns.map(col => ({
                 ...col,
                 cards: col.cards.map(c => c.id !== caseId ? c : {
                     ...c,
-                    storySupportId:   userId,
-                    storySupportName: userName,
-                    cardClass:        'story-card story-card-support'
+                    supportContractorId:   contactId,
+                    supportContractorName: contactName,
+                    cardClass:             'story-card story-card-support'
                 })
             }));
             this.showSupportSearch = false;
-            this._loadChatMessages(caseId);
         } catch (err) {
             this.supportAssignError = 'Failed to assign — please try again';
             console.error(err);
@@ -1152,18 +1153,17 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         this.isAssigningSupport = true;
         this.supportAssignError = '';
         try {
-            await assignStorySupport({ caseId, userId: null });
-            this.modalCard = { ...this.modalCard, storySupportId: null, storySupportName: '' };
+            await assignSupportContractor({ caseId, contactId: null });
+            this.modalCard = { ...this.modalCard, supportContractorId: null, supportContractorName: '' };
             this.columns = this.columns.map(col => ({
                 ...col,
                 cards: col.cards.map(c => c.id !== caseId ? c : {
                     ...c,
-                    storySupportId:   null,
-                    storySupportName: '',
-                    cardClass:        'story-card'
+                    supportContractorId:   null,
+                    supportContractorName: '',
+                    cardClass:             'story-card'
                 })
             }));
-            this.chatMessages = [];
         } catch (err) {
             this.supportAssignError = 'Failed to remove — please try again';
             console.error(err);
@@ -1980,8 +1980,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
             contactId:          c.ContactId           || null,
             contactName:        c.Contact?.Name       || '',
             status:             c.Status              || '',
-            storySupportId:     c.Story_Support__c    || null,
-            storySupportName:   c.Story_Support__r?.Name || '',
+            storySupportId:          c.Story_Support__c    || null,
+            storySupportName:        c.Story_Support__r?.Name || '',
+            supportContractorId:     c.Support_Contact__c   || null,
+            supportContractorName:   c.Support_Contact__r?.Name || '',
             hasSupportMessage:  c.Support_Message_Pending__c || false,
             closingComments:    c.Closing_Comments__c || '',
             solution:           c.Solution__c         || '',
