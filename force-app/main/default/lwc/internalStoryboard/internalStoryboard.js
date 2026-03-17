@@ -1089,6 +1089,10 @@ export default class StoryBoard extends NavigationMixin(LightningElement) {
         return this.modalCard?.supportContractorName || this.modalCard?.storySupportName || 'None';
     }
 
+    get hasSupportAssigned() {
+        return !!(this.modalCard?.supportContractorId || this.modalCard?.storySupportId);
+    }
+
     async handleSupportAssignClick() {
         this.showOwnerSearch      = false;
         this.showEpicChange       = false;

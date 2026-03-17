@@ -468,6 +468,13 @@
     gap: 6px;
     flex-wrap: wrap;
 }
+.modal-header-support-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
 .modal-header-actions {
     display: flex;
     align-items: center;

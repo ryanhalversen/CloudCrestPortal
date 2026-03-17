@@ -250,15 +250,7 @@
                             <button class="btn-change-epic" onclick={handleChangeEpicClick} disabled={isChangingEpic}>Change</button>
 
                             <span class="modal-meta-sep">·</span>
-                            <span class="modal-meta-label">Support</span>
-                            <span class="modal-epic-name">{modalSupportDisplay}</span>
-                            <button class="btn-change-epic" onclick={handleSupportAssignClick} disabled={isAssigningSupport}>Assign</button>
-                            <template if:true={modalCard.storySupportId}>
-                                <button class="btn-remove-support" onclick={handleSupportRemove} disabled={isAssigningSupport} title="Remove support user">✕</button>
-                            </template>
-
-                            <span class="modal-meta-sep">·</span>
-                            <span class="modal-meta-label">Contact</span>
+                            <span class="modal-meta-label">Customer Contact</span>
                             <span class="modal-contact-name">{modalCard.contactName}</span>
                             <button class="btn-change-epic" onclick={handleContactAssignClick} disabled={isAssigningContact}>
                                 <template if:true={modalCard.contactName}>Change</template>
@@ -266,6 +258,16 @@
                             </button>
                             <template if:true={modalCard.contactId}>
                                 <button class="btn-remove-support" onclick={handleContactRemove} disabled={isAssigningContact} title="Remove contact">✕</button>
+                            </template>
+                        </div>
+
+                        <!-- Row 3: support assignment -->
+                        <div class="modal-header-support-row">
+                            <span class="modal-meta-label">Support</span>
+                            <span class="modal-epic-name">{modalSupportDisplay}</span>
+                            <button class="btn-change-epic" onclick={handleSupportAssignClick} disabled={isAssigningSupport}>Assign</button>
+                            <template if:true={hasSupportAssigned}>
+                                <button class="btn-remove-support" onclick={handleSupportRemove} disabled={isAssigningSupport} title="Remove support">✕</button>
                             </template>
                         </div>
                     </div>
