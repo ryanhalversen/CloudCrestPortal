@@ -31,12 +31,13 @@ public with sharing class ContractorBoardController {
     @AuraEnabled(cacheable=true)
     public static List<Sprint__c> getProjectsForUser() {
         Id uid = UserInfo.getUserId();
+        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid LIMIT 1].ContactId;
         Set<Id> projIds = new Set<Id>();
         for (Case c : [
             SELECT Projects__c
             FROM   Case
             WHERE  Projects__c != null
-            AND    (OwnerId = :uid OR Story_Support__c = :uid)
+            AND    (OwnerId = :uid OR Story_Support__c = :uid OR Support_Contact__c = :contactId)
         ]) {
             projIds.add(c.Projects__c);
         }
@@ -52,15 +53,17 @@ public with sharing class ContractorBoardController {
     @AuraEnabled(cacheable=true)
     public static List<Case> getStories(String projectId) {
         Id uid = UserInfo.getUserId();
+        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid LIMIT 1].ContactId;
 
         String q =
             'SELECT Id, CaseNumber, Subject, Description, Status, Priority, Type, ' +
             'Sprint_Week__c, Projects__c, Projects__r.Name, Epic__c, Epic__r.Name, ' +
             'Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c, ' +
-            'OwnerId, Owner.Name, Story_Support__c, CreatedDate ' +
+            'OwnerId, Owner.Name, Story_Support__c, Support_Contact__c, CreatedDate ' +
             'FROM Case ' +
             'WHERE Status NOT IN (\'Cancelled\') ' +
-            'AND (OwnerId = \'' + uid + '\' OR Story_Support__c = \'' + uid + '\') ';
+            'AND (OwnerId = \'' + uid + '\' OR Story_Support__c = \'' + uid + '\'' +
+            (contactId != null ? ' OR Support_Contact__c = \'' + contactId + '\'' : '') + ') ';
 
         if (String.isNotBlank(projectId)) {
             q += 'AND Projects__c = \'' + String.escapeSingleQuotes(projectId) + '\' ';
