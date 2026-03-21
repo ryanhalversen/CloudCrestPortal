@@ -2,6 +2,16 @@
 <template>
     <div class="board-wrapper">
 
+        <!-- ── Timer Banner ── -->
+        <template if:true={hasActiveTimer}>
+            <div class="timer-banner">
+                <span class="timer-icon">&#9203;</span>
+                <span class="timer-subject">{_activeTimerSubject}</span>
+                <span class="timer-elapsed">&#8212; {timerElapsedLabel}</span>
+                <button class="btn-timer-stop" onclick={handleStopTimer}>&#9209; Stop</button>
+            </div>
+        </template>
+
         <!-- ── Header ── -->
         <div class="board-header">
             <div class="header-left">
@@ -31,6 +41,9 @@
                         </button>
                     </template>
                 </div>
+                <template if:true={selectedProjectId}>
+                    <button class="btn-new-story" onclick={handleNewStoryClick}>+ New Story</button>
+                </template>
             </div>
         </div>
 
@@ -77,7 +90,7 @@
             <div class="board-scroll">
                 <div class="board-columns">
                     <template for:each={columns} for:item="col">
-                        <div key={col.status} class="board-col">
+                        <div key={col.status} class={col.colClass} data-status={col.status}>
                             <div class="col-header">
                                 <div class="col-title-wrap">
                                     <span class="col-dot" style={col.dotStyle}></span>
@@ -91,7 +104,8 @@
                                         key={card.id}
                                         class={card.cardClass}
                                         data-id={card.id}
-                                        onclick={handleCardClick}>
+                                        data-status={card.status}
+                                        onpointerdown={handleCardPointerDown}>
                                         <div class="card-subject">{card.subject}</div>
                                         <div class="card-meta">
                                             <span class={card.priorityClass}>{card.priority}</span>
@@ -138,6 +152,14 @@
                                     <span class="meta-type">{selectedStory.storyType}</span>
                                 </template>
                             </div>
+                            <div class="modal-header-actions">
+                                <template if:false={isTimerOnThisStory}>
+                                    <button class="btn-modal-timer" onclick={handleStartTimer}>&#9654; Timer</button>
+                                </template>
+                                <template if:true={isTimerOnThisStory}>
+                                    <button class="btn-modal-timer btn-timer-active" onclick={handleStopTimer}>&#9209; Stop</button>
+                                </template>
+                            </div>
                             <button class="modal-close" onclick={handleCloseModal} title="Close">&times;</button>
                         </div>
                         <div class="modal-header-meta">
@@ -153,7 +175,46 @@
                             </template>
                             <span class="modal-meta-label">Assigned to</span>
                             <span class="modal-contact-name">{selectedStory.ownerName}</span>
+                            <span class="modal-meta-sep">·</span>
+                            <span class="modal-meta-label">Contact</span>
+                            <template if:true={hasContact}>
+                                <span class="modal-contact-name">{selectedStory.contactName}</span>
+                            </template>
+                            <template if:false={hasContact}>
+                                <span class="modal-contact-name modal-no-value">None</span>
+                            </template>
+                            <template if:true={hasContact}>
+                                <button class="btn-modal-inline" onclick={handleAssignContactClick}>Change</button>
+                            </template>
+                            <template if:false={hasContact}>
+                                <button class="btn-modal-inline" onclick={handleAssignContactClick}>Assign</button>
+                            </template>
+                            <template if:true={hasContact}>
+                                <button class="btn-modal-inline btn-remove" onclick={handleRemoveContact}>&#10005;</button>
+                            </template>
                         </div>
+                        <!-- Contact dropdown -->
+                        <template if:true={showContactSearch}>
+                            <div class="modal-inline-dropdown">
+                                <template if:true={contactLoading}>
+                                    <p style="padding:8px 12px;font-size:0.82rem;color:#6b7280;">Loading...</p>
+                                </template>
+                                <template if:false={contactLoading}>
+                                    <template for:each={contactResults} for:item="c">
+                                        <div key={c.Id} class="modal-dropdown-item" data-id={c.Id} data-name={c.Name} onclick={handleContactResultSelect}>
+                                            {c.Name}
+                                            <template if:true={c.Title}>
+                                                <span style="color:#9ca3af;"> &#8212; {c.Title}</span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template if:true={noContactResults}>
+                                        <p class="modal-dropdown-empty">No contacts found</p>
+                                    </template>
+                                </template>
+                                <button class="btn-modal-cancel-sm" onclick={handleContactSearchCancel}>Cancel</button>
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Modal Body: left detail pane + right collaboration pane -->
@@ -163,12 +224,103 @@
                         <div class="modal-col-detail">
                             <div class="modal-subject">{selectedStory.subject}</div>
 
-                            <template if:true={selectedStory.description}>
-                                <p class="modal-description">{selectedStory.description}</p>
-                            </template>
-                            <template if:false={selectedStory.description}>
-                                <p class="modal-no-desc">No description provided.</p>
-                            </template>
+                            <!-- Priority buttons -->
+                            <div class="modal-field-row">
+                                <span class="modal-field-label">Priority</span>
+                                <div class="priority-btn-group">
+                                    <template for:each={priorityButtons} for:item="btn">
+                                        <button key={btn.value} class={btn.cls} data-priority={btn.value} onclick={handlePriorityClick} disabled={isUpdatingPriority}>{btn.label}</button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Type selector -->
+                            <div class="modal-field-row">
+                                <span class="modal-field-label">Type</span>
+                                <select class="modal-select" onchange={handleTypeChange} disabled={isUpdatingType}>
+                                    <template for:each={typeOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Estimated hours -->
+                            <div class="modal-field-row">
+                                <span class="modal-field-label">Est. Hours</span>
+                                <template if:false={isEditingEstHours}>
+                                    <span>{selectedStory.estHours}h</span>
+                                    <button class="btn-edit-inline" onclick={handleEditEstHours}>&#9998;</button>
+                                </template>
+                                <template if:true={isEditingEstHours}>
+                                    <input type="number" class="input-inline-sm" value={estHoursDraft} min="0" step="0.25" oninput={handleEstHoursDraft} />
+                                    <button class="btn-save-inline" onclick={handleSaveEstHours} disabled={isSavingEstHours}>Save</button>
+                                    <button class="btn-cancel-inline" onclick={handleCancelEstHours}>Cancel</button>
+                                </template>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="modal-description-section">
+                                <template if:false={isEditingDescription}>
+                                    <template if:true={selectedStory.description}>
+                                        <p class="modal-description">{selectedStory.description}</p>
+                                    </template>
+                                    <template if:false={selectedStory.description}>
+                                        <p class="modal-no-desc">No description provided.</p>
+                                    </template>
+                                    <button class="btn-edit-inline" onclick={handleEditDescription}>&#9998; Edit</button>
+                                </template>
+                                <template if:true={isEditingDescription}>
+                                    <textarea class="modal-textarea-edit" oninput={handleDescDraft}>{descriptionDraft}</textarea>
+                                    <div class="inline-edit-actions">
+                                        <button class="btn-save-inline" onclick={handleSaveDescription} disabled={isSavingDescription}>Save</button>
+                                        <button class="btn-cancel-inline" onclick={handleCancelDescription}>Cancel</button>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Work Notes (text fields) -->
+                            <div class="text-fields-section">
+                                <div class="text-fields-header">
+                                    <span class="attach-section-title">Work Notes</span>
+                                    <template if:false={isEditingTextFields}>
+                                        <button class="btn-edit-inline" onclick={handleEditTextFields}>&#9998; Edit</button>
+                                    </template>
+                                    <template if:true={textFieldsSaved}>
+                                        <span class="saved-badge">&#10003; Saved</span>
+                                    </template>
+                                </div>
+                                <template if:false={isEditingTextFields}>
+                                    <template if:true={selectedStory.solution}>
+                                        <div class="text-field-item"><strong>Solution:</strong> {selectedStory.solution}</div>
+                                    </template>
+                                    <template if:true={selectedStory.componentsToDeploy}>
+                                        <div class="text-field-item"><strong>Components:</strong> {selectedStory.componentsToDeploy}</div>
+                                    </template>
+                                    <template if:true={selectedStory.qa}>
+                                        <div class="text-field-item"><strong>Q&amp;A:</strong> {selectedStory.qa}</div>
+                                    </template>
+                                    <template if:true={selectedStory.documentation}>
+                                        <div class="text-field-item"><strong>Docs:</strong> {selectedStory.documentation}</div>
+                                    </template>
+                                    <template if:true={noTextFields}>
+                                        <p class="modal-no-desc">No work notes yet.</p>
+                                    </template>
+                                </template>
+                                <template if:true={isEditingTextFields}>
+                                    <label class="modal-field-label">Solution</label>
+                                    <textarea class="modal-textarea-edit" oninput={handleSolutionDraft}>{solutionDraft}</textarea>
+                                    <label class="modal-field-label">Components to Deploy</label>
+                                    <textarea class="modal-textarea-edit" oninput={handleComponentsDraft}>{componentsDraft}</textarea>
+                                    <label class="modal-field-label">Q&amp;A</label>
+                                    <textarea class="modal-textarea-edit" oninput={handleQaDraft}>{qaDraft}</textarea>
+                                    <label class="modal-field-label">Documentation</label>
+                                    <textarea class="modal-textarea-edit" oninput={handleDocDraft}>{docDraft}</textarea>
+                                    <div class="inline-edit-actions">
+                                        <button class="btn-save-inline" onclick={handleSaveTextFields} disabled={isSavingTextFields}>Save All</button>
+                                        <button class="btn-cancel-inline" onclick={handleCancelTextFields}>Cancel</button>
+                                    </div>
+                                </template>
+                            </div>
 
                             <!-- Attachments -->
                             <div class="attach-section">
@@ -195,6 +347,7 @@
                                                 <span class="attach-name" title={att.title}>{att.title}</span>
                                                 <a href={att.downloadUrl} class="attach-btn-dl" target="_blank" title="Download">&#8595;</a>
                                                 <button class="attach-btn-open" data-id={att.contentDocumentId} data-url={att.downloadUrl} data-ext={att.fileExtension} data-title={att.title} onclick={handleViewAttachment}>View</button>
+                                                <button class="attach-btn-del" data-id={att.contentDocumentId} onclick={handleDeleteAttachment} disabled={isDeletingAttach}>&#10005;</button>
                                             </div>
                                         </template>
                                         <template if:true={noAttachments}>
@@ -297,11 +450,20 @@
                                     <div class="time-entry-list">
                                         <template for:each={timeEntries} for:item="te">
                                             <div key={te.Id} class="time-entry">
-                                                <span class="te-hours">{te.hoursDisplay}</span>
-                                                <div class="te-right">
-                                                    <span class="te-desc">{te.Additional_Comments__c}</span>
-                                                    <span class="te-meta">{te.ownerName} · {te.dateDisplay}</span>
-                                                </div>
+                                                <template if:false={te.isEditing}>
+                                                    <span class="te-hours">{te.hoursDisplay}</span>
+                                                    <div class="te-right">
+                                                        <span class="te-desc">{te.Additional_Comments__c}</span>
+                                                        <span class="te-meta">{te.ownerName} · {te.dateDisplay}</span>
+                                                    </div>
+                                                    <button class="btn-edit-inline" data-id={te.Id} onclick={handleEditTimeEntry}>&#9998;</button>
+                                                </template>
+                                                <template if:true={te.isEditing}>
+                                                    <input type="number" class="input-inline-sm" value={timeEditHours} step="0.25" oninput={handleTimeEditHoursInput} />
+                                                    <input type="text" class="input-inline-md" value={timeEditDesc} oninput={handleTimeEditDescInput} />
+                                                    <button class="btn-save-inline" onclick={handleSaveTimeEdit} disabled={isSavingTimeEdit}>Save</button>
+                                                    <button class="btn-cancel-inline" onclick={handleCancelTimeEdit}>Cancel</button>
+                                                </template>
                                             </div>
                                         </template>
                                         <template if:true={noTimeEntries}>
@@ -330,11 +492,19 @@
                                     <div class="time-entry-list">
                                         <template for:each={nextSteps} for:item="step">
                                             <div key={step.Id} class="next-step-entry">
-                                                <span class="ns-arrow">&#8594;</span>
-                                                <div class="te-right">
-                                                    <span class="te-desc">{step.CommentBody}</span>
-                                                    <span class="te-meta">{step.authorName} · {step.dateDisplay}</span>
-                                                </div>
+                                                <template if:false={step.isEditing}>
+                                                    <span class="ns-arrow">&#8594;</span>
+                                                    <div class="te-right">
+                                                        <span class="te-desc">{step.CommentBody}</span>
+                                                        <span class="te-meta">{step.authorName} · {step.dateDisplay}</span>
+                                                    </div>
+                                                    <button class="btn-edit-inline" data-id={step.Id} onclick={handleEditNextStep}>&#9998;</button>
+                                                </template>
+                                                <template if:true={step.isEditing}>
+                                                    <input type="text" class="input-inline-md" value={stepEditText} oninput={handleStepEditInput} />
+                                                    <button class="btn-save-inline" onclick={handleSaveStepEdit} disabled={isSavingStepEdit}>Save</button>
+                                                    <button class="btn-cancel-inline" onclick={handleCancelStepEdit}>Cancel</button>
+                                                </template>
                                             </div>
                                         </template>
                                         <template if:true={noNextSteps}>
@@ -347,6 +517,103 @@
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Close Story Modal ── -->
+        <template if:true={closeStoryCard}>
+            <div class="modal-backdrop" onclick={handleCloseModalDismiss}>
+                <div class="modal-container modal-close-story" onclick={stopPropagation}>
+                    <div class="modal-header">
+                        <div class="modal-header-top">
+                            <h2 style="font-size:1rem;font-weight:700;margin:0;">{closeModalTitle}</h2>
+                            <button class="modal-close" onclick={handleCloseModalDismiss}>&times;</button>
+                        </div>
+                    </div>
+                    <div class="modal-body" style="padding:20px;">
+                        <p class="modal-subject-display">{closeStoryCard.subject}</p>
+
+                        <!-- Closing Comments -->
+                        <label class="modal-field-label">Closing Comments <span class="required">*</span></label>
+                        <textarea class="modal-textarea-edit" oninput={handleClosingCommentsInput}>{closingComments}</textarea>
+                        <template if:true={closeErrors.comments}>
+                            <span class="field-error">Required</span>
+                        </template>
+
+                        <!-- Department -->
+                        <label class="modal-field-label" style="margin-top:12px;">Department <span class="required">*</span></label>
+                        <select class="modal-close-select" onchange={handleCloseModalDeptChange}>
+                            <template for:each={closeDeptOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                            </template>
+                        </select>
+                        <template if:true={closeErrors.dept}>
+                            <span class="field-error">Required</span>
+                        </template>
+
+                        <!-- Priority -->
+                        <label class="modal-field-label" style="margin-top:12px;">Priority <span class="required">*</span></label>
+                        <div class="priority-btn-group">
+                            <template for:each={closePriorityButtons} for:item="btn">
+                                <button key={btn.value} class={btn.cls} data-priority={btn.value} onclick={handleCloseModalPriorityClick}>{btn.label}</button>
+                            </template>
+                        </div>
+
+                        <!-- Type -->
+                        <label class="modal-field-label" style="margin-top:12px;">Type <span class="required">*</span></label>
+                        <select class="modal-close-select" onchange={handleCloseModalTypeChange}>
+                            <template for:each={closeTypeOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                            </template>
+                        </select>
+                        <template if:true={closeErrors.type}>
+                            <span class="field-error">Required</span>
+                        </template>
+
+                        <!-- Actions -->
+                        <div class="modal-footer" style="padding:0;margin-top:20px;border:none;justify-content:flex-start;">
+                            <button class="btn-primary" onclick={handleSubmitCloseStory} disabled={isClosingStory}>{closeSubmitLabel}</button>
+                            <button class="btn-secondary" onclick={handleCloseModalDismiss}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Create Story Modal ── -->
+        <template if:true={isNewStoryModalOpen}>
+            <div class="modal-backdrop" onclick={handleCloseNewStoryModal}>
+                <div class="modal-container modal-new-story" onclick={stopPropagation}>
+                    <div class="modal-header">
+                        <div class="modal-header-top">
+                            <h2 style="font-size:1rem;font-weight:700;margin:0;">New Story</h2>
+                            <button class="modal-close" onclick={handleCloseNewStoryModal}>&times;</button>
+                        </div>
+                    </div>
+                    <div class="modal-body" style="padding:20px;">
+
+                        <label class="modal-field-label">Subject <span class="required">*</span></label>
+                        <input type="text" class={newStorySubjectClass} oninput={handleNewStorySubjectInput} placeholder="Story title" />
+                        <template if:true={newStorySubjectError}>
+                            <span class="field-error">Subject is required</span>
+                        </template>
+
+                        <label class="modal-field-label" style="margin-top:12px;">Description</label>
+                        <textarea class="modal-textarea-edit" oninput={handleNewStoryDescInput} placeholder="Details..."></textarea>
+
+                        <label class="modal-field-label" style="margin-top:12px;">Priority</label>
+                        <div class="priority-btn-group">
+                            <template for:each={newStoryPriorityButtons} for:item="btn">
+                                <button key={btn.value} class={btn.cls} data-priority={btn.value} onclick={handleNewStoryPriorityClick}>{btn.label}</button>
+                            </template>
+                        </div>
+
+                        <div class="modal-footer" style="padding:0;margin-top:20px;border:none;justify-content:flex-start;">
+                            <button class="btn-primary" onclick={handleCreateStory} disabled={isCreatingStory}>{isCreatingStoryLabel}</button>
+                            <button class="btn-secondary" onclick={handleCloseNewStoryModal}>Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </template>
@@ -370,6 +637,18 @@
                             <iframe src={viewerAttachment.downloadUrl} class="viewer-iframe" title={viewerAttachment.title}></iframe>
                         </template>
                     </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Timer Notification ── -->
+        <template if:true={showTimerNotif}>
+            <div class="timer-notif">
+                <p>Stopped: <strong>{timerNotifSubject}</strong> ({timerNotifMinutes} min)</p>
+                <input type="text" placeholder="Add notes (optional)" oninput={handleTimerNotifNotesInput} />
+                <div class="timer-notif-actions">
+                    <button onclick={handleTimerNotifSave}>Save</button>
+                    <button onclick={handleTimerNotifDismiss}>Dismiss</button>
                 </div>
             </div>
         </template>

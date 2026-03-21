@@ -25,6 +25,22 @@ public without sharing class ContractorBoardController {
         @AuraEnabled public String name;
     }
 
+    public class TimerWrapper {
+        @AuraEnabled public String  timeId;
+        @AuraEnabled public String  caseId;
+        @AuraEnabled public String  subject;
+        @AuraEnabled public String  caseNumber;
+        @AuraEnabled public Long    startTimeMs;
+    }
+
+    public class StartTimerResult {
+        @AuraEnabled public String  newTimeId;
+        @AuraEnabled public Long    startTimeMs;
+        @AuraEnabled public String  stoppedTimeId;
+        @AuraEnabled public String  stoppedSubject;
+        @AuraEnabled public Decimal stoppedMinutes;
+    }
+
     // ── Read ──────────────────────────────────────────────────────────────────
 
     // Returns only projects where the running user has stories assigned to them
@@ -61,7 +77,9 @@ public without sharing class ContractorBoardController {
             'SELECT Id, CaseNumber, Subject, Description, Status, Priority, Type, ' +
             'Sprint_Week__c, Projects__c, Projects__r.Name, Epic__c, Epic__r.Name, ' +
             'Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c, ' +
-            'OwnerId, Owner.Name, Story_Support__c, Support_Contact__c, CreatedDate ' +
+            'OwnerId, Owner.Name, Story_Support__c, Support_Contact__c, CreatedDate, ' +
+            'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c, ' +
+            'Closing_Comments__c, Department__c, ContactId, Contact.Name ' +
             'FROM Case ' +
             'WHERE Status NOT IN (\'Cancelled\') ' +
             'AND (OwnerId = \'' + uid + '\' OR Story_Support__c = \'' + uid + '\'' +
@@ -127,7 +145,7 @@ public without sharing class ContractorBoardController {
         return result;
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static List<AttachmentWrapper> getAttachments(String caseId) {
         List<AttachmentWrapper> result = new List<AttachmentWrapper>();
         for (ContentDocumentLink l : [
@@ -174,6 +192,28 @@ public without sharing class ContractorBoardController {
         return opts;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactsForProject(String projectId) {
+        if (String.isBlank(projectId)) return new List<Contact>();
+        List<Sprint__c> sprints = [
+            SELECT Accountlu__c
+            FROM   Sprint__c
+            WHERE  Id = :projectId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        if (sprints.isEmpty() || sprints[0].Accountlu__c == null) return new List<Contact>();
+        Id accountId = sprints[0].Accountlu__c;
+        return [
+            SELECT Id, Name, Title
+            FROM   Contact
+            WHERE  AccountId = :accountId
+            WITH SYSTEM_MODE
+            ORDER BY Name
+            LIMIT 50
+        ];
+    }
+
     // ── Write ─────────────────────────────────────────────────────────────────
 
     @AuraEnabled
@@ -184,6 +224,86 @@ public without sharing class ContractorBoardController {
         Case c  = new Case();
         c.Id     = caseId;
         c.Status = newStatus;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updatePriority(String caseId, String priority) {
+        Set<String> valid = new Set<String>{'Critical','High','Medium','Low'};
+        if (String.isBlank(caseId) || !valid.contains(priority)) {
+            throw new AuraHandledException('Invalid priority value.');
+        }
+        Case c    = new Case();
+        c.Id      = caseId;
+        c.Priority = priority;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateStoryType(String caseId, String type) {
+        Set<String> valid = new Set<String>{'','Bug','Feature','Enhancement','Task','Question','Other'};
+        if (String.isBlank(caseId) || !valid.contains(type == null ? '' : type)) {
+            throw new AuraHandledException('Invalid story type value.');
+        }
+        Case c = new Case();
+        c.Id   = caseId;
+        c.Type = String.isBlank(type) ? null : type;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateEstimatedHours(String caseId, Decimal hours) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+        Case c = new Case();
+        c.Id   = caseId;
+        c.Hours_Estimate_to_Complete__c = hours;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateStoryDescription(String caseId, String description) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+        Case c       = new Case();
+        c.Id          = caseId;
+        c.Description = description;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateStoryTextFields(String caseId, String solution,
+                                             String componentsToDeploy,
+                                             String qa, String documentation) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+        Case c                    = new Case();
+        c.Id                      = caseId;
+        c.Solution__c             = solution;
+        c.Components_to_Deploy__c = componentsToDeploy;
+        c.Q_A__c                  = qa;
+        c.Documentation__c        = documentation;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void closeStory(String caseId, String newStatus,
+                                  String closingComments, String department,
+                                  String priority, String type) {
+        Set<String> validStatus = new Set<String>{'Completed','Cancelled'};
+        if (String.isBlank(caseId) || !validStatus.contains(newStatus)) {
+            throw new AuraHandledException('Invalid close status.');
+        }
+        Case c                   = new Case();
+        c.Id                     = caseId;
+        c.Status                 = newStatus;
+        c.Closing_Comments__c    = closingComments;
+        c.Department__c          = department;
+        c.Priority               = String.isNotBlank(priority) ? priority : 'Medium';
+        c.Type                   = String.isBlank(type) ? null : type;
         Database.update(c, System.AccessLevel.SYSTEM_MODE);
     }
 
@@ -204,7 +324,6 @@ public without sharing class ContractorBoardController {
         if (String.isBlank(caseId) || hours == null || hours <= 0) {
             throw new AuraHandledException('Hours must be greater than 0.');
         }
-        // Fetch Epic from the Case so we can stamp it on the Time record
         Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId WITH SYSTEM_MODE LIMIT 1];
         if (c.Epic__c == null) {
             throw new AuraHandledException('This story must be assigned to an Epic before time can be logged. Please contact your project manager.');
@@ -217,6 +336,52 @@ public without sharing class ContractorBoardController {
         t.Additional_Comments__c = description;
         t.Logged_Date__c         = Date.today();
         Database.insert(t, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateTimeEntry(String timeId, Decimal hours, String description) {
+        if (String.isBlank(timeId)) {
+            throw new AuraHandledException('Time ID is required.');
+        }
+        Time__c t = new Time__c();
+        t.Id      = timeId;
+        if (hours != null) {
+            t.Minutes_Logged__c = hours * 60;
+        }
+        t.Additional_Comments__c = description;
+        Database.update(t, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void updateNextStep(String commentId, String note) {
+        if (String.isBlank(commentId)) {
+            throw new AuraHandledException('Comment ID is required.');
+        }
+        CaseComment cc  = new CaseComment();
+        cc.Id           = commentId;
+        cc.CommentBody  = note;
+        Database.update(cc, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void deleteAttachment(String contentDocumentId) {
+        if (String.isBlank(contentDocumentId)) {
+            throw new AuraHandledException('Content Document ID is required.');
+        }
+        ContentDocument cd = new ContentDocument();
+        cd.Id = contentDocumentId;
+        Database.delete(cd, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void assignContact(String caseId, String contactId) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+        Case c    = new Case();
+        c.Id      = caseId;
+        c.ContactId = String.isBlank(contactId) ? null : contactId;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
     }
 
     @AuraEnabled
@@ -238,17 +403,23 @@ public without sharing class ContractorBoardController {
         if (String.isBlank(subject)) {
             throw new AuraHandledException('Subject is required.');
         }
+
+        // Get the current user's ContactId so story appears on their board
+        Id uid = UserInfo.getUserId();
+        Id myContactId = [SELECT ContactId FROM User WHERE Id = :uid WITH SYSTEM_MODE LIMIT 1].ContactId;
+
         Case c         = new Case();
         c.Subject      = subject;
         c.Description  = description;
         c.Priority     = String.isNotBlank(priority) ? priority : 'Medium';
         c.Status       = 'New';
-        if (String.isNotBlank(projectId)) c.Projects__c = projectId;
-        if (String.isNotBlank(storyType)) c.Type        = storyType;
+        if (String.isNotBlank(projectId))  c.Projects__c      = projectId;
+        if (String.isNotBlank(storyType))  c.Type             = storyType;
+        if (myContactId != null)           c.Support_Contact__c = myContactId;
 
         Database.DMLOptions dml = new Database.DMLOptions();
         dml.assignmentRuleHeader.useDefaultRule = false;
-        Database.insert(c, dml);
+        Database.insert(c, System.AccessLevel.SYSTEM_MODE);
 
         Case inserted = [SELECT Id, CaseNumber FROM Case WHERE Id = :c.Id WITH SYSTEM_MODE LIMIT 1];
         return inserted.CaseNumber;
@@ -283,5 +454,150 @@ public without sharing class ContractorBoardController {
         Database.insert(lnk, System.AccessLevel.SYSTEM_MODE);
 
         return inserted.ContentDocumentId;
+    }
+
+    // ── Timer Methods ─────────────────────────────────────────────────────────
+
+    @AuraEnabled
+    public static TimerWrapper getActiveTimer() {
+        List<Time__c> timers = [
+            SELECT Id, Case__c, Case__r.Subject, Case__r.CaseNumber, Start_Time__c
+            FROM   Time__c
+            WHERE  Active__c     = true
+            AND    CreatedById   = :UserInfo.getUserId()
+            WITH SYSTEM_MODE
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        if (timers.isEmpty()) return null;
+        Time__c t         = timers[0];
+        TimerWrapper w    = new TimerWrapper();
+        w.timeId          = t.Id;
+        w.caseId          = t.Case__c;
+        w.subject         = t.Case__r != null ? t.Case__r.Subject : '';
+        w.caseNumber      = t.Case__r != null ? t.Case__r.CaseNumber : '';
+        w.startTimeMs     = t.Start_Time__c != null
+            ? t.Start_Time__c.getTime()
+            : System.now().getTime();
+        return w;
+    }
+
+    @AuraEnabled
+    public static StartTimerResult startTimer(String caseId) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+
+        StartTimerResult result = new StartTimerResult();
+        Datetime nowDt = System.now();
+
+        // Auto-stop any existing active timer
+        List<Time__c> existing = [
+            SELECT Id, Start_Time__c, Case__c, Case__r.Subject, Minutes_Logged__c
+            FROM   Time__c
+            WHERE  Active__c   = true
+            AND    CreatedById = :UserInfo.getUserId()
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        if (!existing.isEmpty()) {
+            Time__c old = existing[0];
+            Decimal elapsedMinutes = 0;
+            if (old.Start_Time__c != null) {
+                Long ms = nowDt.getTime() - old.Start_Time__c.getTime();
+                elapsedMinutes = (ms / 60000.0).setScale(2);
+            }
+            old.Active__c         = false;
+            old.Stop_Time__c      = nowDt;
+            old.Minutes_Logged__c = elapsedMinutes;
+            Database.update(old, System.AccessLevel.SYSTEM_MODE);
+            result.stoppedTimeId  = old.Id;
+            result.stoppedSubject = old.Case__r != null ? old.Case__r.Subject : '';
+            result.stoppedMinutes = elapsedMinutes;
+        }
+
+        // Look up epic from the case
+        Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId WITH SYSTEM_MODE LIMIT 1];
+
+        // Create new timer
+        Time__c t          = new Time__c();
+        t.Case__c          = caseId;
+        t.Epic__c          = c.Epic__c;
+        t.Active__c        = true;
+        t.Start_Time__c    = nowDt;
+        t.Logged_Date__c   = Date.today();
+        t.Minutes_Logged__c = 0;
+        Database.insert(t, System.AccessLevel.SYSTEM_MODE);
+
+        result.newTimeId   = t.Id;
+        result.startTimeMs = nowDt.getTime();
+        return result;
+    }
+
+    @AuraEnabled
+    public static void stopTimer(String timeId, String notes) {
+        if (String.isBlank(timeId)) {
+            throw new AuraHandledException('Timer ID is required.');
+        }
+        List<Time__c> timers = [
+            SELECT Id, Start_Time__c, Minutes_Logged__c
+            FROM   Time__c
+            WHERE  Id = :timeId
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        if (timers.isEmpty()) return;
+        Datetime nowDt  = System.now();
+        Time__c t       = timers[0];
+        Decimal elapsed = 0;
+        if (t.Start_Time__c != null) {
+            Long ms = nowDt.getTime() - t.Start_Time__c.getTime();
+            elapsed = (ms / 60000.0).setScale(2);
+        }
+        t.Active__c          = false;
+        t.Stop_Time__c       = nowDt;
+        t.Minutes_Logged__c  = elapsed;
+        if (String.isNotBlank(notes)) {
+            t.Additional_Comments__c = notes;
+        }
+        Database.update(t, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void logTimerSession(String caseId, String epicId,
+                                       Long startMs, Long stopMs, String notes) {
+        if (String.isBlank(caseId)) {
+            throw new AuraHandledException('Case ID is required.');
+        }
+        Decimal elapsedMinutes = 0;
+        if (startMs != null && stopMs != null && stopMs > startMs) {
+            elapsedMinutes = ((stopMs - startMs) / 60000.0).setScale(2);
+        }
+        Datetime startDt = Datetime.newInstance(startMs != null ? startMs : System.now().getTime());
+        Datetime stopDt  = Datetime.newInstance(stopMs  != null ? stopMs  : System.now().getTime());
+
+        Time__c t                = new Time__c();
+        t.Case__c                = caseId;
+        t.Epic__c                = String.isNotBlank(epicId) ? epicId : null;
+        t.Active__c              = false;
+        t.Start_Time__c          = startDt;
+        t.Stop_Time__c           = stopDt;
+        t.Minutes_Logged__c      = elapsedMinutes;
+        t.Logged_Date__c         = startDt.date();
+        t.Additional_Comments__c = notes;
+        Database.insert(t, System.AccessLevel.SYSTEM_MODE);
+    }
+
+    @AuraEnabled
+    public static void discardTimer(String timeId) {
+        if (String.isBlank(timeId)) {
+            throw new AuraHandledException('Timer ID is required.');
+        }
+        Time__c t          = new Time__c();
+        t.Id               = timeId;
+        t.Active__c        = false;
+        t.Stop_Time__c     = System.now();
+        t.Minutes_Logged__c = 0;
+        Database.update(t, System.AccessLevel.SYSTEM_MODE);
     }
 }
