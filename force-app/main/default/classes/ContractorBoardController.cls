@@ -30,14 +30,15 @@ public without sharing class ContractorBoardController {
     // Returns only projects where the running user has stories assigned to them
     @AuraEnabled(cacheable=true)
     public static List<Sprint__c> getProjectsForUser() {
-        Id uid = UserInfo.getUserId();
-        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid LIMIT 1].ContactId;
+        Id uid = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId() WITH SYSTEM_MODE LIMIT 1].Id;
+        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid WITH SYSTEM_MODE LIMIT 1].ContactId;
         Set<Id> projIds = new Set<Id>();
         for (Case c : [
             SELECT Projects__c
             FROM   Case
             WHERE  Projects__c != null
             AND    (OwnerId = :uid OR Story_Support__c = :uid OR Support_Contact__c = :contactId)
+            WITH SYSTEM_MODE
         ]) {
             projIds.add(c.Projects__c);
         }
@@ -46,6 +47,7 @@ public without sharing class ContractorBoardController {
             SELECT Id, Name
             FROM   Sprint__c
             WHERE  Id IN :projIds
+            WITH SYSTEM_MODE
             ORDER BY Name
         ];
     }
@@ -53,7 +55,7 @@ public without sharing class ContractorBoardController {
     @AuraEnabled(cacheable=true)
     public static List<Case> getStories(String projectId) {
         Id uid = UserInfo.getUserId();
-        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid LIMIT 1].ContactId;
+        Id contactId = [SELECT ContactId FROM User WHERE Id = :uid WITH SYSTEM_MODE LIMIT 1].ContactId;
 
         String q =
             'SELECT Id, CaseNumber, Subject, Description, Status, Priority, Type, ' +
@@ -70,7 +72,7 @@ public without sharing class ContractorBoardController {
         }
         q += 'ORDER BY CreatedDate DESC LIMIT 500';
 
-        return Database.query(q);
+        return Database.query(q, System.AccessLevel.SYSTEM_MODE);
     }
 
     @AuraEnabled(cacheable=true)
@@ -80,6 +82,7 @@ public without sharing class ContractorBoardController {
                    Logged_Date__c, CreatedBy.Name
             FROM   Time__c
             WHERE  Case__c = :caseId
+            WITH SYSTEM_MODE
             ORDER BY Logged_Date__c DESC, CreatedDate DESC
             LIMIT 100
         ];
@@ -91,6 +94,7 @@ public without sharing class ContractorBoardController {
             SELECT Id, CommentBody, CreatedDate, CreatedBy.Name
             FROM   CaseComment
             WHERE  ParentId = :caseId
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate ASC
             LIMIT 200
         ];
@@ -105,6 +109,7 @@ public without sharing class ContractorBoardController {
             FROM   FeedItem
             WHERE  ParentId = :caseId
             AND    Type     = 'TextPost'
+            WITH SYSTEM_MODE
             ORDER BY CreatedDate ASC
             LIMIT 200
         ];
@@ -133,6 +138,7 @@ public without sharing class ContractorBoardController {
                    ContentDocument.LatestPublishedVersionId
             FROM   ContentDocumentLink
             WHERE  LinkedEntityId = :caseId
+            WITH SYSTEM_MODE
             ORDER BY ContentDocument.CreatedDate DESC
         ]) {
             AttachmentWrapper w = new AttachmentWrapper();
@@ -156,6 +162,7 @@ public without sharing class ContractorBoardController {
             FROM   User
             WHERE  IsActive = true
             AND    Name LIKE :term
+            WITH SYSTEM_MODE
             ORDER BY Name
             LIMIT 10
         ]) {
@@ -168,6 +175,17 @@ public without sharing class ContractorBoardController {
     }
 
     // ── Write ─────────────────────────────────────────────────────────────────
+
+    @AuraEnabled
+    public static void updateStoryStatus(String caseId, String newStatus) {
+        if (String.isBlank(caseId) || String.isBlank(newStatus)) {
+            throw new AuraHandledException('Case ID and status are required.');
+        }
+        Case c  = new Case();
+        c.Id     = caseId;
+        c.Status = newStatus;
+        Database.update(c, System.AccessLevel.SYSTEM_MODE);
+    }
 
     @AuraEnabled
     public static void postChatMessage(String caseId, String message) {
@@ -187,17 +205,17 @@ public without sharing class ContractorBoardController {
             throw new AuraHandledException('Hours must be greater than 0.');
         }
         // Fetch Epic from the Case so we can stamp it on the Time record
-        Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId LIMIT 1];
+        Case c = [SELECT Epic__c FROM Case WHERE Id = :caseId WITH SYSTEM_MODE LIMIT 1];
         if (c.Epic__c == null) {
             throw new AuraHandledException('This story must be assigned to an Epic before time can be logged. Please contact your project manager.');
         }
 
-        Time__c t              = new Time__c();
-        t.Case__c              = caseId;
-        t.Epic__c              = c.Epic__c;
-        t.Minutes_Logged__c    = hours * 60;
+        Time__c t                = new Time__c();
+        t.Case__c                = caseId;
+        t.Epic__c                = c.Epic__c;
+        t.Minutes_Logged__c      = hours * 60;
         t.Additional_Comments__c = description;
-        t.Logged_Date__c       = Date.today();
+        t.Logged_Date__c         = Date.today();
         Database.insert(t, System.AccessLevel.SYSTEM_MODE);
     }
 
@@ -232,7 +250,7 @@ public without sharing class ContractorBoardController {
         dml.assignmentRuleHeader.useDefaultRule = false;
         Database.insert(c, dml);
 
-        Case inserted = [SELECT Id, CaseNumber FROM Case WHERE Id = :c.Id LIMIT 1];
+        Case inserted = [SELECT Id, CaseNumber FROM Case WHERE Id = :c.Id WITH SYSTEM_MODE LIMIT 1];
         return inserted.CaseNumber;
     }
 
@@ -253,6 +271,7 @@ public without sharing class ContractorBoardController {
             SELECT ContentDocumentId
             FROM   ContentVersion
             WHERE  Id = :cv.Id
+            WITH SYSTEM_MODE
             LIMIT 1
         ];
 

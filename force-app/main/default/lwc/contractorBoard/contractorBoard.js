@@ -12,6 +12,7 @@ import postChatMessage     from '@salesforce/apex/ContractorBoardController.post
 import logTime             from '@salesforce/apex/ContractorBoardController.logTime';
 import addNextStep         from '@salesforce/apex/ContractorBoardController.addNextStep';
 import uploadAttachment    from '@salesforce/apex/ContractorBoardController.uploadAttachment';
+import updateStoryStatus  from '@salesforce/apex/ContractorBoardController.updateStoryStatus';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,9 @@ export default class ContractorBoard extends LightningElement {
     @track attachments      = [];
     @track attachLoading    = false;
     @track viewerAttachment = null;
+
+    // Status
+    @track isUpdatingStatus  = false;
 
     // Misc
     totalCount               = 0;
@@ -235,6 +239,13 @@ export default class ContractorBoard extends LightningElement {
                IMAGE_EXTS.has((this.viewerAttachment.fileExtension || '').toLowerCase());
     }
 
+    get statusOptions() {
+        const current = this.selectedStory?.status;
+        return STATUS_COLS
+            .filter(c => c.status !== 'Cancelled')
+            .map(c => ({ value: c.status, label: c.label, isSelected: c.status === current }));
+    }
+
     // ── Filter Handlers ───────────────────────────────────────────────────────
 
     handlePillClick(evt) {
@@ -302,6 +313,32 @@ export default class ContractorBoard extends LightningElement {
     handleCloseModal() {
         this.selectedStory  = null;
         this.viewerAttachment = null;
+    }
+
+    handleStatusChange(evt) {
+        const newStatus = evt.target.value;
+        if (!newStatus || !this.selectedStory || newStatus === this.selectedStory.status) return;
+
+        this.isUpdatingStatus = true;
+        const caseId = this.selectedStory.id;
+        updateStoryStatus({ caseId, newStatus })
+            .then(() => {
+                this._allCards = this._allCards.map(r =>
+                    r.Id === caseId ? { ...r, Status: newStatus } : r
+                );
+                this._buildColumns(this._allCards);
+                const color = STATUS_COLOR_MAP[newStatus] || '#6b7280';
+                this.selectedStory = {
+                    ...this.selectedStory,
+                    status: newStatus,
+                    statusChipStyle: `background:${color}22;color:${color};border:1px solid ${color}55;` +
+                                     `border-radius:20px;padding:2px 10px;font-size:0.72rem;font-weight:700;`,
+                };
+            })
+            .catch(err => {
+                this._toast('Error', err?.body?.message || 'Could not update status.', 'error');
+            })
+            .finally(() => { this.isUpdatingStatus = false; });
     }
 
     handleBackdropClick() { this.handleCloseModal(); }

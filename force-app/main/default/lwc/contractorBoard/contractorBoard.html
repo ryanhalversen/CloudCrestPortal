@@ -128,6 +128,11 @@
                             <div class="modal-header-id">
                                 <span class="modal-case-number">{selectedStory.caseNumber}</span>
                                 <span class="modal-status-chip" style={selectedStory.statusChipStyle}>{selectedStory.status}</span>
+                                <select class="status-select" onchange={handleStatusChange} disabled={isUpdatingStatus}>
+                                    <template for:each={statusOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                                    </template>
+                                </select>
                                 <span class={selectedStory.priorityClass}>{selectedStory.priority}</span>
                                 <template if:true={selectedStory.storyType}>
                                     <span class="meta-type">{selectedStory.storyType}</span>
