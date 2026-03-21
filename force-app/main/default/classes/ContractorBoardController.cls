@@ -178,7 +178,7 @@ public without sharing class ContractorBoardController {
         fi.ParentId = caseId;
         fi.Body     = message.trim();
         fi.Type     = 'TextPost';
-        insert fi;
+        Database.insert(fi, System.AccessLevel.SYSTEM_MODE);
     }
 
     @AuraEnabled
@@ -198,7 +198,7 @@ public without sharing class ContractorBoardController {
         t.Minutes_Logged__c    = hours * 60;
         t.Additional_Comments__c = description;
         t.Logged_Date__c       = Date.today();
-        insert t;
+        Database.insert(t, System.AccessLevel.SYSTEM_MODE);
     }
 
     @AuraEnabled
@@ -210,7 +210,7 @@ public without sharing class ContractorBoardController {
         cc.ParentId     = caseId;
         cc.CommentBody  = text.trim();
         cc.IsPublished  = false;
-        insert cc;
+        Database.insert(cc, System.AccessLevel.SYSTEM_MODE);
     }
 
     @AuraEnabled
@@ -247,7 +247,7 @@ public without sharing class ContractorBoardController {
         cv.PathOnClient      = fileName;
         cv.VersionData       = EncodingUtil.base64Decode(base64Data);
         cv.ContentLocation   = 'S';
-        insert cv;
+        Database.insert(cv, System.AccessLevel.SYSTEM_MODE);
 
         ContentVersion inserted = [
             SELECT ContentDocumentId
@@ -261,7 +261,7 @@ public without sharing class ContractorBoardController {
         lnk.LinkedEntityId      = caseId;
         lnk.ShareType           = 'V';
         lnk.Visibility          = 'AllUsers';
-        insert lnk;
+        Database.insert(lnk, System.AccessLevel.SYSTEM_MODE);
 
         return inserted.ContentDocumentId;
     }
