@@ -1,5 +1,5 @@
 // force-app/main/default/classes/ContractorBoardController.cls
-public with sharing class ContractorBoardController {
+public without sharing class ContractorBoardController {
 
     // ── Wrapper Classes ───────────────────────────────────────────────────────
 
