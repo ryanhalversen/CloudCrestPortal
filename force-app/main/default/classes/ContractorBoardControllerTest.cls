@@ -78,7 +78,7 @@ private class ContractorBoardControllerTest {
     static void testGetStories_all() {
         createTestData();
         Test.startTest();
-        List<Case> stories = ContractorBoardController.getStories(null);
+        List<ContractorBoardController.StoryWrapper> stories = ContractorBoardController.getStories(null);
         Test.stopTest();
         System.assertNotEquals(null, stories, 'Should return a list');
     }
@@ -88,10 +88,11 @@ private class ContractorBoardControllerTest {
         Map<String, Object> data = createTestData();
         Sprint__c proj = (Sprint__c) data.get('proj');
         Test.startTest();
-        List<Case> stories = ContractorBoardController.getStories(proj.Id);
+        List<ContractorBoardController.StoryWrapper> stories = ContractorBoardController.getStories(proj.Id);
         Test.stopTest();
         // Running user owns the story, so should appear
         System.assertEquals(1, stories.size(), 'Should return story for project');
+        System.assertNotEquals(null, stories[0].ownerName, 'ownerName should be populated');
     }
 
     @IsTest

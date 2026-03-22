@@ -41,6 +41,33 @@ public without sharing class ContractorBoardController {
         @AuraEnabled public Decimal stoppedMinutes;
     }
 
+    public class StoryWrapper {
+        @AuraEnabled public String   id;
+        @AuraEnabled public String   caseNumber;
+        @AuraEnabled public String   subject;
+        @AuraEnabled public String   description;
+        @AuraEnabled public String   status;
+        @AuraEnabled public String   priority;
+        @AuraEnabled public String   storyType;
+        @AuraEnabled public Decimal  estHours;
+        @AuraEnabled public Decimal  hoursLogged;
+        @AuraEnabled public String   ownerId;
+        @AuraEnabled public String   ownerName;
+        @AuraEnabled public String   epicId;
+        @AuraEnabled public String   epicName;
+        @AuraEnabled public String   projectId;
+        @AuraEnabled public String   projectName;
+        @AuraEnabled public Datetime createdDate;
+        @AuraEnabled public String   solution;
+        @AuraEnabled public String   componentsToDeploy;
+        @AuraEnabled public String   qa;
+        @AuraEnabled public String   documentation;
+        @AuraEnabled public String   department;
+        @AuraEnabled public String   contactId;
+        @AuraEnabled public String   contactName;
+        @AuraEnabled public String   closingComments;
+    }
+
     // ── Read ──────────────────────────────────────────────────────────────────
 
     // Returns only projects where the running user has stories assigned to them
@@ -69,15 +96,15 @@ public without sharing class ContractorBoardController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<Case> getStories(String projectId) {
+    public static List<StoryWrapper> getStories(String projectId) {
         Id uid = UserInfo.getUserId();
         Id contactId = [SELECT ContactId FROM User WHERE Id = :uid WITH SYSTEM_MODE LIMIT 1].ContactId;
 
         String q =
             'SELECT Id, CaseNumber, Subject, Description, Status, Priority, Type, ' +
-            'Sprint_Week__c, Projects__c, Projects__r.Name, Epic__c, Epic__r.Name, ' +
+            'Projects__c, Projects__r.Name, Epic__c, Epic__r.Name, ' +
             'Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c, ' +
-            'OwnerId, Owner.Name, Story_Support__c, Support_Contact__c, CreatedDate, ' +
+            'OwnerId, Story_Support__c, Support_Contact__c, CreatedDate, ' +
             'Solution__c, Components_to_Deploy__c, Q_A__c, Documentation__c, ' +
             'Closing_Comments__c, Department__c, ContactId, Contact.Name ' +
             'FROM Case ' +
@@ -90,7 +117,50 @@ public without sharing class ContractorBoardController {
         }
         q += 'ORDER BY CreatedDate DESC LIMIT 500';
 
-        return Database.query(q, System.AccessLevel.SYSTEM_MODE);
+        List<Case> cases = Database.query(q, System.AccessLevel.SYSTEM_MODE);
+
+        // Resolve owner names via a direct User query — relationship traversal
+        // (Owner.Name) does not work for Experience Cloud portal users.
+        Set<Id> ownerIds = new Set<Id>();
+        for (Case c : cases) {
+            if (c.OwnerId != null) ownerIds.add(c.OwnerId);
+        }
+        Map<Id, String> ownerNameMap = new Map<Id, String>();
+        for (User u : [SELECT Id, Name FROM User WHERE Id IN :ownerIds WITH SYSTEM_MODE]) {
+            ownerNameMap.put(u.Id, u.Name);
+        }
+
+        List<StoryWrapper> result = new List<StoryWrapper>();
+        for (Case c : cases) {
+            StoryWrapper w         = new StoryWrapper();
+            w.id                   = c.Id;
+            w.caseNumber           = c.CaseNumber;
+            w.subject              = c.Subject;
+            w.description          = c.Description;
+            w.status               = c.Status;
+            w.priority             = c.Priority;
+            w.storyType            = c.Type;
+            w.estHours             = c.Hours_Estimate_to_Complete__c;
+            w.hoursLogged          = c.Actual_Hours_to_Complete__c;
+            w.ownerId              = c.OwnerId;
+            w.ownerName            = ownerNameMap.containsKey(c.OwnerId)
+                                        ? ownerNameMap.get(c.OwnerId) : '';
+            w.epicId               = c.Epic__c;
+            w.epicName             = c.Epic__r    != null ? c.Epic__r.Name    : '';
+            w.projectId            = c.Projects__c;
+            w.projectName          = c.Projects__r != null ? c.Projects__r.Name : '';
+            w.createdDate          = c.CreatedDate;
+            w.solution             = c.Solution__c;
+            w.componentsToDeploy   = c.Components_to_Deploy__c;
+            w.qa                   = c.Q_A__c;
+            w.documentation        = c.Documentation__c;
+            w.department           = c.Department__c;
+            w.contactId            = c.ContactId;
+            w.contactName          = c.Contact != null ? c.Contact.Name : '';
+            w.closingComments      = c.Closing_Comments__c;
+            result.add(w);
+        }
+        return result;
     }
 
     @AuraEnabled(cacheable=true)
@@ -121,9 +191,8 @@ public without sharing class ContractorBoardController {
     @AuraEnabled(cacheable=true)
     public static List<ChatMessageWrapper> getChatMessages(String caseId) {
         Id uid = UserInfo.getUserId();
-        List<ChatMessageWrapper> result = new List<ChatMessageWrapper>();
         List<FeedItem> items = [
-            SELECT Id, Body, CreatedById, CreatedBy.Name, CreatedDate
+            SELECT Id, Body, CreatedById, CreatedDate
             FROM   FeedItem
             WHERE  ParentId = :caseId
             AND    Type     = 'TextPost'
@@ -131,10 +200,22 @@ public without sharing class ContractorBoardController {
             ORDER BY CreatedDate ASC
             LIMIT 200
         ];
+
+        // Resolve author names via direct User query — CreatedBy.Name relationship
+        // traversal does not work for Experience Cloud portal users.
+        Set<Id> creatorIds = new Set<Id>();
+        for (FeedItem fi : items) { creatorIds.add(fi.CreatedById); }
+        Map<Id, String> nameMap = new Map<Id, String>();
+        for (User u : [SELECT Id, Name FROM User WHERE Id IN :creatorIds WITH SYSTEM_MODE]) {
+            nameMap.put(u.Id, u.Name);
+        }
+
+        List<ChatMessageWrapper> result = new List<ChatMessageWrapper>();
         for (FeedItem fi : items) {
             ChatMessageWrapper w = new ChatMessageWrapper();
             w.id          = fi.Id;
-            w.authorName  = fi.CreatedBy.Name;
+            w.authorName  = nameMap.containsKey(fi.CreatedById)
+                                ? nameMap.get(fi.CreatedById) : '';
             w.body        = fi.Body != null ? fi.Body : '';
             w.createdDate = fi.CreatedDate != null
                 ? fi.CreatedDate.format('M/d h:mm a')

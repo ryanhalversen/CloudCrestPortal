@@ -332,40 +332,40 @@ export default class ContractorBoard extends LightningElement {
 
     _mapCard(r) {
         const days = Math.floor(
-            (Date.now() - new Date(r.CreatedDate).getTime()) / 86_400_000
+            (Date.now() - new Date(r.createdDate).getTime()) / 86_400_000
         );
-        const status   = STATUS_ALIAS[r.Status] || r.Status || 'Backlog';
-        const priority = r.Priority || 'Medium';
+        const status   = STATUS_ALIAS[r.status] || r.status || 'Backlog';
+        const priority = r.priority || 'Medium';
         const color    = STATUS_COLOR_MAP[status] || '#6b7280';
 
         return {
-            id:                r.Id,
-            caseNumber:        r.CaseNumber,
-            subject:           r.Subject || '(No subject)',
-            description:       r.Description || '',
+            id:                r.id,
+            caseNumber:        r.caseNumber,
+            subject:           r.subject || '(No subject)',
+            description:       this._decodeHtml(r.description || ''),
             status,
             priority,
             priorityClass:     PRIORITY_CLASS_MAP[priority] || 'priority-badge priority-medium',
-            storyType:         r.Story_Type__c || r.Type || '',
-            estHours:          r.Hours_Estimate_to_Complete__c || 0,
-            hoursLogged:       r.Actual_Hours_to_Complete__c || 0,
-            hoursDisplay:      r.Actual_Hours_to_Complete__c ? `${r.Actual_Hours_to_Complete__c}h logged` : '',
-            ownerName:         r.Owner?.Name || '',
-            epicName:          r.Epic__r?.Name || '',
-            epicId:            r.Epic__c || null,
-            projectName:       r.Projects__r?.Name || '',
-            projectId:         r.Projects__c || null,
-            createdDate:       r.CreatedDate,
+            storyType:         r.storyType || '',
+            estHours:          r.estHours || 0,
+            hoursLogged:       r.hoursLogged || 0,
+            hoursDisplay:      r.hoursLogged ? `${r.hoursLogged}h logged` : '',
+            ownerName:         r.ownerName || '',
+            epicName:          r.epicName || '',
+            epicId:            r.epicId || null,
+            projectName:       r.projectName || '',
+            projectId:         r.projectId || null,
+            createdDate:       r.createdDate,
             ageDisplay:        days === 0 ? 'Today' : days === 1 ? '1d' : `${days}d`,
             cardClass:         'story-card',
-            solution:          r.Solution__c || '',
-            componentsToDeploy: r.Components_to_Deploy__c || '',
-            qa:                r.Q_A__c || '',
-            documentation:     r.Documentation__c || '',
-            department:        r.Department__c || '',
-            contactId:         r.ContactId || null,
-            contactName:       r.Contact?.Name || '',
-            closingComments:   r.Closing_Comments__c || '',
+            solution:          this._decodeHtml(r.solution || ''),
+            componentsToDeploy: this._decodeHtml(r.componentsToDeploy || ''),
+            qa:                this._decodeHtml(r.qa || ''),
+            documentation:     this._decodeHtml(r.documentation || ''),
+            department:        r.department || '',
+            contactId:         r.contactId || null,
+            contactName:       r.contactName || '',
+            closingComments:   r.closingComments || '',
             statusChipStyle:   `background:${color}22;color:${color};border:1px solid ${color}55;` +
                                `border-radius:20px;padding:2px 10px;font-size:0.72rem;font-weight:700;`,
         };
@@ -392,7 +392,7 @@ export default class ContractorBoard extends LightningElement {
 
     _updateCardInAllCards(caseId, updates) {
         this._allCards = this._allCards.map(r => {
-            if (r.Id === caseId) {
+            if (r.id === caseId) {
                 return { ...r, ...updates };
             }
             return r;
@@ -638,7 +638,7 @@ export default class ContractorBoard extends LightningElement {
         } else {
             // Normal click — open modal
             const id   = _dragCardId;
-            const card = this._allCards.find(r => r.Id === id);
+            const card = this._allCards.find(r => r.id === id);
             if (card) {
                 this._openModal(card);
             }
@@ -662,7 +662,7 @@ export default class ContractorBoard extends LightningElement {
         if (!caseId) return;
 
         if (CLOSE_STATUSES.has(targetStatus)) {
-            const card = this._allCards.find(r => r.Id === caseId);
+            const card = this._allCards.find(r => r.id === caseId);
             if (card) {
                 this._openCloseModal(this._mapCard(card), targetStatus);
             }
@@ -671,7 +671,7 @@ export default class ContractorBoard extends LightningElement {
 
         updateStoryStatus({ caseId, newStatus: targetStatus })
             .then(() => {
-                this._updateCardInAllCards(caseId, { Status: targetStatus });
+                this._updateCardInAllCards(caseId, { status: targetStatus });
                 this._reloadColumns();
             })
             .catch(err => {
@@ -684,7 +684,7 @@ export default class ContractorBoard extends LightningElement {
     handleCardClick(evt) {
         // This is only called via click events when not dragging
         const id   = evt.currentTarget.dataset.id;
-        const card = this._allCards.find(r => r.Id === id);
+        const card = this._allCards.find(r => r.id === id);
         if (!card) return;
         this._openModal(card);
     }
@@ -710,7 +710,7 @@ export default class ContractorBoard extends LightningElement {
         this.editingStepId         = null;
         this.textFieldsSaved       = false;
 
-        this._loadModalData(card.Id);
+        this._loadModalData(card.id);
     }
 
     _loadModalData(caseId) {
@@ -762,7 +762,7 @@ export default class ContractorBoard extends LightningElement {
         const caseId = this.selectedStory.id;
         updateStoryStatus({ caseId, newStatus })
             .then(() => {
-                this._updateCardInAllCards(caseId, { Status: newStatus });
+                this._updateCardInAllCards(caseId, { status: newStatus });
                 this._reloadColumns();
                 const color = STATUS_COLOR_MAP[newStatus] || '#6b7280';
                 this.selectedStory = {
@@ -805,7 +805,7 @@ export default class ContractorBoard extends LightningElement {
                     priority,
                     priorityClass: PRIORITY_CLASS_MAP[priority] || 'priority-badge priority-medium',
                 };
-                this._updateCardInAllCards(caseId, { Priority: priority });
+                this._updateCardInAllCards(caseId, { priority });
                 this._reloadColumns();
             })
             .catch(err => {
@@ -824,7 +824,7 @@ export default class ContractorBoard extends LightningElement {
         updateStoryType({ caseId, type })
             .then(() => {
                 this.selectedStory = { ...this.selectedStory, storyType: type };
-                this._updateCardInAllCards(caseId, { Type: type });
+                this._updateCardInAllCards(caseId, { storyType: type });
                 this._reloadColumns();
             })
             .catch(err => {
@@ -853,7 +853,7 @@ export default class ContractorBoard extends LightningElement {
         updateEstimatedHours({ caseId, hours })
             .then(() => {
                 this.selectedStory = { ...this.selectedStory, estHours: hours };
-                this._updateCardInAllCards(caseId, { Hours_Estimate_to_Complete__c: hours });
+                this._updateCardInAllCards(caseId, { estHours: hours });
                 this.isEditingEstHours = false;
             })
             .catch(err => {
@@ -880,7 +880,7 @@ export default class ContractorBoard extends LightningElement {
         updateStoryDescription({ caseId, description })
             .then(() => {
                 this.selectedStory = { ...this.selectedStory, description };
-                this._updateCardInAllCards(caseId, { Description: description });
+                this._updateCardInAllCards(caseId, { description });
                 this.isEditingDescription = false;
             })
             .catch(err => {
@@ -922,12 +922,7 @@ export default class ContractorBoard extends LightningElement {
                     qa,
                     documentation,
                 };
-                this._updateCardInAllCards(caseId, {
-                    Solution__c:             solution,
-                    Components_to_Deploy__c: componentsToDeploy,
-                    Q_A__c:                  qa,
-                    Documentation__c:        documentation,
-                });
+                this._updateCardInAllCards(caseId, { solution, componentsToDeploy, qa, documentation });
                 this.isEditingTextFields = false;
                 this.textFieldsSaved     = true;
                 // eslint-disable-next-line @lwc/lwc/no-async-operation
@@ -985,11 +980,11 @@ export default class ContractorBoard extends LightningElement {
         closeStory({ caseId, newStatus, closingComments, department, priority, type })
             .then(() => {
                 this._updateCardInAllCards(caseId, {
-                    Status:              newStatus,
-                    Closing_Comments__c: closingComments,
-                    Department__c:       department,
-                    Priority:            priority,
-                    Type:                type,
+                    status: newStatus,
+                    closingComments,
+                    department,
+                    priority,
+                    storyType: type,
                 });
                 this._reloadColumns();
                 if (this.selectedStory && this.selectedStory.id === caseId) {
@@ -1386,7 +1381,7 @@ export default class ContractorBoard extends LightningElement {
         assignContact({ caseId, contactId })
             .then(() => {
                 this.selectedStory = { ...this.selectedStory, contactId, contactName };
-                this._updateCardInAllCards(caseId, { ContactId: contactId });
+                this._updateCardInAllCards(caseId, { contactId });
                 this.showContactSearch = false;
             })
             .catch(err => {
@@ -1400,7 +1395,7 @@ export default class ContractorBoard extends LightningElement {
         assignContact({ caseId, contactId: null })
             .then(() => {
                 this.selectedStory = { ...this.selectedStory, contactId: null, contactName: '' };
-                this._updateCardInAllCards(caseId, { ContactId: null });
+                this._updateCardInAllCards(caseId, { contactId: null });
             })
             .catch(err => {
                 this._toast('Error', err?.body?.message || 'Could not remove contact.', 'error');
@@ -1515,6 +1510,19 @@ export default class ContractorBoard extends LightningElement {
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
+
+    _decodeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&#x27;/g, "'")
+            .replace(/&apos;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+    }
 
     _toast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
