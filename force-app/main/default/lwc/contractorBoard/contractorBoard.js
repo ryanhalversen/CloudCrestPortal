@@ -1093,16 +1093,12 @@ export default class ContractorBoard extends LightningElement {
             return;
         }
         this._mentionQuery = query;
-        if (query.length >= 1) {
-            searchUsers({ searchTerm: query })
-                .then(users => {
-                    this.mentionResults      = users.map(u => ({ id: u.id, name: u.name }));
-                    this.showMentionDropdown = this.mentionResults.length > 0;
-                })
-                .catch(() => { this.showMentionDropdown = false; });
-        } else {
-            this.showMentionDropdown = false;
-        }
+        searchUsers({ searchTerm: query })
+            .then(users => {
+                this.mentionResults      = users.map(u => ({ id: u.id, name: u.name }));
+                this.showMentionDropdown = this.mentionResults.length > 0;
+            })
+            .catch(() => { this.showMentionDropdown = false; });
     }
 
     handleMentionSelect(evt) {
