@@ -119,15 +119,25 @@ public without sharing class ContractorBoardController {
 
         List<Case> cases = Database.query(q, System.AccessLevel.SYSTEM_MODE);
 
-        // Resolve owner names via a direct User query — relationship traversal
-        // (Owner.Name) does not work for Experience Cloud portal users.
+        // Resolve owner display names. Portal users have an auto-generated User.Name
+        // (e.g. "User1699470575175559722"); their real name is on their linked Contact.
+        // Internal users have no ContactId and their User.Name is their real name.
         Set<Id> ownerIds = new Set<Id>();
         for (Case c : cases) {
             if (c.OwnerId != null) ownerIds.add(c.OwnerId);
         }
         Map<Id, String> ownerNameMap = new Map<Id, String>();
-        for (User u : [SELECT Id, Name FROM User WHERE Id IN :ownerIds WITH SYSTEM_MODE]) {
-            ownerNameMap.put(u.Id, u.Name);
+        for (User u : [
+            SELECT Id, Name, ContactId, Contact.Name
+            FROM   User
+            WHERE  Id IN :ownerIds
+            WITH SYSTEM_MODE
+        ]) {
+            String displayName = (u.ContactId != null && u.Contact != null
+                                  && String.isNotBlank(u.Contact.Name))
+                                 ? u.Contact.Name
+                                 : u.Name;
+            ownerNameMap.put(u.Id, displayName);
         }
 
         List<StoryWrapper> result = new List<StoryWrapper>();
@@ -201,13 +211,22 @@ public without sharing class ContractorBoardController {
             LIMIT 200
         ];
 
-        // Resolve author names via direct User query — CreatedBy.Name relationship
-        // traversal does not work for Experience Cloud portal users.
+        // Resolve author display names. Portal users have auto-generated User.Name values;
+        // their real name lives on their linked Contact record.
         Set<Id> creatorIds = new Set<Id>();
         for (FeedItem fi : items) { creatorIds.add(fi.CreatedById); }
         Map<Id, String> nameMap = new Map<Id, String>();
-        for (User u : [SELECT Id, Name FROM User WHERE Id IN :creatorIds WITH SYSTEM_MODE]) {
-            nameMap.put(u.Id, u.Name);
+        for (User u : [
+            SELECT Id, Name, ContactId, Contact.Name
+            FROM   User
+            WHERE  Id IN :creatorIds
+            WITH SYSTEM_MODE
+        ]) {
+            String displayName = (u.ContactId != null && u.Contact != null
+                                  && String.isNotBlank(u.Contact.Name))
+                                 ? u.Contact.Name
+                                 : u.Name;
+            nameMap.put(u.Id, displayName);
         }
 
         List<ChatMessageWrapper> result = new List<ChatMessageWrapper>();
