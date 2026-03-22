@@ -68,6 +68,38 @@ public without sharing class ContractorBoardController {
         @AuraEnabled public String   closingComments;
     }
 
+    // ── Name Resolution Helper ────────────────────────────────────────────────
+    // Relationship traversal (e.g. Owner.Name, CreatedBy.Name, Contact.Name on User)
+    // does not work from Experience Cloud portal users even with WITH SYSTEM_MODE.
+    // This helper does two separate direct-object queries so both work reliably:
+    //   1. Query User to get Name + ContactId
+    //   2. Query Contact directly to get the proper display name for portal users
+    private static Map<Id, String> resolveDisplayNames(Set<Id> userIds) {
+        Map<Id, String> nameMap = new Map<Id, String>();
+        if (userIds == null || userIds.isEmpty()) return nameMap;
+
+        Map<Id, Id> userToContactId = new Map<Id, Id>();
+        for (User u : [SELECT Id, Name, ContactId FROM User WHERE Id IN :userIds WITH SYSTEM_MODE]) {
+            nameMap.put(u.Id, u.Name);                      // default to User.Name
+            if (u.ContactId != null) userToContactId.put(u.Id, u.ContactId);
+        }
+
+        if (!userToContactId.isEmpty()) {
+            // Reverse map: contactId → userId so we can write back by userId
+            Map<Id, Id> contactToUserId = new Map<Id, Id>();
+            for (Id uid : userToContactId.keySet()) {
+                contactToUserId.put(userToContactId.get(uid), uid);
+            }
+            Set<Id> contactIds = new Set<Id>(userToContactId.values());
+            for (Contact c : [SELECT Id, Name FROM Contact WHERE Id IN :contactIds WITH SYSTEM_MODE]) {
+                if (String.isNotBlank(c.Name)) {
+                    nameMap.put(contactToUserId.get(c.Id), c.Name);
+                }
+            }
+        }
+        return nameMap;
+    }
+
     // ── Read ──────────────────────────────────────────────────────────────────
 
     // Returns only projects where the running user has stories assigned to them
@@ -119,26 +151,11 @@ public without sharing class ContractorBoardController {
 
         List<Case> cases = Database.query(q, System.AccessLevel.SYSTEM_MODE);
 
-        // Resolve owner display names. Portal users have an auto-generated User.Name
-        // (e.g. "User1699470575175559722"); their real name is on their linked Contact.
-        // Internal users have no ContactId and their User.Name is their real name.
         Set<Id> ownerIds = new Set<Id>();
         for (Case c : cases) {
             if (c.OwnerId != null) ownerIds.add(c.OwnerId);
         }
-        Map<Id, String> ownerNameMap = new Map<Id, String>();
-        for (User u : [
-            SELECT Id, Name, ContactId, Contact.Name
-            FROM   User
-            WHERE  Id IN :ownerIds
-            WITH SYSTEM_MODE
-        ]) {
-            String displayName = (u.ContactId != null && u.Contact != null
-                                  && String.isNotBlank(u.Contact.Name))
-                                 ? u.Contact.Name
-                                 : u.Name;
-            ownerNameMap.put(u.Id, displayName);
-        }
+        Map<Id, String> ownerNameMap = resolveDisplayNames(ownerIds);
 
         List<StoryWrapper> result = new List<StoryWrapper>();
         for (Case c : cases) {
@@ -211,23 +228,11 @@ public without sharing class ContractorBoardController {
             LIMIT 200
         ];
 
-        // Resolve author display names. Portal users have auto-generated User.Name values;
-        // their real name lives on their linked Contact record.
+        // Resolve author display names via two-query helper (portal users have
+        // auto-generated User.Name; their real name lives on their Contact record).
         Set<Id> creatorIds = new Set<Id>();
         for (FeedItem fi : items) { creatorIds.add(fi.CreatedById); }
-        Map<Id, String> nameMap = new Map<Id, String>();
-        for (User u : [
-            SELECT Id, Name, ContactId, Contact.Name
-            FROM   User
-            WHERE  Id IN :creatorIds
-            WITH SYSTEM_MODE
-        ]) {
-            String displayName = (u.ContactId != null && u.Contact != null
-                                  && String.isNotBlank(u.Contact.Name))
-                                 ? u.Contact.Name
-                                 : u.Name;
-            nameMap.put(u.Id, displayName);
-        }
+        Map<Id, String> nameMap = resolveDisplayNames(creatorIds);
 
         List<ChatMessageWrapper> result = new List<ChatMessageWrapper>();
         for (FeedItem fi : items) {
@@ -274,20 +279,44 @@ public without sharing class ContractorBoardController {
     @AuraEnabled(cacheable=true)
     public static List<UserOption> searchUsers(String searchTerm) {
         String term = '%' + searchTerm + '%';
-        List<UserOption> opts = new List<UserOption>();
+
+        // Collect candidate user IDs from both direct name match (internal users)
+        // and Contact name match (portal users whose User.Name is auto-generated).
+        Set<Id> candidateIds = new Set<Id>();
+
         for (User u : [
-            SELECT Id, Name
-            FROM   User
-            WHERE  IsActive = true
-            AND    Name LIKE :term
-            WITH SYSTEM_MODE
-            ORDER BY Name
-            LIMIT 10
-        ]) {
+            SELECT Id FROM User
+            WHERE  IsActive = true AND Name LIKE :term
+            WITH SYSTEM_MODE LIMIT 20
+        ]) { candidateIds.add(u.Id); }
+
+        // Search Contacts by name and find their linked Users (portal users)
+        Set<Id> contactIds = new Set<Id>();
+        for (Contact c : [
+            SELECT Id FROM Contact WHERE Name LIKE :term WITH SYSTEM_MODE LIMIT 20
+        ]) { contactIds.add(c.Id); }
+
+        if (!contactIds.isEmpty()) {
+            for (User u : [
+                SELECT Id FROM User
+                WHERE  IsActive = true AND ContactId IN :contactIds
+                WITH SYSTEM_MODE LIMIT 20
+            ]) { candidateIds.add(u.Id); }
+        }
+
+        if (candidateIds.isEmpty()) return new List<UserOption>();
+
+        Map<Id, String> nameMap = resolveDisplayNames(candidateIds);
+
+        List<UserOption> opts = new List<UserOption>();
+        Integer count = 0;
+        for (Id uid : nameMap.keySet()) {
+            if (count >= 10) break;
             UserOption o = new UserOption();
-            o.id   = u.Id;
-            o.name = u.Name;
+            o.id   = uid;
+            o.name = nameMap.get(uid);
             opts.add(o);
+            count++;
         }
         return opts;
     }
