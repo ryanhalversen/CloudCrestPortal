@@ -303,17 +303,16 @@ public without sharing class ContractorBoardController {
 
     @AuraEnabled(cacheable=false)
     public static List<UserOption> searchUsers(String searchTerm) {
-        // Standard UserType excludes portal/community users; Email LIKE '%@cloudcrestc.com'
-        // excludes Salesforce system accounts (Automated Process, Chatter Expert, etc.)
-        // which also have Standard UserType but use @salesforce.com addresses.
+        // Filter by Username (not Email — those are separate fields) so we match the
+        // exact login domain for all internal CloudCrest employees. System accounts and
+        // portal users have non-cloudcrestc.com usernames.
         String term = String.isBlank(searchTerm) ? '%' : '%' + searchTerm + '%';
         List<UserOption> opts = new List<UserOption>();
         for (User u : [
             SELECT Id, Name, FirstName, LastName
             FROM   User
             WHERE  IsActive = true
-            AND    UserType = 'Standard'
-            AND    Email LIKE '%@cloudcrestc.com'
+            AND    Username LIKE '%@cloudcrestc.com'
             AND    Name LIKE :term
             WITH SYSTEM_MODE
             ORDER BY Name
