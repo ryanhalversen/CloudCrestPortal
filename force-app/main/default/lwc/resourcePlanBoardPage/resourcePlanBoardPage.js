@@ -1225,6 +1225,10 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     // ── Drag & Drop ───────────────────────────────────────────────────────────
 
     handleDragStart(e) {
+        if (e.target.classList.contains('delivery-badge--clickable')) {
+            e.preventDefault();
+            return;
+        }
         const el   = e.currentTarget;
         const type = el.dataset.dragType;
         this._drag = {
