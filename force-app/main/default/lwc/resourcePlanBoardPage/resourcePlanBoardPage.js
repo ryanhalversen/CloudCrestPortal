@@ -789,16 +789,21 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     handleDeliveryBadgeClick(e) {
         this._badgePointerActive = false;
         e.stopPropagation();
-        const projectId = e.currentTarget.dataset.projectId;
+        const projectId = e.currentTarget.dataset.projectId || e.currentTarget.getAttribute('data-project-id');
         if (!projectId) return;
         const proj = (this._raw.projectCards || []).find(p => p.id === projectId);
         if (!proj) return;
         const current = proj.deliveryType || DELIVERY_CYCLE[0];
         const idx = DELIVERY_CYCLE.indexOf(current);
         const next = DELIVERY_CYCLE[(idx + 1) % DELIVERY_CYCLE.length];
-        proj.deliveryType = next;
+        // Apex data may be frozen — replace _raw immutably so the getter re-evaluates
+        this._raw = {
+            ...this._raw,
+            projectCards: this._raw.projectCards.map(p =>
+                p.id === projectId ? { ...p, deliveryType: next } : p
+            )
+        };
         updateDeliveryType({ sprintId: projectId, deliveryType: next }).catch(console.error);
-        this._refresh();
     }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
