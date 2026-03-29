@@ -74,11 +74,11 @@ const STATE_TILES = [
     { abbr: 'HI', name: 'Hawaii',               row: 8, col:  2 },
 ];
 
-// Interpolate between #e8f4f8 (light) and #0070d2 (Salesforce blue).
+// Interpolate between #162040 (dark navy) and #0ea5e9 (bright sky-blue).
 function tileColor(intensity) {
-    const r = Math.round(232 + intensity * (0   - 232));
-    const g = Math.round(244 + intensity * (112 - 244));
-    const b = Math.round(248 + intensity * (210 - 248));
+    const r = Math.round(22  + intensity * (14  - 22));
+    const g = Math.round(32  + intensity * (165 - 32));
+    const b = Math.round(64  + intensity * (233 - 64));
     return `rgb(${r},${g},${b})`;
 }
 
@@ -134,7 +134,7 @@ export default class TAMmap extends LightningElement {
             const count     = countMap[tile.abbr] || 0;
             const intensity = maxCount > 0 ? count / maxCount : 0;
             const bg        = tileColor(intensity);
-            const color     = intensity > 0.55 ? '#ffffff' : '#1c3557';
+            const color     = intensity > 0.55 ? '#0a1020' : 'rgba(255,255,255,0.65)';
             return {
                 ...tile,
                 count,

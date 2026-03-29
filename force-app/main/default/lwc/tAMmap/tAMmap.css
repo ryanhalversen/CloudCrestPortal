@@ -1,3 +1,36 @@
+:host {
+    display: block;
+}
+
+/* ── Card shell ───────────────────────────────────────────────── */
+.card {
+    background: #0d1527;
+    border: 1px solid #1e3a5f;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid #1e3a5f;
+    background: #0a1020;
+}
+
+.card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
 /* ── Loading ──────────────────────────────────────────────────── */
 .loading-container {
     display: flex;
@@ -6,11 +39,18 @@
     height: 400px;
 }
 
+/* ── Error ────────────────────────────────────────────────────── */
+.error-text {
+    color: #f87171;
+    padding: 1rem 0;
+    font-size: 0.85rem;
+}
+
 /* ── Stats bar ────────────────────────────────────────────────── */
 .stats-row {
     display: flex;
     gap: 1rem;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
 }
 
 .stat-box {
@@ -18,24 +58,29 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.75rem;
-    background: #f3f6f8;
-    border-radius: 8px;
-    border: 1px solid #dce2e8;
+    padding: 1rem 0.75rem;
+    background: #111c33;
+    border-radius: 10px;
+    border: 1px solid #1e3a5f;
 }
 
 .stat-value {
     font-size: 1.5rem;
-    font-weight: 700;
-    color: #0070d2;
-    line-height: 1.2;
+    font-weight: 800;
+    color: #38bdf8;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-align: center;
+    word-break: break-word;
 }
 
 .stat-label {
-    font-size: 0.72rem;
-    color: #54698d;
-    margin-top: 2px;
+    font-size: 0.68rem;
+    color: #64748b;
+    margin-top: 4px;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 /* ── Map wrapper + grid ───────────────────────────────────────── */
@@ -61,31 +106,32 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: default;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    transition: transform 0.13s ease, box-shadow 0.13s ease;
     user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .state-tile:hover {
-    transform: scale(1.12);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    transform: scale(1.16);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
     z-index: 10;
     position: relative;
 }
 
 .tile-abbr {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 700;
     line-height: 1.1;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
 }
 
 .tile-count {
-    font-size: 0.68rem;
+    font-size: 0.63rem;
     line-height: 1.1;
     margin-top: 2px;
-    opacity: 0.85;
+    opacity: 0.8;
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────── */
@@ -93,45 +139,50 @@
     position: absolute;
     bottom: 0.5rem;
     right: 0;
-    background: #16325c;
-    color: #fff;
-    border-radius: 6px;
-    padding: 0.5rem 0.85rem;
+    background: rgba(14, 30, 60, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
     pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     min-width: 160px;
 }
 
 .tooltip-name {
     font-size: 0.85rem;
     font-weight: 700;
+    color: #38bdf8;
     margin-bottom: 2px;
 }
 
 .tooltip-count {
-    font-size: 0.8rem;
-    opacity: 0.85;
+    font-size: 0.78rem;
+    color: #94a3b8;
 }
 
 /* ── Legend ───────────────────────────────────────────────────── */
 .legend {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    margin-top: 1rem;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
     justify-content: center;
 }
 
 .legend-label {
-    font-size: 0.72rem;
-    color: #54698d;
+    font-size: 0.68rem;
+    color: #64748b;
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .legend-gradient {
     width: 200px;
-    height: 10px;
-    border-radius: 5px;
-    background: linear-gradient(to right, #e8f4f8, #0070d2);
-    border: 1px solid #dce2e8;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #162040, #0ea5e9);
+    border: 1px solid #1e3a5f;
 }

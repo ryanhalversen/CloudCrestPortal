@@ -1,8 +1,10 @@
 <template>
-    <lightning-card icon-name="standard:account">
-        <span slot="title">Account Coverage Map — North America</span>
-
-        <div class="slds-card__body slds-card__body_inner">
+    <div class="card">
+        <div class="card-header">
+            <lightning-icon icon-name="standard:account" size="x-small"></lightning-icon>
+            <span class="card-title">Account Coverage Map — North America</span>
+        </div>
+        <div class="card-body">
 
             <!-- Loading -->
             <template lwc:if={isLoading}>
@@ -13,7 +15,7 @@
 
             <!-- Error -->
             <template lwc:elseif={hasError}>
-                <p class="slds-text-color_error slds-m-around_medium">{errorMessage}</p>
+                <p class="error-text">{errorMessage}</p>
             </template>
 
             <!-- Map -->
@@ -69,5 +71,5 @@
             </template>
 
         </div>
-    </lightning-card>
+    </div>
 </template>
