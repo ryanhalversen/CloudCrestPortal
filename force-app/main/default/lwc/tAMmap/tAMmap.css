@@ -1,0 +1,137 @@
+/* ── Loading ──────────────────────────────────────────────────── */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+}
+
+/* ── Stats bar ────────────────────────────────────────────────── */
+.stats-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.stat-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f3f6f8;
+    border-radius: 8px;
+    border: 1px solid #dce2e8;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0070d2;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.72rem;
+    color: #54698d;
+    margin-top: 2px;
+    text-align: center;
+}
+
+/* ── Map wrapper + grid ───────────────────────────────────────── */
+.map-wrapper {
+    position: relative;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.tile-grid {
+    display: grid;
+    /* 11 columns × 52 px, 9 rows × 52 px */
+    grid-template-columns: repeat(11, 52px);
+    grid-template-rows: repeat(9, 52px);
+    gap: 3px;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+/* ── Individual state tile ────────────────────────────────────── */
+.state-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    cursor: default;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    user-select: none;
+}
+
+.state-tile:hover {
+    transform: scale(1.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    z-index: 10;
+    position: relative;
+}
+
+.tile-abbr {
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+}
+
+.tile-count {
+    font-size: 0.68rem;
+    line-height: 1.1;
+    margin-top: 2px;
+    opacity: 0.85;
+}
+
+/* ── Tooltip ──────────────────────────────────────────────────── */
+.map-tooltip {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0;
+    background: #16325c;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.5rem 0.85rem;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    min-width: 160px;
+}
+
+.tooltip-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.tooltip-count {
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.legend {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    justify-content: center;
+}
+
+.legend-label {
+    font-size: 0.72rem;
+    color: #54698d;
+    white-space: nowrap;
+}
+
+.legend-gradient {
+    width: 200px;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, #e8f4f8, #0070d2);
+    border: 1px solid #dce2e8;
+}

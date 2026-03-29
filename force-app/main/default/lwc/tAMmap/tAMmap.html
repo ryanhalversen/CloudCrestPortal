@@ -1,0 +1,73 @@
+<template>
+    <lightning-card icon-name="standard:account">
+        <span slot="title">Account Coverage Map — North America</span>
+
+        <div class="slds-card__body slds-card__body_inner">
+
+            <!-- Loading -->
+            <template lwc:if={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner alternative-text="Loading map…" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error -->
+            <template lwc:elseif={hasError}>
+                <p class="slds-text-color_error slds-m-around_medium">{errorMessage}</p>
+            </template>
+
+            <!-- Map -->
+            <template lwc:else>
+                <!-- Stats bar -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <span class="stat-value">{totalAccounts}</span>
+                        <span class="stat-label">Total Accounts</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value">{statesWithAccounts}</span>
+                        <span class="stat-label">States w/ Accounts</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value">{topState}</span>
+                        <span class="stat-label">Top State</span>
+                    </div>
+                </div>
+
+                <!-- Tile grid wrapper -->
+                <div class="map-wrapper" onmouseleave={handleMouseLeave}>
+                    <div class="tile-grid">
+                        <template for:each={tiles} for:item="tile">
+                            <div
+                                key={tile.abbr}
+                                class="state-tile"
+                                style={tile.style}
+                                data-abbr={tile.abbr}
+                                onmouseenter={handleMouseEnter}
+                            >
+                                <span class="tile-abbr">{tile.abbr}</span>
+                                <span class="tile-count">{tile.count}</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Hover tooltip -->
+                    <template lwc:if={activeTooltip}>
+                        <div class="map-tooltip">
+                            <div class="tooltip-name">{activeTooltip.name}</div>
+                            <div class="tooltip-count">{activeTooltip.count} accounts</div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <span class="legend-label">0 accounts</span>
+                    <div class="legend-gradient"></div>
+                    <span class="legend-label">{maxCount} accounts</span>
+                </div>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>
