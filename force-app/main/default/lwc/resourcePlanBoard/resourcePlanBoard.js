@@ -106,6 +106,25 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
             for (const dupId of duplicateIds) {
                 deleteAssignment({ assignmentId: dupId }).catch(console.error);
             }
+            // Delete orphaned contractor assignments (contractor linked to a sprint/opp that no longer exists on the board)
+            const validSprintIds = new Set((data.projectCards || []).map(p => p.id));
+            const validOppIds    = new Set((data.pipelineShelf || []).map(o => o.id));
+            const validFteIds    = new Set((data.fteRows || []).map(f => f.id));
+            const orphanIds = [];
+            this._assignments = this._assignments.filter(a => {
+                if (!a.contractorId) return true; // keep non-contractor assignments as-is
+                const linkedToSprint = a.sprintId      && validSprintIds.has(a.sprintId);
+                const linkedToOpp    = a.opportunityId && validOppIds.has(a.opportunityId);
+                const linkedToFte    = a.userId        && validFteIds.has(a.userId) && !a.sprintId && !a.opportunityId;
+                if (!linkedToSprint && !linkedToOpp && !linkedToFte) {
+                    if (a.id && !a.id.startsWith('tmp-')) orphanIds.push(a.id);
+                    return false;
+                }
+                return true;
+            });
+            for (const orphanId of orphanIds) {
+                deleteAssignment({ assignmentId: orphanId }).catch(console.error);
+            }
             this.isLoading = false;
         } catch (e) {
             this.error    = e.body?.message || 'Failed to load board data.';
