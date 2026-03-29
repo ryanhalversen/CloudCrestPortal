@@ -36,7 +36,7 @@
                         <!-- Tier 1: Leader card (centered) + HoD Projects card (right) -->
                         <template if:true={leaderLane}>
                             <div class="org-leader-outer-row">
-                                <div class="org-card--leader">
+                                <div class="org-card--leader org-card--leader-clickable" onclick={handleLeaderCardClick}>
                                     <div class="org-leader-left">
                                         <div class="org-leader-avatar">{leaderLane.initials}</div>
                                         <div class="org-leader-info">
@@ -404,6 +404,97 @@
                             </div>
                         </template>
                     </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- HoD Portfolio Overview -->
+    <template if:true={showHodOverview}>
+        <div class="fte-drill-overlay" onclick={handleHodOverviewBackdrop}>
+            <div class="fte-drill-panel hod-overview-panel">
+                <div class="fte-drill-topbar">
+                    <span class="fte-drill-topbar-title">Portfolio Overview — {leaderLane.name}</span>
+                    <button class="plan-close" onclick={handleHodOverviewClose}>&times;</button>
+                </div>
+                <div class="fte-drill-body">
+
+                    <!-- Stats bar -->
+                    <div class="hod-stats-bar">
+                        <div class="hod-stat">
+                            <span class="hod-stat-val">{hodPortfolioStats.total}</span>
+                            <span class="hod-stat-lbl">Active Projects</span>
+                        </div>
+                        <div class="hod-stat hod-stat--critical">
+                            <span class="hod-stat-val">{hodPortfolioStats.critical}</span>
+                            <span class="hod-stat-lbl">Critical (&lt;2 Wks)</span>
+                        </div>
+                        <div class="hod-stat hod-stat--warning">
+                            <span class="hod-stat-val">{hodPortfolioStats.warning}</span>
+                            <span class="hod-stat-lbl">At Risk (2–8 Wks)</span>
+                        </div>
+                        <div class="hod-stat">
+                            <span class="hod-stat-val">{hodPortfolioStats.totalDemand}h</span>
+                            <span class="hod-stat-lbl">Total Hrs/Wk</span>
+                        </div>
+                        <div class="hod-stat">
+                            <span class="hod-stat-val">{hodPortfolioStats.contractors}</span>
+                            <span class="hod-stat-lbl">Contractors</span>
+                        </div>
+                    </div>
+
+                    <!-- Column headers -->
+                    <div class="hod-proj-header">
+                        <span class="hod-col hod-col--project">Project / Client</span>
+                        <span class="hod-col hod-col--owner">Owner</span>
+                        <span class="hod-col hod-col--type">Type</span>
+                        <span class="hod-col hod-col--hrs">Hrs/Wk</span>
+                        <span class="hod-col hod-col--end">End Date</span>
+                        <span class="hod-col hod-col--left">Remaining</span>
+                        <span class="hod-col hod-col--cont">Contractors</span>
+                    </div>
+
+                    <!-- Project rows -->
+                    <template for:each={hodOverviewRows} for:item="row">
+                        <div key={row.assignmentId} class={row.hodRowCls}>
+                            <div class="hod-col hod-col--project">
+                                <span class={row.hodUrgencyDotCls}></span>
+                                <div class="hod-proj-name-block">
+                                    <span class="hod-proj-name"
+                                          data-record-id={row.recordId}
+                                          onclick={handleRecordClick}>{row.name}</span>
+                                    <span class="hod-proj-client">{row.client}</span>
+                                </div>
+                            </div>
+                            <div class="hod-col hod-col--owner">
+                                <span class="hod-owner-chip">{row.ownerInitials}</span>
+                                <span class="hod-owner-name">{row.ownerName}</span>
+                            </div>
+                            <div class="hod-col hod-col--type">
+                                <span class={row.deliveryBadgeCls} style={row.deliveryBadgeStyle}>{row.deliveryBadge}</span>
+                            </div>
+                            <div class="hod-col hod-col--hrs">
+                                <span class="hod-val">{row.hoursPerWeek}</span>
+                            </div>
+                            <div class="hod-col hod-col--end">
+                                <span class="hod-val-muted">{row.endDate}</span>
+                                <template if:true={row.showUrgency}>
+                                    <span class={row.urgencyCls}>{row.urgencyLabel}</span>
+                                </template>
+                            </div>
+                            <div class="hod-col hod-col--left">
+                                <template if:true={row.showRemaining}>
+                                    <span class="hod-val">{row.remainingHours}h</span>
+                                </template>
+                            </div>
+                            <div class="hod-col hod-col--cont">
+                                <template for:each={row.projContractors} for:item="pc">
+                                    <span key={pc.id} class="hod-cont-chip" title={pc.name}>{pc.initials}</span>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
                 </div>
             </div>
         </div>

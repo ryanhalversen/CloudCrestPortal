@@ -66,6 +66,7 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     _drillFteId         = null;     // FTE id being drilled, or null
     _monthlyHours       = [];       // WeekSlot[] for current drill FTE
     _hodProjectsOpen    = false;    // HoD projects modal open
+    _hodOverviewOpen    = false;    // HoD portfolio overview panel
     _poolTab            = 'contractor'; // 'contractor' | 'pipeline'
     _planOffset         = 0;        // weeks forward for plan projection
 
@@ -733,6 +734,84 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     }
     get showHodProjects() {
         return this._hodProjectsOpen;
+    }
+
+    // ── HoD Portfolio Overview ────────────────────────────────────────────────
+
+    get showHodOverview() { return this._hodOverviewOpen; }
+
+    get hodOverviewRows() {
+        if (!this._raw) return [];
+        const rows = [];
+
+        // Team FTE lanes (already have projContractors and delivery badges)
+        for (const lane of this.fteTeamLanes) {
+            for (const card of lane.cards) {
+                if (card.isBlock) continue;
+                rows.push({
+                    ...card,
+                    ownerName:        lane.name,
+                    ownerInitials:    lane.initials,
+                    hodRowCls:        `hod-proj-row${card.urgency ? ` hod-proj-row--${card.urgency}` : ''}`,
+                    hodUrgencyDotCls: `hod-urgency-dot${card.urgency ? ` hod-urgency-dot--${card.urgency}` : ''}`
+                });
+            }
+        }
+
+        // HoD's own projects
+        const ldr = this.leaderLane;
+        if (ldr) {
+            for (const card of ldr.cards) {
+                if (card.isBlock) continue;
+                const projContractors = this._assignments
+                    .filter(a => a.contractorId && !a.userId && !a._deleted && a.sprintId === card.projectId)
+                    .map(a => {
+                        const c = (this._raw.contractorPool || []).find(x => x.id === a.contractorId);
+                        return c ? { ...c, assignmentId: a.id } : null;
+                    }).filter(Boolean);
+                let dbadge, dbadgeCls, dbadgeStyle;
+                if (card.isSupport) {
+                    dbadge = `Support ${card.splitPct}%`; dbadgeCls = 'delivery-badge delivery-badge--support'; dbadgeStyle = '';
+                } else {
+                    const rawProj = (this._raw.projectCards || []).find(p => p.id === card.projectId);
+                    const pdm = rawProj?.deliveryType ? CARD_DELIVERY_META[rawProj.deliveryType] : null;
+                    const src = pdm || { short: 'HoD', cls: 'delivery-badge--dev', bg: 'rgba(0,180,216,0.12)', text: '#00b4d8' };
+                    dbadge = src.short; dbadgeCls = `delivery-badge ${src.cls}`; dbadgeStyle = `background:${src.bg};color:${src.text};`;
+                }
+                rows.push({
+                    ...card,
+                    projContractors,
+                    deliveryBadge:    dbadge,
+                    deliveryBadgeCls: dbadgeCls,
+                    deliveryBadgeStyle: dbadgeStyle,
+                    ownerName:        ldr.name,
+                    ownerInitials:    ldr.initials,
+                    hodRowCls:        `hod-proj-row${card.urgency ? ` hod-proj-row--${card.urgency}` : ''}`,
+                    hodUrgencyDotCls: `hod-urgency-dot${card.urgency ? ` hod-urgency-dot--${card.urgency}` : ''}`
+                });
+            }
+        }
+
+        // Sort: critical first, then warning, then none; within group by end date
+        const pri = { critical: 0, warning: 1, '': 2 };
+        rows.sort((a, b) => {
+            const d = (pri[a.urgency || ''] || 2) - (pri[b.urgency || ''] || 2);
+            if (d !== 0) return d;
+            return (a.endDate || '').localeCompare(b.endDate || '');
+        });
+        return rows;
+    }
+
+    get hodPortfolioStats() {
+        const rows = this.hodOverviewRows;
+        const contIds = new Set(rows.flatMap(r => (r.projContractors || []).map(c => c.id)));
+        return {
+            total:       rows.length,
+            critical:    rows.filter(r => r.urgency === 'critical').length,
+            warning:     rows.filter(r => r.urgency === 'warning').length,
+            totalDemand: this._round(rows.reduce((s, r) => s + (r.hoursPerWeek || 0), 0)),
+            contractors: contIds.size
+        };
     }
 
     // ── Contractor Pool (unassigned) ─────────────────────────────────────────
@@ -1496,6 +1575,21 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
 
     handleHodProjectsBackdrop(e) {
         if (e.target === e.currentTarget) this.handleHodProjectsClose();
+    }
+
+    handleLeaderCardClick(e) {
+        e.stopPropagation();
+        this._hodOverviewOpen = true;
+        this._refresh();
+    }
+
+    handleHodOverviewClose() {
+        this._hodOverviewOpen = false;
+        this._refresh();
+    }
+
+    handleHodOverviewBackdrop(e) {
+        if (e.target === e.currentTarget) this.handleHodOverviewClose();
     }
 
     // ── Inline hour editing (pipeline cards only) ─────────────────────────────
