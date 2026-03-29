@@ -1,6 +1,6 @@
 <!-- force-app/main/default/lwc/resourcePlanBoard/resourcePlanBoard.html -->
 <template>
-    <div class="plan-backdrop" onclick={handleBackdropClick}>
+    <div class={backdropCls} onclick={handleBackdropClick}>
         <div class={boardCls} onclick={stopProp}>
 
             <!-- ── Header ──────────────────────────────────────────────────── -->
@@ -16,7 +16,9 @@
                         <button class="ctrl-btn ctrl-btn--forecast" onclick={handleToggleChart}>{chartToggleLabel}</button>
                         <button class="ctrl-btn ctrl-btn--view" onclick={handleToggleView}>{viewModeLabel}</button>
                         <button class="ctrl-btn ctrl-btn--whatif" onclick={handleToggleWhatIf}>{whatIfLabel}</button>
-                        <button class="plan-close" onclick={handleClose} title="Close">&times;</button>
+                        <template if:true={showClose}>
+                            <button class="plan-close" onclick={handleClose} title="Close">&times;</button>
+                        </template>
                     </div>
                 </div>
 

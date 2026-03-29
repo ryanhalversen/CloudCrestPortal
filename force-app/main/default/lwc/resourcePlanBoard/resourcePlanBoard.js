@@ -1,5 +1,5 @@
 // force-app/main/default/lwc/resourcePlanBoard/resourcePlanBoard.js
-import { LightningElement } from 'lwc';
+import { LightningElement, api } from 'lwc';
 import { NavigationMixin }  from 'lightning/navigation';
 import getBoardData         from '@salesforce/apex/ResourcePlanningController.getBoardData';
 import updateSprintOwner   from '@salesforce/apex/ResourcePlanningController.updateSprintOwner';
@@ -23,6 +23,8 @@ const DELIVERY_META = {
 };
 
 export default class ResourcePlanBoard extends NavigationMixin(LightningElement) {
+
+    @api standalone = false;
 
     // ── Server data ───────────────────────────────────────────────────────────
     _raw        = null;
@@ -427,7 +429,9 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
     get canUndo()          { return this._undoStack.length === 0; }
     get hasChanges()       { return this._whatIfMode && this._pendingOps.length > 0; }
     get whatIfLabel()      { return this._whatIfMode ? 'Exit What-If' : 'What-If Mode'; }
-    get boardCls()         { return `plan-board${this._whatIfMode ? ' plan-board--whatif' : ''}`; }
+    get backdropCls()      { return this.standalone ? 'plan-backdrop plan-backdrop--inline' : 'plan-backdrop'; }
+    get boardCls()         { return `plan-board${this._whatIfMode ? ' plan-board--whatif' : ''}${this.standalone ? ' plan-board--inline' : ''}`; }
+    get showClose()        { return !this.standalone; }
     get viewModeLabel()    { return this._viewMode === 'full' ? 'Compact View' : 'Full View'; }
     get showContractors()  { return this._rightTab === 'contractor'; }
     get showPipeline()     { return this._rightTab === 'pipeline'; }

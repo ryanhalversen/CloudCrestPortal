@@ -14,6 +14,24 @@
     overflow-y: auto;
 }
 
+/* ── Inline (standalone) mode — no overlay, no fixed positioning ────────────── */
+.plan-backdrop--inline {
+    position: relative;
+    inset: auto;
+    background: none;
+    backdrop-filter: none;
+    z-index: auto;
+    padding: 0;
+    display: block;
+}
+
+.plan-board--inline {
+    min-height: auto;
+    box-shadow: none;
+    animation: none;
+    border-radius: 8px;
+}
+
 /* ── Board Container ───────────────────────────────────────────────────────── */
 .plan-board {
     background: #0f172a;

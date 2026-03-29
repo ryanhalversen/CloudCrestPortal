@@ -7,4 +7,9 @@
         <target>lightning__HomePage</target>
         <target>lightning__RecordPage</target>
     </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage,lightning__RecordPage">
+            <property name="standalone" type="Boolean" default="true" label="Standalone (inline) mode"/>
+        </targetConfig>
+    </targetConfigs>
 </LightningComponentBundle>
