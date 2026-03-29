@@ -24,7 +24,7 @@ const DELIVERY_META = {
 
 export default class ResourcePlanBoard extends NavigationMixin(LightningElement) {
 
-    @api standalone = false;
+    @api standalone = false;  // true when placed directly on a page; false when launched as modal from capacityModal
 
     // ── Server data ───────────────────────────────────────────────────────────
     _raw        = null;
