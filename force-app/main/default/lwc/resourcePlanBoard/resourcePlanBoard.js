@@ -7,6 +7,7 @@ import upsertAssignment     from '@salesforce/apex/ResourcePlanningController.up
 import deleteAssignment     from '@salesforce/apex/ResourcePlanningController.deleteAssignment';
 import batchSaveAssignments from '@salesforce/apex/ResourcePlanningController.batchSaveAssignments';
 import getMonthlyHours     from '@salesforce/apex/ResourcePlanningController.getMonthlyHours';
+import updateDeliveryType  from '@salesforce/apex/ResourcePlanningController.updateDeliveryType';
 
 const UNDO_LIMIT = 20;
 const URGENCY_LABEL = { critical: '< 2 wks', warning: '2–8 wks' };
@@ -21,6 +22,12 @@ const DELIVERY_META = {
     'Dev + PM':        { bg: 'rgba(127,119,221,0.12)', text: '#AFA9EC', short: 'Dev+PM', cls: 'delivery-badge--dev' },
     'Project Manager': { bg: 'rgba(29,158,117,0.12)',  text: '#5DCAA5', short: 'PM',  cls: 'delivery-badge--pm' }
 };
+const CARD_DELIVERY_META = {
+    'Dev':      { short: 'DEV',    cls: 'delivery-badge--dev', bg: 'rgba(127,119,221,0.12)', text: '#AFA9EC' },
+    'PM':       { short: 'PM',     cls: 'delivery-badge--pm',  bg: 'rgba(29,158,117,0.12)',  text: '#5DCAA5' },
+    'Dev + PM': { short: 'DEV+PM', cls: 'delivery-badge--dev', bg: 'rgba(127,119,221,0.12)', text: '#AFA9EC' }
+};
+const DELIVERY_CYCLE = ['Dev', 'PM', 'Dev + PM'];
 
 export default class ResourcePlanBoard extends NavigationMixin(LightningElement) {
 
@@ -517,7 +524,10 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
                 } else if (card.isSupport) {
                     dbadge = `Support ${card.splitPct}%`; dbadgeCls = 'delivery-badge delivery-badge--support'; dbadgeStyle = '';
                 } else {
-                    dbadge = dm.short; dbadgeCls = `delivery-badge ${dm.cls}`; dbadgeStyle = `background:${dm.bg};color:${dm.text};`;
+                    const rawProj = (this._raw.projectCards || []).find(p => p.id === card.projectId);
+                    const pdm = rawProj?.deliveryType ? CARD_DELIVERY_META[rawProj.deliveryType] : null;
+                    const src = pdm || dm;
+                    dbadge = src.short; dbadgeCls = `delivery-badge ${src.cls} delivery-badge--clickable`; dbadgeStyle = `background:${src.bg};color:${src.text};`;
                 }
                 const projContractors = this._assignments
                     .filter(a => a.contractorId && !a.userId && !a._deleted &&
@@ -775,6 +785,20 @@ export default class ResourcePlanBoard extends NavigationMixin(LightningElement)
 
     handlePoolTabContractor() { this._poolTab = 'contractor'; this._refresh(); }
     handlePoolTabPipeline()   { this._poolTab = 'pipeline';   this._refresh(); }
+
+    handleDeliveryBadgeClick(e) {
+        e.stopPropagation();
+        const projectId = e.currentTarget.dataset.projectId;
+        if (!projectId) return;
+        const proj = (this._raw.projectCards || []).find(p => p.id === projectId);
+        if (!proj) return;
+        const current = proj.deliveryType || DELIVERY_CYCLE[0];
+        const idx = DELIVERY_CYCLE.indexOf(current);
+        const next = DELIVERY_CYCLE[(idx + 1) % DELIVERY_CYCLE.length];
+        proj.deliveryType = next;
+        updateDeliveryType({ sprintId: projectId, deliveryType: next }).catch(console.error);
+        this._refresh();
+    }
 
     // ── Forecast Chart ────────────────────────────────────────────────────────
 

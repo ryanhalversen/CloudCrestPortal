@@ -51,6 +51,7 @@ public with sharing class ResourcePlanningController {
         @AuraEnabled public Decimal supportSplit;
         @AuraEnabled public Boolean isBlock;
         @AuraEnabled public Decimal remainingHours;
+        @AuraEnabled public String  deliveryType;
     }
 
     public class ContractorRow {
@@ -95,7 +96,7 @@ public with sharing class ResourcePlanningController {
             SELECT Id, Name, OwnerId, Support_Lead__c, Support_Split__c,
                    Accountlu__r.Name, Weekly_Pace_Estimate__c, On_Time_Weekly_Pace__c,
                    Project_End_Date__c, Pace_Status__c, Contract_Type__c,
-                   Completed_Delta_Sprint__c
+                   Completed_Delta_Sprint__c, Delivery_Type__c
             FROM Sprint__c
             WHERE Status__c = 'In Progress'
             AND (NOT Name LIKE '%CloudCrest%')
@@ -186,6 +187,7 @@ public with sharing class ResourcePlanningController {
             pc.ownerId      = s.OwnerId;
             pc.supportLeadId = s.Support_Lead__c;
             pc.supportSplit  = s.Support_Split__c != null ? s.Support_Split__c : 0;
+            pc.deliveryType  = s.Delivery_Type__c;
             ci++;
             bd.projectCards.add(pc);
         }
@@ -268,6 +270,13 @@ public with sharing class ResourcePlanningController {
         a.Is_Derived__c     = isDerived != null ? isDerived : false;
         upsert a;
         return a.Id;
+    }
+
+    @AuraEnabled
+    public static void updateDeliveryType(String sprintId, String deliveryType) {
+        if (String.isBlank(sprintId)) return;
+        Sprint__c s = new Sprint__c(Id = (Id) sprintId, Delivery_Type__c = deliveryType);
+        update s;
     }
 
     @AuraEnabled

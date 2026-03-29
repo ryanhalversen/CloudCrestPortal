@@ -1186,8 +1186,10 @@
 
 .delivery-badge--dev     { background: rgba(127,119,221,0.12); color: #AFA9EC; }
 .delivery-badge--pm      { background: rgba(29,158,117,0.12);  color: #5DCAA5; }
-.delivery-badge--blocked { background: rgba(239,68,68,0.12);   color: #ef4444; }
-.delivery-badge--support { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+.delivery-badge--blocked  { background: rgba(239,68,68,0.12);   color: #ef4444; }
+.delivery-badge--support  { background: rgba(245,158,11,0.12);  color: #f59e0b; }
+.delivery-badge--clickable { cursor: pointer; }
+.delivery-badge--clickable:hover { filter: brightness(1.25); }
 
 /* Unassigned pool — horizontal in org tree */
 .unassigned-pool--org {

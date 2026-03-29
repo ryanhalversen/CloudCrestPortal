@@ -503,7 +503,9 @@
 
                                                         <!-- Delivery type badge -->
                                                         <template if:false={card.isProjected}>
-                                                            <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}>{card.deliveryBadge}</span>
+                                                            <span class={card.deliveryBadgeCls} style={card.deliveryBadgeStyle}
+                                                                  data-project-id={card.projectId}
+                                                                  onclick={handleDeliveryBadgeClick}>{card.deliveryBadge}</span>
                                                         </template>
 
                                                         <template if:false={card.isBlock}>
