@@ -92,9 +92,9 @@
 
 .tile-grid {
     display: grid;
-    /* 11 columns × 52 px, 9 rows × 52 px */
-    grid-template-columns: repeat(11, 52px);
-    grid-template-rows: repeat(9, 52px);
+    /* 12 columns × 52 px, 12 rows × 52 px  (Canada rows 0-2, USA rows 3-11) */
+    grid-template-columns: repeat(12, 52px);
+    grid-template-rows: repeat(12, 52px);
     gap: 3px;
     width: fit-content;
     margin: 0 auto;
@@ -118,6 +118,14 @@
     box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
     z-index: 10;
     position: relative;
+}
+
+.canada-tile {
+    border-color: rgba(220, 60, 60, 0.35);
+}
+
+.canada-tile:hover {
+    box-shadow: 0 0 18px rgba(220, 60, 60, 0.45);
 }
 
 .tile-abbr {

@@ -42,7 +42,7 @@
                         <template for:each={tiles} for:item="tile">
                             <div
                                 key={tile.abbr}
-                                class="state-tile"
+                                class={tile.tileClass}
                                 style={tile.style}
                                 data-abbr={tile.abbr}
                                 onmouseenter={handleMouseEnter}
