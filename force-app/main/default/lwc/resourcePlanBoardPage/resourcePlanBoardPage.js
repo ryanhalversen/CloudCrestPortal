@@ -45,9 +45,10 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     _undoStack      = [];
 
     // ── Drag state ────────────────────────────────────────────────────────────
-    _drag           = null;
-    _dropTarget     = null;
-    _cardDropTarget = null;  // projectId of card being hovered by contractor drag
+    _drag               = null;
+    _dropTarget         = null;
+    _cardDropTarget     = null;  // projectId of card being hovered by contractor drag
+    _badgePointerActive = false; // true when mousedown started on a delivery badge
 
     // ── Inline edit (pipeline cards only) ────────────────────────────────────
     _editCell       = null;   // { assignmentId, value }
@@ -781,7 +782,12 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     handlePoolTabContractor() { this._poolTab = 'contractor'; this._refresh(); }
     handlePoolTabPipeline()   { this._poolTab = 'pipeline';   this._refresh(); }
 
+    handleBadgeMouseDown() {
+        this._badgePointerActive = true;
+    }
+
     handleDeliveryBadgeClick(e) {
+        this._badgePointerActive = false;
         e.stopPropagation();
         const projectId = e.currentTarget.dataset.projectId;
         if (!projectId) return;
@@ -1225,7 +1231,8 @@ export default class ResourcePlanBoardPage extends NavigationMixin(LightningElem
     // ── Drag & Drop ───────────────────────────────────────────────────────────
 
     handleDragStart(e) {
-        if (e.target.classList.contains('delivery-badge--clickable')) {
+        if (this._badgePointerActive) {
+            this._badgePointerActive = false;
             e.preventDefault();
             return;
         }
