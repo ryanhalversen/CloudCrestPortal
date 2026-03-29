@@ -9,7 +9,8 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__AppPage,lightning__HomePage,lightning__RecordPage">
-            <property name="standalone" type="Boolean" default="false" label="Standalone (inline) mode"/>
+            <property name="modal" type="Boolean" default="false" label="Modal overlay mode"/>
+            <property name="standalone" type="Boolean" default="false" label="(Legacy) Standalone mode"/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
