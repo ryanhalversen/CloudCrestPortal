@@ -8,7 +8,7 @@ public with sharing class ResourcePlanningController {
     };
     // Users excluded from FTE swim lanes (contractors who also have User records, admins, etc.)
     static final Set<String> FTE_EXCLUDE = new Set<String>{
-        'Alec White', 'Ryan Halversen', 'Ryan H', 'Portal Tester Halversen'
+        'Alec White', 'Ryan Halversen', 'Ryan H', 'Portal Tester Halversen', 'EJ Bantz'
     };
     static final Integer DEFAULT_FTE_TARGET = 35;
 
