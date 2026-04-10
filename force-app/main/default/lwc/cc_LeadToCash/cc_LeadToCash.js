@@ -1,6 +1,13 @@
-import { LightningElement, wire, track } from 'lwc';
-import getSopStages                    from '@salesforce/apex/CC_LeadToCashController.getSopStages';
-import getInitiativesWithActionItems   from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
+import { LightningElement, wire, track }  from 'lwc';
+import { NavigationMixin }               from 'lightning/navigation';
+import { refreshApex }                   from '@salesforce/apex';
+import getSopStages                      from '@salesforce/apex/CC_LeadToCashController.getSopStages';
+import getInitiativesWithActionItems     from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
+import NAME_FIELD     from '@salesforce/schema/SOP__c.Name';
+import CATEGORY_FIELD from '@salesforce/schema/SOP__c.Category__c';
+import STATUS_FIELD   from '@salesforce/schema/SOP__c.Status__c';
+import BODY_FIELD     from '@salesforce/schema/SOP__c.Body__c';
+import SUMMARY_FIELD  from '@salesforce/schema/SOP__c.Summary__c';
 
 // Column order matches Category__c picklist values
 const COLUMN_ORDER = ['Marketing & Partnerships', 'Sales', 'Delivery', 'Finance', 'Other'];
@@ -13,13 +20,18 @@ const COLUMN_CONFIG = {
     'Other':                    { label: 'Other',                    css: 'group-label group-label-other' }
 };
 
-export default class Cc_LeadToCash extends LightningElement {
+export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
 
     // ── SOP Board ─────────────────────────────────────────────
     @track _sops = [];
+    _wiredSopsResult;
+
+    sopFields = [NAME_FIELD, CATEGORY_FIELD, STATUS_FIELD, BODY_FIELD, SUMMARY_FIELD];
 
     @wire(getSopStages)
-    wiredSops({ error, data }) {
+    wiredSops(result) {
+        this._wiredSopsResult = result;
+        const { error, data } = result;
         if (data) {
             this._sops = data;
         } else if (error) {
@@ -28,8 +40,45 @@ export default class Cc_LeadToCash extends LightningElement {
         }
     }
 
+    // ── Navigation ────────────────────────────────────────────
+    handleSopClick(event) {
+        const sopId = event.currentTarget.dataset.id;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: sopId, actionName: 'view' }
+        });
+    }
+
+    // ── Edit Modal ────────────────────────────────────────────
+    @track showEditModal = false;
+    @track editSopId     = null;
+
+    handleEditClick(event) {
+        event.stopPropagation();
+        this.editSopId     = event.currentTarget.dataset.id;
+        this.showEditModal = true;
+    }
+
+    handleModalClose() {
+        this.showEditModal = false;
+        this.editSopId     = null;
+    }
+
+    handleOverlayClick() {
+        this.handleModalClose();
+    }
+
+    handleModalBodyClick(event) {
+        event.stopPropagation();
+    }
+
+    handleSaveSuccess() {
+        this.handleModalClose();
+        refreshApex(this._wiredSopsResult);
+    }
+
+    // ── Board Grouping ────────────────────────────────────────
     get stageGroups() {
-        // Group SOPs by category, preserving COLUMN_ORDER
         const grouped = {};
         for (const sop of this._sops) {
             const cat = sop.category || 'Other';

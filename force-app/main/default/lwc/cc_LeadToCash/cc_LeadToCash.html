@@ -17,12 +17,19 @@
                             <template for:each={group.stages} for:item="stage">
                                 <div key={stage.id} class="stage-column">
 
-                                    <!-- Stage Header -->
+                                    <!-- Stage Header: title navigates to record, edit button opens modal -->
                                     <div class="stage-header">
-                                        <div class="stage-header-top">
+                                        <div class="stage-title-row"
+                                             data-id={stage.id}
+                                             onclick={handleSopClick}>
                                             <span class="stage-number">{stage.num}</span>
                                             <span class="stage-name">{stage.title}</span>
                                         </div>
+                                        <button class="edit-btn"
+                                                data-id={stage.id}
+                                                onclick={handleEditClick}
+                                                title="Edit SOP">
+                                        </button>
                                     </div>
 
                                     <!-- Body: tasks & roles from Body__c -->
@@ -88,4 +95,27 @@
         </div>
 
     </div>
+
+    <!-- ── Edit Modal ─────────────────────────────────────────── -->
+    <template if:true={showEditModal}>
+        <div class="modal-overlay" onclick={handleOverlayClick}>
+            <div class="modal-container" onclick={handleModalBodyClick}>
+                <div class="modal-header">
+                    <span class="modal-title">Edit SOP</span>
+                    <button class="modal-close-btn" onclick={handleModalClose}>&times;</button>
+                </div>
+                <div class="modal-body">
+                    <lightning-record-form
+                        record-id={editSopId}
+                        object-api-name="SOP__c"
+                        fields={sopFields}
+                        mode="edit"
+                        onsuccess={handleSaveSuccess}
+                        oncancel={handleModalClose}>
+                    </lightning-record-form>
+                </div>
+            </div>
+        </div>
+    </template>
+
 </template>
