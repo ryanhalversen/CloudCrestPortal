@@ -34,12 +34,14 @@
 
                                     <!-- Body: tasks & roles from Body__c -->
                                     <div class="stage-body">
+                                        <div class="section-label">Body</div>
                                         <c-cc-sop-html html={stage.body}></c-cc-sop-html>
                                     </div>
 
                                     <!-- Summary: from Summary__c -->
                                     <template if:true={stage.hasSummary}>
                                         <div class="stage-summary">
+                                            <div class="section-label">Summary</div>
                                             <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
                                         </div>
                                     </template>
