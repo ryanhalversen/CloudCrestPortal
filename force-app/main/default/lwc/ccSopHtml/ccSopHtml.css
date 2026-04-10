@@ -3,7 +3,7 @@
 .sop-html-body span,
 .sop-html-body div {
     font-size: 0.75rem;
-    color: #e2e8f0;
+    color: #f8fafc;
     line-height: 1.5;
     margin: 0 0 0.25rem 0;
 }
@@ -12,11 +12,11 @@
 .sop-html-body ol {
     padding-left: 1.125rem;
     margin: 0 0 0.375rem 0;
-    color: #e2e8f0;
+    color: #f8fafc;
 }
 
 .sop-html-body li {
-    color: #e2e8f0;
+    color: #f8fafc;
     margin-bottom: 0.2rem;
     font-size: 0.75rem;
 }

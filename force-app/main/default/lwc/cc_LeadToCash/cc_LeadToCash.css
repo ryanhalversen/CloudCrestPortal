@@ -103,6 +103,13 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.stage-column:hover {
+    border-color: #3b5068;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 /* ── Stage Header ──────────────────────────────────────────── */
@@ -116,25 +123,12 @@
     gap: 0.5rem;
 }
 
-/* Clickable title area */
+/* Title row (non-clickable — whole card is clickable) */
 .stage-title-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex: 1;
-    cursor: pointer;
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem 0.125rem 0;
-    transition: opacity 0.15s;
-}
-
-.stage-title-row:hover {
-    opacity: 0.8;
-}
-
-.stage-title-row:hover .stage-name {
-    text-decoration: underline;
-    text-underline-offset: 2px;
 }
 
 .stage-number {
@@ -450,6 +444,65 @@
     font-size: 0.6875rem;
     color: #334155;
     font-style: italic;
+}
+
+/* ── Modal Shared Pieces ───────────────────────────────────── */
+.modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.modal-status-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.modal-category-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.2);
+    color: #94a3b8;
+}
+
+/* Dark modal body (for view modal) */
+.modal-container-dark {
+    max-width: 720px;
+}
+
+.modal-body-dark {
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.modal-section {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #1e2d45;
+}
+
+.modal-section:last-child {
+    border-bottom: none;
+}
+
+.modal-section-label {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 0.625rem;
 }
 
 /* ── Edit Modal ────────────────────────────────────────────── */

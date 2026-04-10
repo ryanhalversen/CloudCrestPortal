@@ -15,13 +15,14 @@
                             <div class={group.labelClass}>{group.label}</div>
 
                             <template for:each={group.stages} for:item="stage">
-                                <div key={stage.id} class="stage-column">
+                                <div key={stage.id}
+                                     class="stage-column"
+                                     data-id={stage.id}
+                                     onclick={handleCardClick}>
 
-                                    <!-- Stage Header: title navigates to record, edit button opens modal -->
+                                    <!-- Stage Header -->
                                     <div class="stage-header">
-                                        <div class="stage-title-row"
-                                             data-id={stage.id}
-                                             onclick={handleSopClick}>
+                                        <div class="stage-title-row">
                                             <span class="stage-number">{stage.num}</span>
                                             <span class="stage-name">{stage.title}</span>
                                         </div>
@@ -32,16 +33,9 @@
                                         </button>
                                     </div>
 
-                                    <!-- Body: tasks & roles from Body__c -->
-                                    <div class="stage-body">
-                                        <div class="section-label">Body</div>
-                                        <c-cc-sop-html html={stage.body}></c-cc-sop-html>
-                                    </div>
-
-                                    <!-- Summary: from Summary__c -->
+                                    <!-- Summary only on card -->
                                     <template if:true={stage.hasSummary}>
-                                        <div class="stage-summary">
-                                            <div class="section-label">Summary</div>
+                                        <div class="stage-body">
                                             <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
                                         </div>
                                     </template>
@@ -104,6 +98,40 @@
         </div>
 
     </div>
+
+    <!-- ── View Modal ─────────────────────────────────────────── -->
+    <template if:true={showViewModal}>
+        <div class="modal-overlay" onclick={handleViewModalClose}>
+            <div class="modal-container modal-container-dark" onclick={handleModalBodyClick}>
+                <div class="modal-header">
+                    <div class="modal-header-left">
+                        <span class="modal-title">{viewStage.title}</span>
+                        <template if:true={viewStage.status}>
+                            <span class="modal-status-badge">{viewStage.status}</span>
+                        </template>
+                        <template if:true={viewStage.category}>
+                            <span class="modal-category-badge">{viewStage.category}</span>
+                        </template>
+                    </div>
+                    <button class="modal-close-btn" onclick={handleViewModalClose}>&times;</button>
+                </div>
+                <div class="modal-body modal-body-dark">
+                    <template if:true={viewStage.hasBody}>
+                        <div class="modal-section">
+                            <div class="modal-section-label">Body</div>
+                            <c-cc-sop-html html={viewStage.body}></c-cc-sop-html>
+                        </div>
+                    </template>
+                    <template if:true={viewStage.hasSummary}>
+                        <div class="modal-section">
+                            <div class="modal-section-label">Summary</div>
+                            <c-cc-sop-html html={viewStage.summary}></c-cc-sop-html>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- ── Edit Modal ─────────────────────────────────────────── -->
     <template if:true={showEditModal}>

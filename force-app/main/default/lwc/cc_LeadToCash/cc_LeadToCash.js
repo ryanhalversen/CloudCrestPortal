@@ -1,5 +1,4 @@
 import { LightningElement, wire, track }  from 'lwc';
-import { NavigationMixin }               from 'lightning/navigation';
 import { refreshApex }                   from '@salesforce/apex';
 import getSopStages                      from '@salesforce/apex/CC_LeadToCashController.getSopStages';
 import getInitiativesWithActionItems     from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
@@ -20,7 +19,7 @@ const COLUMN_CONFIG = {
     'Other':                    { label: 'Other',                    css: 'group-label group-label-other' }
 };
 
-export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
+export default class Cc_LeadToCash extends LightningElement {
 
     // ── SOP Board ─────────────────────────────────────────────
     @track _sops = [];
@@ -40,13 +39,20 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         }
     }
 
-    // ── Navigation ────────────────────────────────────────────
-    handleSopClick(event) {
+    // ── View Modal ────────────────────────────────────────────
+    @track showViewModal = false;
+    @track viewStage     = null;
+
+    handleCardClick(event) {
         const sopId = event.currentTarget.dataset.id;
-        this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: { recordId: sopId, actionName: 'view' }
-        });
+        const allStages = this.stageGroups.flatMap(g => g.stages);
+        this.viewStage     = allStages.find(s => s.id === sopId) || null;
+        this.showViewModal = true;
+    }
+
+    handleViewModalClose() {
+        this.showViewModal = false;
+        this.viewStage     = null;
     }
 
     // ── Edit Modal ────────────────────────────────────────────
@@ -102,10 +108,12 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
             id:         sop.id,
             num:        parsed.num,
             title:      parsed.title,
+            status:     sop.status   || '',
+            category:   cat,
             body:       sop.body    || '',
             summary:    sop.summary || '',
-            hasSummary: !!(sop.summary && sop.summary.trim()),
-            category:   cat
+            hasBody:    !!(sop.body    && sop.body.trim()),
+            hasSummary: !!(sop.summary && sop.summary.trim())
         };
     }
 
