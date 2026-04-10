@@ -488,6 +488,7 @@
 }
 
 .modal-section {
+    --sop-html-text-color: #111827;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid #1e2d45;
 }
