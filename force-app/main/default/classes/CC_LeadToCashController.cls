@@ -51,4 +51,35 @@ public with sharing class CC_LeadToCashController {
         @AuraEnabled public String priority;
         @AuraEnabled public String completedDate;
     }
+
+    // ── SOP Stages ────────────────────────────────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static List<SopWrapper> getSopStages() {
+        List<SopWrapper> results = new List<SopWrapper>();
+        for (SOP__c sop : [
+            SELECT Id, Name, Category__c, Status__c, Body__c, Summary__c
+            FROM SOP__c
+            ORDER BY Name
+        ]) {
+            SopWrapper sw  = new SopWrapper();
+            sw.id          = sop.Id;
+            sw.name        = sop.Name;
+            sw.category    = sop.Category__c;
+            sw.status      = sop.Status__c;
+            sw.body        = sop.Body__c;
+            sw.summary     = sop.Summary__c;
+            results.add(sw);
+        }
+        return results;
+    }
+
+    public class SopWrapper {
+        @AuraEnabled public String id;
+        @AuraEnabled public String name;
+        @AuraEnabled public String category;
+        @AuraEnabled public String status;
+        @AuraEnabled public String body;
+        @AuraEnabled public String summary;
+    }
 }

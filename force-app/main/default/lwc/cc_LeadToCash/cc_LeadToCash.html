@@ -13,49 +13,36 @@
                     <template for:each={stageGroups} for:item="group">
                         <div key={group.id} class="stage-group">
                             <div class={group.labelClass}>{group.label}</div>
+
                             <template for:each={group.stages} for:item="stage">
                                 <div key={stage.id} class="stage-column">
 
+                                    <!-- Stage Header -->
                                     <div class="stage-header">
                                         <div class="stage-header-top">
-                                            <span class="stage-number">{stage.id}</span>
-                                            <span class="stage-name">{stage.name}</span>
-                                        </div>
-                                        <div class="stage-roles">
-                                            <template for:each={stage.roles} for:item="role">
-                                                <span key={role.label} class={role.badgeClass}>{role.label}</span>
-                                            </template>
+                                            <span class="stage-number">{stage.num}</span>
+                                            <span class="stage-name">{stage.title}</span>
                                         </div>
                                     </div>
 
+                                    <!-- Body: tasks & roles from Body__c -->
                                     <div class="stage-body">
-                                        <template for:each={stage.sections} for:item="section">
-                                            <div key={section.sectionKey} class="task-section">
-                                                <div class={section.headerClass}>{section.role}</div>
-                                                <template for:each={section.tasks} for:item="task">
-                                                    <div key={task.id} class="task-row">
-                                                        <span class="task-bullet"></span>
-                                                        <span class="task-label">{task.label}</span>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
+                                        <lightning-formatted-rich-text
+                                            value={stage.body}
+                                            class="sop-body-text">
+                                        </lightning-formatted-rich-text>
                                     </div>
 
-                                    <div class="artifacts-section">
-                                        <div class="artifacts-title">ARTIFACTS</div>
-                                        <template for:each={stage.artifacts} for:item="artifact">
-                                            <div key={artifact.id} class="artifact-item">
-                                                <span class="artifact-icon"></span>
-                                                <div class="artifact-content">
-                                                    <span class="artifact-name">{artifact.name}</span>
-                                                    <template if:true={artifact.desc}>
-                                                        <span class="artifact-desc">{artifact.desc}</span>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
+                                    <!-- Artifacts: from Summary__c -->
+                                    <template if:true={stage.hasSummary}>
+                                        <div class="artifacts-section">
+                                            <div class="artifacts-title">ARTIFACTS</div>
+                                            <lightning-formatted-rich-text
+                                                value={stage.summary}
+                                                class="sop-summary-text">
+                                            </lightning-formatted-rich-text>
+                                        </div>
+                                    </template>
 
                                 </div>
                             </template>
