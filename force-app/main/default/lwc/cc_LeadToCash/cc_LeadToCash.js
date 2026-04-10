@@ -385,10 +385,10 @@ export default class Cc_LeadToCash extends LightningElement {
     get stageGroups() {
         const byId = Object.fromEntries(this.processedStages.map(s => [s.id, s]));
         return [
-            { id: 'grp-1', stages: [byId[1]] },
-            { id: 'grp-2', stages: [byId[2], byId[3], byId[4], byId[5]] },
-            { id: 'grp-3', stages: [byId[6], byId[7], byId[10]] },
-            { id: 'grp-4', stages: [byId[8], byId[9]] }
+            { id: 'grp-1', label: 'Partnerships & Marketing', labelClass: 'group-label group-label-marketing', stages: [byId[1]] },
+            { id: 'grp-2', label: 'Sales',                    labelClass: 'group-label group-label-sales',     stages: [byId[2], byId[3], byId[4], byId[5]] },
+            { id: 'grp-3', label: 'Delivery',                 labelClass: 'group-label group-label-delivery',  stages: [byId[6], byId[7], byId[10]] },
+            { id: 'grp-4', label: 'Finance',                  labelClass: 'group-label group-label-finance',   stages: [byId[8], byId[9]] }
         ];
     }
 

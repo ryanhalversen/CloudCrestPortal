@@ -9,6 +9,7 @@
             <div class="board-columns">
                 <template for:each={stageGroups} for:item="group">
                     <div key={group.id} class="stage-group">
+                        <div class={group.labelClass}>{group.label}</div>
                         <template for:each={group.stages} for:item="stage">
                             <div key={stage.id} class="stage-column">
 
