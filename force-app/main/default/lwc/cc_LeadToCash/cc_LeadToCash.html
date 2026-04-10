@@ -37,6 +37,13 @@
                                         <c-cc-sop-html html={stage.body}></c-cc-sop-html>
                                     </div>
 
+                                    <!-- Summary: from Summary__c -->
+                                    <template if:true={stage.hasSummary}>
+                                        <div class="stage-summary">
+                                            <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
+                                        </div>
+                                    </template>
+
                                 </div>
                             </template>
                         </div>

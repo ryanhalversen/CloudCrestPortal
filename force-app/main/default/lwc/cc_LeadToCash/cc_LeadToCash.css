@@ -269,6 +269,12 @@
 }
 
 
+/* ── Stage Summary (Summary__c) ───────────────────────────── */
+.stage-summary {
+    padding: 0.5rem 0.625rem 0.625rem;
+    border-top: 1px solid #1e2d45;
+}
+
 /* ── Other label fallback (already defined below, nothing needed here) ── */
 
 /* ── Other label fallback ──────────────────────────────────── */

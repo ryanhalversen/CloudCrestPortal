@@ -99,11 +99,13 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
     _processSop(sop, cat) {
         const parsed = this._parseName(sop.name);
         return {
-            id:       sop.id,
-            num:      parsed.num,
-            title:    parsed.title,
-            body:     sop.body || '',
-            category: cat
+            id:         sop.id,
+            num:        parsed.num,
+            title:      parsed.title,
+            body:       sop.body    || '',
+            summary:    sop.summary || '',
+            hasSummary: !!(sop.summary && sop.summary.trim()),
+            category:   cat
         };
     }
 
