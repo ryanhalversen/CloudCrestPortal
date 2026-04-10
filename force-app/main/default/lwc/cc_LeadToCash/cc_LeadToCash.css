@@ -36,9 +36,18 @@
     min-width: max-content;
 }
 
+/* ── Stage Group (vertical stack) ─────────────────────────── */
+.stage-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    width: 260px;
+}
+
 /* ── Stage Column ──────────────────────────────────────────── */
 .stage-column {
-    width: 240px;
+    width: 100%;
     background: #ffffff;
     border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
