@@ -27,22 +27,8 @@
 
                                     <!-- Body: tasks & roles from Body__c -->
                                     <div class="stage-body">
-                                        <lightning-formatted-rich-text
-                                            value={stage.body}
-                                            class="sop-body-text">
-                                        </lightning-formatted-rich-text>
+                                        <c-cc-sop-html html={stage.body}></c-cc-sop-html>
                                     </div>
-
-                                    <!-- Artifacts: from Summary__c -->
-                                    <template if:true={stage.hasSummary}>
-                                        <div class="artifacts-section">
-                                            <div class="artifacts-title">ARTIFACTS</div>
-                                            <lightning-formatted-rich-text
-                                                value={stage.summary}
-                                                class="sop-summary-text">
-                                            </lightning-formatted-rich-text>
-                                        </div>
-                                    </template>
 
                                 </div>
                             </template>
