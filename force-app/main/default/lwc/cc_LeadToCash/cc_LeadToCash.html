@@ -1,67 +1,118 @@
 <template>
     <div class="board-wrapper">
-        <div class="board-header">
-            <h2 class="board-title">Lead to Cash</h2>
-            <p class="board-subtitle">Cloudcraft &mdash; Process, Ownership &amp; Artifacts</p>
-        </div>
 
-        <div class="board-scroll-container">
-            <div class="board-columns">
-                <template for:each={stageGroups} for:item="group">
-                    <div key={group.id} class="stage-group">
-                        <div class={group.labelClass}>{group.label}</div>
-                        <template for:each={group.stages} for:item="stage">
-                            <div key={stage.id} class="stage-column">
+        <!-- ── Left: Lead to Cash Board ─────────────────────── -->
+        <div class="board-main">
+            <div class="board-header">
+                <h2 class="board-title">Lead to Cash</h2>
+                <p class="board-subtitle">Cloudcraft &mdash; Process, Ownership &amp; Artifacts</p>
+            </div>
 
-                                <!-- Stage Header -->
-                                <div class="stage-header">
-                                    <div class="stage-header-top">
-                                        <span class="stage-number">{stage.id}</span>
-                                        <span class="stage-name">{stage.name}</span>
+            <div class="board-scroll-container">
+                <div class="board-columns">
+                    <template for:each={stageGroups} for:item="group">
+                        <div key={group.id} class="stage-group">
+                            <div class={group.labelClass}>{group.label}</div>
+                            <template for:each={group.stages} for:item="stage">
+                                <div key={stage.id} class="stage-column">
+
+                                    <div class="stage-header">
+                                        <div class="stage-header-top">
+                                            <span class="stage-number">{stage.id}</span>
+                                            <span class="stage-name">{stage.name}</span>
+                                        </div>
+                                        <div class="stage-roles">
+                                            <template for:each={stage.roles} for:item="role">
+                                                <span key={role.label} class={role.badgeClass}>{role.label}</span>
+                                            </template>
+                                        </div>
                                     </div>
-                                    <div class="stage-roles">
-                                        <template for:each={stage.roles} for:item="role">
-                                            <span key={role.label} class={role.badgeClass}>{role.label}</span>
+
+                                    <div class="stage-body">
+                                        <template for:each={stage.sections} for:item="section">
+                                            <div key={section.sectionKey} class="task-section">
+                                                <div class={section.headerClass}>{section.role}</div>
+                                                <template for:each={section.tasks} for:item="task">
+                                                    <div key={task.id} class="task-row">
+                                                        <span class="task-bullet"></span>
+                                                        <span class="task-label">{task.label}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
                                         </template>
                                     </div>
-                                </div>
 
-                                <!-- Task Sections -->
-                                <div class="stage-body">
-                                    <template for:each={stage.sections} for:item="section">
-                                        <div key={section.sectionKey} class="task-section">
-                                            <div class={section.headerClass}>{section.role}</div>
-                                            <template for:each={section.tasks} for:item="task">
-                                                <div key={task.id} class="task-row">
-                                                    <span class="task-bullet"></span>
-                                                    <span class="task-label">{task.label}</span>
+                                    <div class="artifacts-section">
+                                        <div class="artifacts-title">ARTIFACTS</div>
+                                        <template for:each={stage.artifacts} for:item="artifact">
+                                            <div key={artifact.id} class="artifact-item">
+                                                <span class="artifact-icon"></span>
+                                                <div class="artifact-content">
+                                                    <span class="artifact-name">{artifact.name}</span>
+                                                    <template if:true={artifact.desc}>
+                                                        <span class="artifact-desc">{artifact.desc}</span>
+                                                    </template>
                                                 </div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right: Initiatives Panel ──────────────────────── -->
+        <div class="initiatives-panel">
+            <div class="panel-header">
+                <span class="panel-title">Initiatives</span>
+                <span class="panel-count">{initiativeCount}</span>
+            </div>
+
+            <div class="panel-body">
+                <template if:true={hasInitiatives}>
+                    <template for:each={processedInitiatives} for:item="initiative">
+                        <div key={initiative.id} class="initiative-card">
+                            <div class="initiative-top">
+                                <span class="initiative-name">{initiative.name}</span>
+                                <template if:true={initiative.status}>
+                                    <span class={initiative.statusBadgeClass}>{initiative.status}</span>
+                                </template>
+                            </div>
+                            <template if:true={initiative.meta}>
+                                <div class="initiative-meta">{initiative.meta}</div>
+                            </template>
+
+                            <template if:true={initiative.hasActionItems}>
+                                <div class="ai-list">
+                                    <template for:each={initiative.actionItems} for:item="ai">
+                                        <div key={ai.rowId} class="ai-row">
+                                            <span class={ai.dotClass}></span>
+                                            <span class={ai.nameClass}>{ai.name}</span>
+                                            <template if:true={ai.priority}>
+                                                <span class="ai-priority">{ai.priority}</span>
                                             </template>
                                         </div>
                                     </template>
                                 </div>
+                            </template>
+                            <template if:false={initiative.hasActionItems}>
+                                <div class="ai-empty">No action items</div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
 
-                                <!-- Artifacts -->
-                                <div class="artifacts-section">
-                                    <div class="artifacts-title">ARTIFACTS</div>
-                                    <template for:each={stage.artifacts} for:item="artifact">
-                                        <div key={artifact.id} class="artifact-item">
-                                            <span class="artifact-icon"></span>
-                                            <div class="artifact-content">
-                                                <span class="artifact-name">{artifact.name}</span>
-                                                <template if:true={artifact.desc}>
-                                                    <span class="artifact-desc">{artifact.desc}</span>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-
-                            </div>
-                        </template>
+                <template if:false={hasInitiatives}>
+                    <div class="panel-empty">
+                        <p>No initiatives found.</p>
                     </div>
                 </template>
             </div>
         </div>
+
     </div>
 </template>
