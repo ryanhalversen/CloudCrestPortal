@@ -83,6 +83,29 @@ export default class Cc_LeadToCash extends LightningElement {
         refreshApex(this._wiredSopsResult);
     }
 
+    // ── Add SOP Modal ─────────────────────────────────────────
+    @track showAddModal   = false;
+    @track addSopCategory = '';
+    @track addSopLabel    = '';
+
+    handleAddClick(event) {
+        event.stopPropagation();
+        this.addSopCategory = event.currentTarget.dataset.category;
+        this.addSopLabel    = event.currentTarget.dataset.label;
+        this.showAddModal   = true;
+    }
+
+    handleAddModalClose() {
+        this.showAddModal   = false;
+        this.addSopCategory = '';
+        this.addSopLabel    = '';
+    }
+
+    handleAddSuccess() {
+        this.handleAddModalClose();
+        refreshApex(this._wiredSopsResult);
+    }
+
     // ── Board Grouping ────────────────────────────────────────
     get stageGroups() {
         const grouped = {};
@@ -101,6 +124,7 @@ export default class Cc_LeadToCash extends LightningElement {
             bandClass:           COLUMN_CONFIG[cat].bandClass,
             connectorArrowClass: COLUMN_CONFIG[cat].connectorArrowClass,
             hasConnector:        idx < filtered.length - 1,
+            category:            cat,
             stages:              grouped[cat]
         }));
     }

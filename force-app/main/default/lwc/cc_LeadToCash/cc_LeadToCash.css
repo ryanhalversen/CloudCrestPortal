@@ -71,9 +71,54 @@
 .funnel-band-header {
     background: #0d1526;
     border-bottom: 1px solid #1e2d45;
-    padding: 0.4rem 0.75rem;
+    padding: 0.5rem 0.875rem;
     display: flex;
     align-items: center;
+    gap: 0.75rem;
+}
+
+/* Stretch label full-width and center it inside the header */
+.funnel-band-header .group-label {
+    flex: 1;
+    text-align: center;
+    background: transparent;
+    border-radius: 0;
+    border-bottom: none;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    padding: 0;
+}
+
+/* ── Add SOP Button ────────────────────────────────────────── */
+.add-sop-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid #334155;
+    border-radius: 0.25rem;
+    color: #64748b;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.625rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.add-sop-btn:hover {
+    border-color: #60a5fa;
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.08);
+}
+
+/* ── Add Modal Footer ──────────────────────────────────────── */
+.form-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 0.75rem;
 }
 
 .funnel-band-scroll {
@@ -92,27 +137,27 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.125rem 0;
+    padding: 0.25rem 0;
 }
 
 .funnel-stem {
-    width: 2px;
-    height: 0.625rem;
-    background: #1e2d45;
+    width: 3px;
+    height: 1.5rem;
+    background: #2d4263;
 }
 
 .funnel-arrow {
     width: 0;
     height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
 }
 
-.funnel-arrow-marketing { border-top: 7px solid rgba(251, 191,  36, 0.55); }
-.funnel-arrow-sales     { border-top: 7px solid rgba( 74, 222, 128, 0.55); }
-.funnel-arrow-delivery  { border-top: 7px solid rgba( 96, 165, 250, 0.55); }
-.funnel-arrow-finance   { border-top: 7px solid rgba(167, 139, 250, 0.55); }
-.funnel-arrow-other     { border-top: 7px solid rgba(148, 163, 184, 0.55); }
+.funnel-arrow-marketing { border-top: 14px solid rgba(251, 191,  36, 0.9); }
+.funnel-arrow-sales     { border-top: 14px solid rgba( 74, 222, 128, 0.9); }
+.funnel-arrow-delivery  { border-top: 14px solid rgba( 96, 165, 250, 0.9); }
+.funnel-arrow-finance   { border-top: 14px solid rgba(167, 139, 250, 0.9); }
+.funnel-arrow-other     { border-top: 14px solid rgba(148, 163, 184, 0.9); }
 
 /* ── Group Labels ──────────────────────────────────────────── */
 .group-label {

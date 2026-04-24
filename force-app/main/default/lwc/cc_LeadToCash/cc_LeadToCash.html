@@ -15,6 +15,13 @@
                         <div class={group.bandClass} style={group.funnelStyle}>
                             <div class="funnel-band-header">
                                 <div class={group.labelClass}>{group.label}</div>
+                                <button class="add-sop-btn"
+                                        data-category={group.category}
+                                        data-label={group.label}
+                                        onclick={handleAddClick}
+                                        title="Add SOP">
+                                    + Add SOP
+                                </button>
                             </div>
                             <div class="funnel-band-scroll">
                                 <div class="funnel-band-cards">
@@ -142,6 +149,34 @@
                             <c-cc-sop-html html={viewStage.summary}></c-cc-sop-html>
                         </div>
                     </template>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ── Add SOP Modal ────────────────────────────────────────── -->
+    <template if:true={showAddModal}>
+        <div class="modal-overlay" onclick={handleAddModalClose}>
+            <div class="modal-container" onclick={handleModalBodyClick}>
+                <div class="modal-header">
+                    <span class="modal-title">Add SOP &mdash; {addSopLabel}</span>
+                    <button class="modal-close-btn" onclick={handleAddModalClose}>&times;</button>
+                </div>
+                <div class="modal-body">
+                    <lightning-record-edit-form
+                        object-api-name="SOP__c"
+                        onsuccess={handleAddSuccess}>
+                        <lightning-messages></lightning-messages>
+                        <lightning-input-field field-name="Name"></lightning-input-field>
+                        <lightning-input-field field-name="Category__c" value={addSopCategory}></lightning-input-field>
+                        <lightning-input-field field-name="Status__c"></lightning-input-field>
+                        <lightning-input-field field-name="Body__c"></lightning-input-field>
+                        <lightning-input-field field-name="Summary__c"></lightning-input-field>
+                        <div class="form-footer">
+                            <lightning-button label="Cancel" onclick={handleAddModalClose}></lightning-button>
+                            <lightning-button variant="brand" type="submit" label="Save SOP"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
                 </div>
             </div>
         </div>
