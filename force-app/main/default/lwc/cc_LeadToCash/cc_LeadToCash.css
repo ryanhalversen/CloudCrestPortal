@@ -1,7 +1,7 @@
 /* ── Page Layout ───────────────────────────────────────────── */
 .board-wrapper {
     font-family: 'Salesforce Sans', Arial, sans-serif;
-    background: #0a0f1e;
+    background: #000000;
     padding: 1.25rem;
     min-height: 100%;
     display: flex;
@@ -32,7 +32,7 @@
 
 .board-subtitle {
     font-size: 0.8125rem;
-    color: #64748b;
+    color: #555555;
     margin: 0;
 }
 
@@ -55,8 +55,8 @@
 /* ── Funnel Band (each tier) ───────────────────────────────── */
 .funnel-band {
     /* width set via inline style per tier */
-    background: #131929;
-    border: 1px solid #1e2d45;
+    background: #111111;
+    border: 1px solid #222222;
     border-radius: 0.5rem;
     overflow: hidden;
     border-top-width: 2px;
@@ -69,8 +69,8 @@
 .funnel-band-other     { border-top-color: #94a3b8; }
 
 .funnel-band-header {
-    background: #0d1526;
-    border-bottom: 1px solid #1e2d45;
+    background: #0a0a0a;
+    border-bottom: 1px solid #222222;
     padding: 0.5rem 0.875rem;
     display: flex;
     align-items: center;
@@ -89,13 +89,49 @@
     padding: 0;
 }
 
+/* ── Reorder Buttons ───────────────────────────────────────── */
+.reorder-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.reorder-btn {
+    width: 1.25rem;
+    height: 0.9375rem;
+    border: 1px solid #2a2a2a;
+    border-radius: 0.2rem;
+    background: transparent;
+    color: #555555;
+    font-size: 0.45rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.reorder-btn:hover:not([disabled]) {
+    color: #e2e8f0;
+    border-color: #555555;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.reorder-btn[disabled] {
+    opacity: 0.2;
+    cursor: default;
+}
+
 /* ── Add SOP Button ────────────────────────────────────────── */
 .add-sop-btn {
     flex-shrink: 0;
     background: transparent;
-    border: 1px solid #334155;
+    border: 1px solid #2a2a2a;
     border-radius: 0.25rem;
-    color: #64748b;
+    color: #555555;
     font-size: 0.6875rem;
     font-weight: 600;
     padding: 0.25rem 0.625rem;
@@ -143,7 +179,7 @@
 .funnel-stem {
     width: 3px;
     height: 1.5rem;
-    background: #2d4263;
+    background: #2a2a2a;
 }
 
 .funnel-arrow {
@@ -172,36 +208,42 @@
 }
 
 .group-label-marketing {
-    background: rgba(251, 191, 36, 0.12);
+    background: rgba(251, 191, 36, 0.1);
     color: #fbbf24;
     border-bottom-color: #fbbf24;
 }
 
 .group-label-sales {
-    background: rgba(34, 197, 94, 0.12);
+    background: rgba(34, 197, 94, 0.1);
     color: #4ade80;
     border-bottom-color: #4ade80;
 }
 
 .group-label-delivery {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(59, 130, 246, 0.1);
     color: #60a5fa;
     border-bottom-color: #60a5fa;
 }
 
 .group-label-finance {
-    background: rgba(167, 139, 250, 0.12);
+    background: rgba(167, 139, 250, 0.1);
     color: #a78bfa;
     border-bottom-color: #a78bfa;
+}
+
+.group-label-other {
+    background: rgba(100, 116, 139, 0.1);
+    color: #94a3b8;
+    border-bottom-color: #94a3b8;
 }
 
 /* ── Stage Column ──────────────────────────────────────────── */
 .stage-column {
     width: 240px;
     flex-shrink: 0;
-    background: #131929;
+    background: #111111;
     border-radius: 0.5rem;
-    border: 1px solid #1e2d45;
+    border: 1px solid #222222;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -210,15 +252,15 @@
 }
 
 .stage-column:hover {
-    border-color: #3b5068;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    border-color: #3a3a3a;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
 }
 
 /* ── Stage Header ──────────────────────────────────────────── */
 .stage-header {
-    background: #0d1526;
+    background: #0a0a0a;
     padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-    border-bottom: 1px solid #1e2d45;
+    border-bottom: 1px solid #222222;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -235,7 +277,7 @@
 
 .stage-number {
     background: #f59e0b;
-    color: #0a0f1e;
+    color: #000000;
     font-size: 0.6875rem;
     font-weight: 700;
     width: 1.375rem;
@@ -259,7 +301,7 @@
     flex-shrink: 0;
     width: 1.5rem;
     height: 1.5rem;
-    border: 1px solid #334155;
+    border: 1px solid #2a2a2a;
     border-radius: 0.25rem;
     background: transparent;
     cursor: pointer;
@@ -276,7 +318,7 @@
     display: block;
     width: 0.625rem;
     height: 0.625rem;
-    background: #64748b;
+    background: #555555;
     clip-path: polygon(
         0% 75%, 0% 100%, 25% 100%,
         100% 25%, 75% 0%,
@@ -309,7 +351,7 @@
 .role-finance     { background: rgba(167, 139, 250, 0.18); color: #a78bfa; }
 .role-projectlead { background: rgba(20,  184, 166, 0.18); color: #2dd4bf; }
 
-/* ── Stage Body (Tasks) ────────────────────────────────────── */
+/* ── Stage Body ────────────────────────────────────────────── */
 .stage-body {
     padding: 0.5rem 0.625rem;
     flex: 1;
@@ -352,7 +394,7 @@
 .task-bullet {
     width: 0.625rem;
     height: 0.625rem;
-    border: 1.5px solid #334155;
+    border: 1.5px solid #2a2a2a;
     border-radius: 0.125rem;
     flex-shrink: 0;
     margin-top: 0.175rem;
@@ -360,10 +402,9 @@
 
 .task-label {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: #777777;
     line-height: 1.4;
 }
-
 
 /* ── Section Labels ────────────────────────────────────────── */
 .section-label {
@@ -371,31 +412,22 @@
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #475569;
+    color: #444444;
     margin-bottom: 0.375rem;
 }
 
-/* ── Stage Summary (Summary__c) ───────────────────────────── */
+/* ── Stage Summary ─────────────────────────────────────────── */
 .stage-summary {
     padding: 0.5rem 0.625rem 0.625rem;
-    border-top: 1px solid #1e2d45;
-}
-
-/* ── Other label fallback (already defined below, nothing needed here) ── */
-
-/* ── Other label fallback ──────────────────────────────────── */
-.group-label-other {
-    background: rgba(100, 116, 139, 0.12);
-    color: #94a3b8;
-    border-bottom-color: #94a3b8;
+    border-top: 1px solid #222222;
 }
 
 /* ── Right: Initiatives Panel ──────────────────────────────── */
 .initiatives-panel {
     width: 300px;
     flex-shrink: 0;
-    background: #131929;
-    border: 1px solid #1e2d45;
+    background: #111111;
+    border: 1px solid #222222;
     border-radius: 0.5rem;
     display: flex;
     flex-direction: column;
@@ -409,8 +441,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 0.875rem 0.625rem;
-    border-bottom: 1px solid #1e2d45;
-    background: #0d1526;
+    border-bottom: 1px solid #222222;
+    background: #0a0a0a;
     border-radius: 0.5rem 0.5rem 0 0;
     flex-shrink: 0;
 }
@@ -425,7 +457,7 @@
 .panel-count {
     font-size: 0.6875rem;
     font-weight: 600;
-    background: rgba(59, 130, 246, 0.18);
+    background: rgba(59, 130, 246, 0.15);
     color: #60a5fa;
     padding: 0.125rem 0.5rem;
     border-radius: 999px;
@@ -443,14 +475,14 @@
 .panel-empty {
     padding: 1.5rem 0.5rem;
     text-align: center;
-    color: #475569;
+    color: #444444;
     font-size: 0.8125rem;
 }
 
 /* ── Initiative Card ───────────────────────────────────────── */
 .initiative-card {
-    background: #0d1526;
-    border: 1px solid #1e2d45;
+    background: #0a0a0a;
+    border: 1px solid #222222;
     border-radius: 0.4375rem;
     padding: 0.625rem 0.75rem;
     display: flex;
@@ -475,7 +507,7 @@
 
 .initiative-meta {
     font-size: 0.625rem;
-    color: #475569;
+    color: #444444;
     letter-spacing: 0.02em;
 }
 
@@ -493,7 +525,7 @@
 .st-complete { background: rgba(34,  197, 94,  0.15); color: #4ade80; }
 .st-active   { background: rgba(59,  130, 246, 0.15); color: #60a5fa; }
 .st-blocked  { background: rgba(239, 68,  68,  0.15); color: #f87171; }
-.st-open     { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+.st-open     { background: rgba(100, 116, 139, 0.15); color: #777777; }
 
 /* ── Action Items ──────────────────────────────────────────── */
 .ai-list {
@@ -501,7 +533,7 @@
     flex-direction: column;
     gap: 0.25rem;
     padding-top: 0.25rem;
-    border-top: 1px solid #1e2d45;
+    border-top: 1px solid #222222;
     margin-top: 0.125rem;
 }
 
@@ -521,30 +553,30 @@
 .ai-dot.st-complete { background: #4ade80; }
 .ai-dot.st-active   { background: #60a5fa; }
 .ai-dot.st-blocked  { background: #f87171; }
-.ai-dot.st-open     { background: #334155; }
+.ai-dot.st-open     { background: #2a2a2a; }
 
 .ai-name {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: #777777;
     flex: 1;
     line-height: 1.3;
 }
 
 .ai-name-done {
-    color: #475569;
+    color: #444444;
     text-decoration: line-through;
 }
 
 .ai-priority {
     font-size: 0.5625rem;
     font-weight: 600;
-    color: #64748b;
+    color: #555555;
     white-space: nowrap;
 }
 
 .ai-empty {
     font-size: 0.6875rem;
-    color: #334155;
+    color: #2a2a2a;
     font-style: italic;
 }
 
@@ -573,8 +605,8 @@
     letter-spacing: 0.04em;
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
-    background: rgba(100, 116, 139, 0.2);
-    color: #94a3b8;
+    background: rgba(100, 116, 139, 0.15);
+    color: #777777;
 }
 
 /* Dark modal body (for view modal) */
@@ -583,7 +615,7 @@
 }
 
 .modal-body-dark {
-    background: #0f172a;
+    background: #080808;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -592,7 +624,7 @@
 .modal-section {
     --sop-html-text-color: #111827;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #1e2d45;
+    border-bottom: 1px solid #222222;
 }
 
 .modal-section:last-child {
@@ -604,15 +636,15 @@
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #475569;
+    color: #444444;
     margin-bottom: 0.625rem;
 }
 
-/* ── Edit Modal ────────────────────────────────────────────── */
+/* ── Modals ────────────────────────────────────────────────── */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.72);
+    background: rgba(0, 0, 0, 0.82);
     z-index: 9000;
     display: flex;
     align-items: center;
@@ -621,15 +653,15 @@
 }
 
 .modal-container {
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: #141414;
+    border: 1px solid #2a2a2a;
     border-radius: 0.625rem;
     width: 100%;
     max-width: 640px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
     overflow: hidden;
 }
 
@@ -638,8 +670,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem 0.875rem;
-    border-bottom: 1px solid #334155;
-    background: #0d1526;
+    border-bottom: 1px solid #2a2a2a;
+    background: #0a0a0a;
     flex-shrink: 0;
 }
 
@@ -651,9 +683,9 @@
 
 .modal-close-btn {
     background: transparent;
-    border: 1px solid #475569;
+    border: 1px solid #333333;
     border-radius: 0.25rem;
-    color: #94a3b8;
+    color: #777777;
     font-size: 1.125rem;
     line-height: 1;
     width: 1.75rem;

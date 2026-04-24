@@ -106,6 +106,29 @@ export default class Cc_LeadToCash extends LightningElement {
         refreshApex(this._wiredSopsResult);
     }
 
+    // ── Row Ordering ──────────────────────────────────────────
+    @track _categoryOrder = null; // null = use COLUMN_ORDER default
+
+    handleMoveUp(event) {
+        event.stopPropagation();
+        const cat    = event.currentTarget.dataset.category;
+        const order  = this.stageGroups.map(g => g.category);
+        const idx    = order.indexOf(cat);
+        if (idx <= 0) return;
+        [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
+        this._categoryOrder = order;
+    }
+
+    handleMoveDown(event) {
+        event.stopPropagation();
+        const cat    = event.currentTarget.dataset.category;
+        const order  = this.stageGroups.map(g => g.category);
+        const idx    = order.indexOf(cat);
+        if (idx >= order.length - 1) return;
+        [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
+        this._categoryOrder = order;
+    }
+
     // ── Board Grouping ────────────────────────────────────────
     get stageGroups() {
         const grouped = {};
@@ -115,18 +138,29 @@ export default class Cc_LeadToCash extends LightningElement {
             grouped[cat].push(this._processSop(sop, cat));
         }
 
-        const filtered = COLUMN_ORDER.filter(cat => grouped[cat] && grouped[cat].length > 0);
-        return filtered.map((cat, idx) => ({
-            id:                  `grp-${cat}`,
-            label:               COLUMN_CONFIG[cat].label,
-            labelClass:          COLUMN_CONFIG[cat].css,
-            funnelStyle:         COLUMN_CONFIG[cat].funnelStyle,
-            bandClass:           COLUMN_CONFIG[cat].bandClass,
-            connectorArrowClass: COLUMN_CONFIG[cat].connectorArrowClass,
-            hasConnector:        idx < filtered.length - 1,
-            category:            cat,
-            stages:              grouped[cat]
-        }));
+        // Merge user order with default, appending any newly-seen categories
+        const baseOrder = this._categoryOrder
+            ? [...this._categoryOrder, ...COLUMN_ORDER.filter(c => !this._categoryOrder.includes(c))]
+            : COLUMN_ORDER;
+
+        const filtered = baseOrder.filter(cat => grouped[cat] && grouped[cat].length > 0);
+        return filtered.map((cat, idx) => {
+            // Number cards 1…n left-to-right within each row
+            const stages = grouped[cat].map((s, i) => ({ ...s, num: String(i + 1) }));
+            return {
+                id:                  `grp-${cat}`,
+                label:               COLUMN_CONFIG[cat].label,
+                labelClass:          COLUMN_CONFIG[cat].css,
+                funnelStyle:         COLUMN_CONFIG[cat].funnelStyle,
+                bandClass:           COLUMN_CONFIG[cat].bandClass,
+                connectorArrowClass: COLUMN_CONFIG[cat].connectorArrowClass,
+                hasConnector:        idx < filtered.length - 1,
+                isFirst:             idx === 0,
+                isLast:              idx === filtered.length - 1,
+                category:            cat,
+                stages
+            };
+        });
     }
 
     _processSop(sop, cat) {

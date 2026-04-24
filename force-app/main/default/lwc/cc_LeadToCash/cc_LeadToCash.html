@@ -14,6 +14,18 @@
 
                         <div class={group.bandClass} style={group.funnelStyle}>
                             <div class="funnel-band-header">
+                                <div class="reorder-btns">
+                                    <button class="reorder-btn"
+                                            data-category={group.category}
+                                            onclick={handleMoveUp}
+                                            disabled={group.isFirst}
+                                            title="Move up">&#9650;</button>
+                                    <button class="reorder-btn"
+                                            data-category={group.category}
+                                            onclick={handleMoveDown}
+                                            disabled={group.isLast}
+                                            title="Move down">&#9660;</button>
+                                </div>
                                 <div class={group.labelClass}>{group.label}</div>
                                 <button class="add-sop-btn"
                                         data-category={group.category}
