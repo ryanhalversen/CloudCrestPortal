@@ -59,9 +59,9 @@ public with sharing class CC_LeadToCashController {
         List<SopWrapper> results = new List<SopWrapper>();
         for (SOP__c sop : [
             SELECT Id, Name, Category__c, Status__c, Body__c, Summary__c,
-                   Is_Unassigned__c, Linked_Initiative_Ids__c
+                   Is_Unassigned__c, Linked_Initiative_Ids__c, Sort_Order__c
             FROM SOP__c
-            ORDER BY Name
+            ORDER BY Sort_Order__c NULLS LAST, Name
         ]) {
             SopWrapper sw          = new SopWrapper();
             sw.id                  = sop.Id;
@@ -72,6 +72,7 @@ public with sharing class CC_LeadToCashController {
             sw.summary             = sop.Summary__c;
             sw.isUnassigned        = sop.Is_Unassigned__c;
             sw.linkedInitiativeIds = sop.Linked_Initiative_Ids__c;
+            sw.sortOrder           = sop.Sort_Order__c != null ? Integer.valueOf(sop.Sort_Order__c) : null;
             results.add(sw);
         }
         return results;
@@ -80,6 +81,20 @@ public with sharing class CC_LeadToCashController {
     @AuraEnabled
     public static void updateSopUnassigned(String sopId, Boolean isUnassigned) {
         update new SOP__c(Id = sopId, Is_Unassigned__c = isUnassigned);
+    }
+
+    @AuraEnabled
+    public static void updateSopOrders(String ordersJson) {
+        List<Object> parsed = (List<Object>) JSON.deserializeUntyped(ordersJson);
+        List<SOP__c> toUpdate = new List<SOP__c>();
+        for (Object o : parsed) {
+            Map<String, Object> m = (Map<String, Object>) o;
+            toUpdate.add(new SOP__c(
+                Id            = (String) m.get('sopId'),
+                Sort_Order__c = (Decimal) m.get('sortOrder')
+            ));
+        }
+        if (!toUpdate.isEmpty()) update toUpdate;
     }
 
     @AuraEnabled
@@ -109,5 +124,6 @@ public with sharing class CC_LeadToCashController {
         @AuraEnabled public String  summary;
         @AuraEnabled public Boolean isUnassigned;
         @AuraEnabled public String  linkedInitiativeIds;
+        @AuraEnabled public Integer sortOrder;
     }
 }

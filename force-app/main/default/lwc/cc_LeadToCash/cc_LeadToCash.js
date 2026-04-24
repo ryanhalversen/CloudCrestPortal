@@ -5,6 +5,7 @@ import getSopStages                      from '@salesforce/apex/CC_LeadToCashCon
 import getInitiativesWithActionItems     from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
 import updateSopUnassigned               from '@salesforce/apex/CC_LeadToCashController.updateSopUnassigned';
 import addLinkedInitiative               from '@salesforce/apex/CC_LeadToCashController.addLinkedInitiative';
+import updateSopOrders                   from '@salesforce/apex/CC_LeadToCashController.updateSopOrders';
 import NAME_FIELD     from '@salesforce/schema/SOP__c.Name';
 import CATEGORY_FIELD from '@salesforce/schema/SOP__c.Category__c';
 import STATUS_FIELD   from '@salesforce/schema/SOP__c.Status__c';
@@ -37,15 +38,23 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         if (data) {
             this._sops = data;
             // Reinitialise persistent state from Salesforce on every wire result
+            // Data already arrives ordered by Sort_Order__c NULLS LAST, Name
             this._catchAllIds = data
                 .filter(s => s.isUnassigned)
                 .map(s => s.id);
-            const sopInits = {};
+            const newOrders = {};
+            const sopInits  = {};
             for (const s of data) {
+                if (!s.isUnassigned) {
+                    const cat = s.category || 'Other';
+                    if (!newOrders[cat]) newOrders[cat] = [];
+                    newOrders[cat].push(s.id);
+                }
                 if (s.linkedInitiativeIds) {
                     sopInits[s.id] = s.linkedInitiativeIds.split(',').filter(Boolean);
                 }
             }
+            this._cardOrders    = newOrders;
             this._sopInitiatives = sopInits;
         } else if (error) {
             this._sops = [];
@@ -134,6 +143,7 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
             if (idx <= 0) return;
             [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
             this._catchAllIds = ids;
+            this._saveSopOrders(ids);
             return;
         }
         const group = this.stageGroups.find(g => g.category === cat);
@@ -143,6 +153,7 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         if (idx <= 0) return;
         [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
         this._cardOrders = { ...this._cardOrders, [cat]: ids };
+        this._saveSopOrders(ids);
     }
 
     handleMoveRight(event) {
@@ -155,6 +166,7 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
             if (idx >= ids.length - 1) return;
             [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
             this._catchAllIds = ids;
+            this._saveSopOrders(ids);
             return;
         }
         const group = this.stageGroups.find(g => g.category === cat);
@@ -164,6 +176,13 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         if (idx >= ids.length - 1) return;
         [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
         this._cardOrders = { ...this._cardOrders, [cat]: ids };
+        this._saveSopOrders(ids);
+    }
+
+    _saveSopOrders(ids) {
+        const orders = ids.map((id, idx) => ({ sopId: id, sortOrder: idx }));
+        updateSopOrders({ ordersJson: JSON.stringify(orders) })
+            .catch(err => console.error('CC_LeadToCash: updateSopOrders failed', err));
     }
 
     // ── Drag and Drop ─────────────────────────────────────────
@@ -364,15 +383,34 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
     // ── Initiatives Panel ─────────────────────────────────────
     @track _initiatives      = [];
     @track _initiativeFilter = 'All';
+    _wiredInitiativesResult;
 
     @wire(getInitiativesWithActionItems)
-    wiredInitiatives({ error, data }) {
+    wiredInitiatives(result) {
+        this._wiredInitiativesResult = result;
+        const { error, data } = result;
         if (data) {
             this._initiatives = data;
         } else if (error) {
             this._initiatives = [];
             console.error('CC_LeadToCash: error loading initiatives', error);
         }
+    }
+
+    // ── Add Initiative Modal ──────────────────────────────────
+    @track showAddInitiativeModal = false;
+
+    handleAddInitiativeClick() {
+        this.showAddInitiativeModal = true;
+    }
+
+    handleAddInitiativeModalClose() {
+        this.showAddInitiativeModal = false;
+    }
+
+    handleAddInitiativeSuccess() {
+        this.showAddInitiativeModal = false;
+        refreshApex(this._wiredInitiativesResult);
     }
 
     get initiativeFilters() {

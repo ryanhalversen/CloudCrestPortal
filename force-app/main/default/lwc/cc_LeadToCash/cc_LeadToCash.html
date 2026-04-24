@@ -181,6 +181,9 @@
             <div class="panel-header">
                 <span class="panel-title">Initiatives</span>
                 <span class="panel-count">{initiativeCount}</span>
+                <button class="add-initiative-btn"
+                        onclick={handleAddInitiativeClick}
+                        title="Add Initiative">+ Add</button>
             </div>
 
             <!-- Status filter bar -->
@@ -323,6 +326,33 @@
                         onsuccess={handleSaveSuccess}
                         oncancel={handleModalClose}>
                     </lightning-record-form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ── Add Initiative Modal ──────────────────────────────────── -->
+    <template if:true={showAddInitiativeModal}>
+        <div class="modal-overlay" onclick={handleAddInitiativeModalClose}>
+            <div class="modal-container" onclick={handleModalBodyClick}>
+                <div class="modal-header">
+                    <span class="modal-title">Add Initiative</span>
+                    <button class="modal-close-btn" onclick={handleAddInitiativeModalClose}>&times;</button>
+                </div>
+                <div class="modal-body">
+                    <lightning-record-edit-form
+                        object-api-name="Initiative__c"
+                        onsuccess={handleAddInitiativeSuccess}>
+                        <lightning-messages></lightning-messages>
+                        <lightning-input-field field-name="Name"></lightning-input-field>
+                        <lightning-input-field field-name="Status__c"></lightning-input-field>
+                        <lightning-input-field field-name="Category__c"></lightning-input-field>
+                        <lightning-input-field field-name="Calendar_Quarter__c"></lightning-input-field>
+                        <div class="form-footer">
+                            <lightning-button label="Cancel" onclick={handleAddInitiativeModalClose}></lightning-button>
+                            <lightning-button variant="brand" type="submit" label="Save Initiative"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
                 </div>
             </div>
         </div>
