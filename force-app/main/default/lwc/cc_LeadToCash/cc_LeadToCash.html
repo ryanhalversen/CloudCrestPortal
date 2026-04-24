@@ -28,8 +28,12 @@
                                     <template for:each={group.stages} for:item="stage">
                                         <div key={stage.id}
                                              class="stage-column"
+                                             draggable="true"
                                              data-id={stage.id}
-                                             onclick={handleCardClick}>
+                                             data-category={stage.category}
+                                             onclick={handleCardClick}
+                                             ondragstart={handleDragStart}
+                                             ondragend={handleDragEnd}>
 
                                             <!-- Stage Header -->
                                             <div class="stage-header">
@@ -80,6 +84,66 @@
 
                     </div>
                 </template>
+            </div>
+            <!-- ── Catch-All / Unassigned Zone ────────────────── -->
+            <div class={catchAllZoneClass}
+                 ondragover={handleCatchAllDragOver}
+                 ondragleave={handleCatchAllDragLeave}
+                 ondrop={handleCatchAllDrop}>
+                <div class="catchall-header">
+                    <span class="catchall-title">Unassigned</span>
+                    <span class="catchall-hint">Drag cards here to hold for later</span>
+                </div>
+                <div class="catchall-body">
+                    <div class="catchall-cards">
+                        <template if:true={hasCatchAll}>
+                            <template for:each={catchAllStages} for:item="stage">
+                                <div key={stage.id}
+                                     class="stage-column"
+                                     draggable="true"
+                                     data-id={stage.id}
+                                     data-category={stage.category}
+                                     onclick={handleCardClick}
+                                     ondragstart={handleDragStart}
+                                     ondragend={handleDragEnd}>
+                                    <div class="stage-header">
+                                        <div class="stage-title-row">
+                                            <span class="stage-number stage-number-unassigned">{stage.num}</span>
+                                            <span class="stage-name">{stage.title}</span>
+                                        </div>
+                                        <div class="card-reorder-btns">
+                                            <button class="card-move-btn"
+                                                    data-id={stage.id}
+                                                    data-category="__catchall__"
+                                                    disabled={stage.isFirstCard}
+                                                    onclick={handleMoveLeft}
+                                                    title="Move left">&#9664;</button>
+                                            <button class="card-move-btn"
+                                                    data-id={stage.id}
+                                                    data-category="__catchall__"
+                                                    disabled={stage.isLastCard}
+                                                    onclick={handleMoveRight}
+                                                    title="Move right">&#9654;</button>
+                                        </div>
+                                        <button class="edit-btn"
+                                                data-id={stage.id}
+                                                onclick={handleEditClick}
+                                                title="Edit SOP">
+                                        </button>
+                                    </div>
+                                    <template if:true={stage.hasSummary}>
+                                        <div class="stage-body">
+                                            <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasCatchAll}>
+                            <div class="catchall-empty">Drop SOP cards here</div>
+                        </template>
+                    </div>
+                </div>
             </div>
         </div>
 

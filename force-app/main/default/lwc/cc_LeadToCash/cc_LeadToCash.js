@@ -113,6 +113,15 @@ export default class Cc_LeadToCash extends LightningElement {
         event.stopPropagation();
         const sopId = event.currentTarget.dataset.id;
         const cat   = event.currentTarget.dataset.category;
+        // Catch-all cards use a special sentinel category
+        if (cat === '__catchall__') {
+            const ids = [...this._catchAllIds];
+            const idx = ids.indexOf(sopId);
+            if (idx <= 0) return;
+            [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+            this._catchAllIds = ids;
+            return;
+        }
         const group = this.stageGroups.find(g => g.category === cat);
         if (!group) return;
         const ids = group.stages.map(s => s.id);
@@ -126,6 +135,14 @@ export default class Cc_LeadToCash extends LightningElement {
         event.stopPropagation();
         const sopId = event.currentTarget.dataset.id;
         const cat   = event.currentTarget.dataset.category;
+        if (cat === '__catchall__') {
+            const ids = [...this._catchAllIds];
+            const idx = ids.indexOf(sopId);
+            if (idx >= ids.length - 1) return;
+            [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+            this._catchAllIds = ids;
+            return;
+        }
         const group = this.stageGroups.find(g => g.category === cat);
         if (!group) return;
         const ids = group.stages.map(s => s.id);
@@ -133,6 +150,67 @@ export default class Cc_LeadToCash extends LightningElement {
         if (idx >= ids.length - 1) return;
         [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
         this._cardOrders = { ...this._cardOrders, [cat]: ids };
+    }
+
+    // ── Drag and Drop ─────────────────────────────────────────
+    @track _catchAllIds        = [];
+    @track _isDragOverCatchAll = false;
+
+    handleDragStart(event) {
+        event.dataTransfer.setData('text/plain', event.currentTarget.dataset.id);
+        event.dataTransfer.effectAllowed = 'move';
+        event.currentTarget.classList.add('stage-dragging');
+    }
+
+    handleDragEnd(event) {
+        event.currentTarget.classList.remove('stage-dragging');
+        this._isDragOverCatchAll = false;
+    }
+
+    handleCatchAllDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        if (!this._isDragOverCatchAll) this._isDragOverCatchAll = true;
+    }
+
+    handleCatchAllDragLeave(event) {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            this._isDragOverCatchAll = false;
+        }
+    }
+
+    handleCatchAllDrop(event) {
+        event.preventDefault();
+        const sopId = event.dataTransfer.getData('text/plain');
+        if (sopId && !this._catchAllIds.includes(sopId)) {
+            this._catchAllIds = [...this._catchAllIds, sopId];
+        }
+        this._isDragOverCatchAll = false;
+    }
+
+    get catchAllZoneClass() {
+        return 'catchall-zone' + (this._isDragOverCatchAll ? ' catchall-zone-active' : '');
+    }
+
+    get hasCatchAll() {
+        return this._catchAllIds.length > 0;
+    }
+
+    get catchAllStages() {
+        const n = this._catchAllIds.length;
+        return this._catchAllIds
+            .map((id, i) => {
+                const sop = this._sops.find(s => s.id === id);
+                if (!sop) return null;
+                const cat = sop.category || 'Other';
+                return {
+                    ...this._processSop(sop, cat),
+                    num:         String(i + 1),
+                    isFirstCard: i === 0,
+                    isLastCard:  i === n - 1
+                };
+            })
+            .filter(Boolean);
     }
 
     // ── Board Grouping ────────────────────────────────────────
@@ -147,12 +225,14 @@ export default class Cc_LeadToCash extends LightningElement {
         const filtered = COLUMN_ORDER.filter(cat => grouped[cat] && grouped[cat].length > 0);
         return filtered.map((cat, idx) => {
             // Apply saved card order; append any new cards to the end
+            // Exclude any cards moved to the catch-all zone
+            const available = grouped[cat].filter(s => !this._catchAllIds.includes(s.id));
             const saved = this._cardOrders[cat];
-            let ordered = grouped[cat];
+            let ordered = available;
             if (saved && saved.length > 0) {
                 ordered = [
-                    ...saved.map(id => grouped[cat].find(s => s.id === id)).filter(Boolean),
-                    ...grouped[cat].filter(s => !saved.includes(s.id))
+                    ...saved.map(id => available.find(s => s.id === id)).filter(Boolean),
+                    ...available.filter(s => !saved.includes(s.id))
                 ];
             }
             // Number cards 1…n left-to-right
