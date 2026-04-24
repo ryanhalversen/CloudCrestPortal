@@ -75,9 +75,16 @@
                                             <!-- Linked initiatives -->
                                             <template if:true={stage.hasLinkedInitiatives}>
                                                 <div class="stage-linked-bar">
-                                                    <template for:each={stage.linkedInitiatives} for:item="li">
-                                                        <span key={li.id} class={li.badgeClass}>{li.name}</span>
-                                                    </template>
+                                                    <div class="stage-linked-label">&#128196; Initiatives</div>
+                                                    <div class="stage-linked-items">
+                                                        <template for:each={stage.linkedInitiatives} for:item="li">
+                                                            <div key={li.id} class="init-link-row">
+                                                                <span class={li.dotClass}></span>
+                                                                <span class="init-link-name">{li.name}</span>
+                                                                <span class="init-link-status">{li.status}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
                                                 </div>
                                             </template>
 

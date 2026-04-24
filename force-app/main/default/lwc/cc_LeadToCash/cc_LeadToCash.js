@@ -3,6 +3,8 @@ import { NavigationMixin }               from 'lightning/navigation';
 import { refreshApex }                   from '@salesforce/apex';
 import getSopStages                      from '@salesforce/apex/CC_LeadToCashController.getSopStages';
 import getInitiativesWithActionItems     from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
+import updateSopUnassigned               from '@salesforce/apex/CC_LeadToCashController.updateSopUnassigned';
+import addLinkedInitiative               from '@salesforce/apex/CC_LeadToCashController.addLinkedInitiative';
 import NAME_FIELD     from '@salesforce/schema/SOP__c.Name';
 import CATEGORY_FIELD from '@salesforce/schema/SOP__c.Category__c';
 import STATUS_FIELD   from '@salesforce/schema/SOP__c.Status__c';
@@ -34,6 +36,17 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         const { error, data } = result;
         if (data) {
             this._sops = data;
+            // Reinitialise persistent state from Salesforce on every wire result
+            this._catchAllIds = data
+                .filter(s => s.isUnassigned)
+                .map(s => s.id);
+            const sopInits = {};
+            for (const s of data) {
+                if (s.linkedInitiativeIds) {
+                    sopInits[s.id] = s.linkedInitiativeIds.split(',').filter(Boolean);
+                }
+            }
+            this._sopInitiatives = sopInits;
         } else if (error) {
             this._sops = [];
             console.error('CC_LeadToCash: error loading SOPs', error);
@@ -191,7 +204,10 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         event.preventDefault();
         const sopId = event.dataTransfer.getData('text/plain');
         if (sopId && !this._catchAllIds.includes(sopId)) {
-            this._catchAllIds = [...this._catchAllIds, sopId];
+            this._catchAllIds = [...this._catchAllIds, sopId]; // optimistic
+            updateSopUnassigned({ sopId, isUnassigned: true })
+                .then(() => refreshApex(this._wiredSopsResult))
+                .catch(err => console.error('CC_LeadToCash: updateSopUnassigned failed', err));
         }
         this._isDragOverCatchAll = false;
     }
@@ -226,10 +242,14 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
         event.preventDefault();
         event.currentTarget.classList.remove('sop-drop-target');
         if (this._dragType !== 'initiative' || !this._dragInitiativeId) return;
-        const sopId   = event.currentTarget.dataset.id;
-        const existing = this._sopInitiatives[sopId] || [];
-        if (!existing.includes(this._dragInitiativeId)) {
-            this._sopInitiatives = { ...this._sopInitiatives, [sopId]: [...existing, this._dragInitiativeId] };
+        const sopId       = event.currentTarget.dataset.id;
+        const initiativeId = this._dragInitiativeId;
+        const existing    = this._sopInitiatives[sopId] || [];
+        if (!existing.includes(initiativeId)) {
+            this._sopInitiatives = { ...this._sopInitiatives, [sopId]: [...existing, initiativeId] }; // optimistic
+            addLinkedInitiative({ sopId, initiativeId })
+                .then(() => refreshApex(this._wiredSopsResult))
+                .catch(err => console.error('CC_LeadToCash: addLinkedInitiative failed', err));
         }
         this._dragType         = null;
         this._dragInitiativeId = null;
@@ -267,9 +287,10 @@ export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
             .map(initId => (this._initiatives || []).find(i => i.id === initId))
             .filter(Boolean)
             .map(init => ({
-                id:        init.id,
-                name:      init.name,
-                badgeClass: 'init-link-badge ' + this._statusClass(init.status)
+                id:      init.id,
+                name:    init.name,
+                status:  init.status || '',
+                dotClass: 'init-link-dot ' + this._statusClass(init.status)
             }));
         return { linkedInitiatives: linked, hasLinkedInitiatives: linked.length > 0 };
     }
