@@ -1,4 +1,5 @@
 import { LightningElement, wire, track }  from 'lwc';
+import { NavigationMixin }               from 'lightning/navigation';
 import { refreshApex }                   from '@salesforce/apex';
 import getSopStages                      from '@salesforce/apex/CC_LeadToCashController.getSopStages';
 import getInitiativesWithActionItems     from '@salesforce/apex/CC_LeadToCashController.getInitiativesWithActionItems';
@@ -19,7 +20,7 @@ const COLUMN_CONFIG = {
     'Other':                    { label: 'Other',                    css: 'group-label group-label-other',    funnelStyle: 'width:34%',  bandClass: 'funnel-band funnel-band-other',     connectorArrowClass: 'funnel-arrow funnel-arrow-other' }
 };
 
-export default class Cc_LeadToCash extends LightningElement {
+export default class Cc_LeadToCash extends NavigationMixin(LightningElement) {
 
     // ── SOP Board ─────────────────────────────────────────────
     @track _sops = [];
@@ -155,8 +156,13 @@ export default class Cc_LeadToCash extends LightningElement {
     // ── Drag and Drop ─────────────────────────────────────────
     @track _catchAllIds        = [];
     @track _isDragOverCatchAll = false;
+    @track _sopInitiatives     = {}; // { sopId: [initiativeId, ...] }
+    _dragType                  = null; // 'sop' | 'initiative'
+    _dragInitiativeId          = null;
 
+    // SOP card drag (to catch-all)
     handleDragStart(event) {
+        this._dragType = 'sop';
         event.dataTransfer.setData('text/plain', event.currentTarget.dataset.id);
         event.dataTransfer.effectAllowed = 'move';
         event.currentTarget.classList.add('stage-dragging');
@@ -164,10 +170,12 @@ export default class Cc_LeadToCash extends LightningElement {
 
     handleDragEnd(event) {
         event.currentTarget.classList.remove('stage-dragging');
+        this._dragType           = null;
         this._isDragOverCatchAll = false;
     }
 
     handleCatchAllDragOver(event) {
+        if (this._dragType !== 'sop') return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
         if (!this._isDragOverCatchAll) this._isDragOverCatchAll = true;
@@ -186,6 +194,45 @@ export default class Cc_LeadToCash extends LightningElement {
             this._catchAllIds = [...this._catchAllIds, sopId];
         }
         this._isDragOverCatchAll = false;
+    }
+
+    // Initiative drag (to SOP card)
+    handleInitiativeDragStart(event) {
+        event.stopPropagation();
+        this._dragType        = 'initiative';
+        this._dragInitiativeId = event.currentTarget.dataset.id;
+        event.dataTransfer.effectAllowed = 'link';
+        event.currentTarget.classList.add('initiative-dragging');
+    }
+
+    handleInitiativeDragEnd(event) {
+        event.currentTarget.classList.remove('initiative-dragging');
+        this._dragType         = null;
+        this._dragInitiativeId = null;
+    }
+
+    handleSopDragOver(event) {
+        if (this._dragType !== 'initiative') return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'link';
+        event.currentTarget.classList.add('sop-drop-target');
+    }
+
+    handleSopDragLeave(event) {
+        event.currentTarget.classList.remove('sop-drop-target');
+    }
+
+    handleSopDrop(event) {
+        event.preventDefault();
+        event.currentTarget.classList.remove('sop-drop-target');
+        if (this._dragType !== 'initiative' || !this._dragInitiativeId) return;
+        const sopId   = event.currentTarget.dataset.id;
+        const existing = this._sopInitiatives[sopId] || [];
+        if (!existing.includes(this._dragInitiativeId)) {
+            this._sopInitiatives = { ...this._sopInitiatives, [sopId]: [...existing, this._dragInitiativeId] };
+        }
+        this._dragType         = null;
+        this._dragInitiativeId = null;
     }
 
     get catchAllZoneClass() {
@@ -207,10 +254,24 @@ export default class Cc_LeadToCash extends LightningElement {
                     ...this._processSop(sop, cat),
                     num:         String(i + 1),
                     isFirstCard: i === 0,
-                    isLastCard:  i === n - 1
+                    isLastCard:  i === n - 1,
+                    ...this._linkedInitiativesFor(id)
                 };
             })
             .filter(Boolean);
+    }
+
+    _linkedInitiativesFor(sopId) {
+        const ids = this._sopInitiatives[sopId] || [];
+        const linked = ids
+            .map(initId => (this._initiatives || []).find(i => i.id === initId))
+            .filter(Boolean)
+            .map(init => ({
+                id:        init.id,
+                name:      init.name,
+                badgeClass: 'init-link-badge ' + this._statusClass(init.status)
+            }));
+        return { linkedInitiatives: linked, hasLinkedInitiatives: linked.length > 0 };
     }
 
     // ── Board Grouping ────────────────────────────────────────
@@ -235,12 +296,13 @@ export default class Cc_LeadToCash extends LightningElement {
                     ...available.filter(s => !saved.includes(s.id))
                 ];
             }
-            // Number cards 1…n left-to-right
+            // Number cards 1…n left-to-right; attach linked initiatives
             const stages = ordered.map((s, i) => ({
                 ...s,
-                num:         String(i + 1),
-                isFirstCard: i === 0,
-                isLastCard:  i === ordered.length - 1
+                num:                  String(i + 1),
+                isFirstCard:          i === 0,
+                isLastCard:           i === ordered.length - 1,
+                ...this._linkedInitiativesFor(s.id)
             }));
             return {
                 id:                  `grp-${cat}`,
@@ -279,7 +341,8 @@ export default class Cc_LeadToCash extends LightningElement {
     }
 
     // ── Initiatives Panel ─────────────────────────────────────
-    @track _initiatives = [];
+    @track _initiatives      = [];
+    @track _initiativeFilter = 'All';
 
     @wire(getInitiativesWithActionItems)
     wiredInitiatives({ error, data }) {
@@ -291,26 +354,59 @@ export default class Cc_LeadToCash extends LightningElement {
         }
     }
 
+    get initiativeFilters() {
+        return ['All', 'In Progress', 'On Hold', 'Completed'].map(v => ({
+            label:    v,
+            value:    v,
+            btnClass: 'filter-btn' + (this._initiativeFilter === v ? ' filter-btn-active' : '')
+        }));
+    }
+
+    handleFilterClick(event) {
+        this._initiativeFilter = event.currentTarget.dataset.filter;
+    }
+
+    handleInitiativeClick(event) {
+        event.stopPropagation();
+        this[NavigationMixin.Navigate]({
+            type:       'standard__recordPage',
+            attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }
+        });
+    }
+
     get hasInitiatives() {
-        return this._initiatives && this._initiatives.length > 0;
+        return this.processedInitiatives.length > 0;
     }
 
     get initiativeCount() {
-        return this._initiatives ? this._initiatives.length : 0;
+        const filtered = this.processedInitiatives.length;
+        const total    = this._initiatives ? this._initiatives.length : 0;
+        return this._initiativeFilter === 'All' ? total : `${filtered}/${total}`;
     }
 
     get processedInitiatives() {
-        return (this._initiatives || []).map((init, idx) => {
+        const f   = this._initiativeFilter;
+        let list  = this._initiatives || [];
+        if (f !== 'All') {
+            list = list.filter(init => {
+                const s = (init.status || '').toLowerCase();
+                if (f === 'In Progress') return s.includes('progress') || s.includes('active');
+                if (f === 'On Hold')     return s.includes('hold')     || s.includes('block');
+                if (f === 'Completed')   return s.includes('complet');
+                return true;
+            });
+        }
+        return list.map((init, idx) => {
             const meta = [init.category, init.quarter].filter(Boolean).join(' · ');
             return {
                 ...init,
                 meta,
                 statusBadgeClass: 'init-status-badge ' + this._statusClass(init.status),
-                hasActionItems: init.actionItems && init.actionItems.length > 0,
+                hasActionItems:   init.actionItems && init.actionItems.length > 0,
                 actionItems: (init.actionItems || []).map((ai, i) => ({
                     ...ai,
-                    rowId:    `${idx}-ai-${i}`,
-                    dotClass: 'ai-dot ' + this._statusClass(ai.status),
+                    rowId:     `${idx}-ai-${i}`,
+                    dotClass:  'ai-dot ' + this._statusClass(ai.status),
                     nameClass: 'ai-name' + (this._isComplete(ai.status) ? ' ai-name-done' : '')
                 }))
             };

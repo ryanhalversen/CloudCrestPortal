@@ -33,7 +33,10 @@
                                              data-category={stage.category}
                                              onclick={handleCardClick}
                                              ondragstart={handleDragStart}
-                                             ondragend={handleDragEnd}>
+                                             ondragend={handleDragEnd}
+                                             ondragover={handleSopDragOver}
+                                             ondragleave={handleSopDragLeave}
+                                             ondrop={handleSopDrop}>
 
                                             <!-- Stage Header -->
                                             <div class="stage-header">
@@ -66,6 +69,15 @@
                                             <template if:true={stage.hasSummary}>
                                                 <div class="stage-body">
                                                     <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
+                                                </div>
+                                            </template>
+
+                                            <!-- Linked initiatives -->
+                                            <template if:true={stage.hasLinkedInitiatives}>
+                                                <div class="stage-linked-bar">
+                                                    <template for:each={stage.linkedInitiatives} for:item="li">
+                                                        <span key={li.id} class={li.badgeClass}>{li.name}</span>
+                                                    </template>
                                                 </div>
                                             </template>
 
@@ -105,7 +117,10 @@
                                      data-category={stage.category}
                                      onclick={handleCardClick}
                                      ondragstart={handleDragStart}
-                                     ondragend={handleDragEnd}>
+                                     ondragend={handleDragEnd}
+                                     ondragover={handleSopDragOver}
+                                     ondragleave={handleSopDragLeave}
+                                     ondrop={handleSopDrop}>
                                     <div class="stage-header">
                                         <div class="stage-title-row">
                                             <span class="stage-number stage-number-unassigned">{stage.num}</span>
@@ -136,6 +151,13 @@
                                             <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
                                         </div>
                                     </template>
+                                    <template if:true={stage.hasLinkedInitiatives}>
+                                        <div class="stage-linked-bar">
+                                            <template for:each={stage.linkedInitiatives} for:item="li">
+                                                <span key={li.id} class={li.badgeClass}>{li.name}</span>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </template>
@@ -154,12 +176,29 @@
                 <span class="panel-count">{initiativeCount}</span>
             </div>
 
+            <!-- Status filter bar -->
+            <div class="filter-bar">
+                <template for:each={initiativeFilters} for:item="f">
+                    <button key={f.value}
+                            class={f.btnClass}
+                            data-filter={f.value}
+                            onclick={handleFilterClick}>{f.label}</button>
+                </template>
+            </div>
+
             <div class="panel-body">
                 <template if:true={hasInitiatives}>
                     <template for:each={processedInitiatives} for:item="initiative">
-                        <div key={initiative.id} class="initiative-card">
+                        <div key={initiative.id}
+                             class="initiative-card"
+                             draggable="true"
+                             data-id={initiative.id}
+                             ondragstart={handleInitiativeDragStart}
+                             ondragend={handleInitiativeDragEnd}>
                             <div class="initiative-top">
-                                <span class="initiative-name">{initiative.name}</span>
+                                <button class="initiative-name-link"
+                                        data-id={initiative.id}
+                                        onclick={handleInitiativeClick}>{initiative.name}</button>
                                 <template if:true={initiative.status}>
                                     <span class={initiative.statusBadgeClass}>{initiative.status}</span>
                                 </template>
