@@ -106,27 +106,33 @@ export default class Cc_LeadToCash extends LightningElement {
         refreshApex(this._wiredSopsResult);
     }
 
-    // ── Row Ordering ──────────────────────────────────────────
-    @track _categoryOrder = null; // null = use COLUMN_ORDER default
+    // ── Card Ordering (per row) ───────────────────────────────
+    @track _cardOrders = {}; // { category: [id, id, ...] }
 
-    handleMoveUp(event) {
+    handleMoveLeft(event) {
         event.stopPropagation();
-        const cat    = event.currentTarget.dataset.category;
-        const order  = this.stageGroups.map(g => g.category);
-        const idx    = order.indexOf(cat);
+        const sopId = event.currentTarget.dataset.id;
+        const cat   = event.currentTarget.dataset.category;
+        const group = this.stageGroups.find(g => g.category === cat);
+        if (!group) return;
+        const ids = group.stages.map(s => s.id);
+        const idx = ids.indexOf(sopId);
         if (idx <= 0) return;
-        [order[idx - 1], order[idx]] = [order[idx], order[idx - 1]];
-        this._categoryOrder = order;
+        [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
+        this._cardOrders = { ...this._cardOrders, [cat]: ids };
     }
 
-    handleMoveDown(event) {
+    handleMoveRight(event) {
         event.stopPropagation();
-        const cat    = event.currentTarget.dataset.category;
-        const order  = this.stageGroups.map(g => g.category);
-        const idx    = order.indexOf(cat);
-        if (idx >= order.length - 1) return;
-        [order[idx], order[idx + 1]] = [order[idx + 1], order[idx]];
-        this._categoryOrder = order;
+        const sopId = event.currentTarget.dataset.id;
+        const cat   = event.currentTarget.dataset.category;
+        const group = this.stageGroups.find(g => g.category === cat);
+        if (!group) return;
+        const ids = group.stages.map(s => s.id);
+        const idx = ids.indexOf(sopId);
+        if (idx >= ids.length - 1) return;
+        [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+        this._cardOrders = { ...this._cardOrders, [cat]: ids };
     }
 
     // ── Board Grouping ────────────────────────────────────────
@@ -138,15 +144,24 @@ export default class Cc_LeadToCash extends LightningElement {
             grouped[cat].push(this._processSop(sop, cat));
         }
 
-        // Merge user order with default, appending any newly-seen categories
-        const baseOrder = this._categoryOrder
-            ? [...this._categoryOrder, ...COLUMN_ORDER.filter(c => !this._categoryOrder.includes(c))]
-            : COLUMN_ORDER;
-
-        const filtered = baseOrder.filter(cat => grouped[cat] && grouped[cat].length > 0);
+        const filtered = COLUMN_ORDER.filter(cat => grouped[cat] && grouped[cat].length > 0);
         return filtered.map((cat, idx) => {
-            // Number cards 1…n left-to-right within each row
-            const stages = grouped[cat].map((s, i) => ({ ...s, num: String(i + 1) }));
+            // Apply saved card order; append any new cards to the end
+            const saved = this._cardOrders[cat];
+            let ordered = grouped[cat];
+            if (saved && saved.length > 0) {
+                ordered = [
+                    ...saved.map(id => grouped[cat].find(s => s.id === id)).filter(Boolean),
+                    ...grouped[cat].filter(s => !saved.includes(s.id))
+                ];
+            }
+            // Number cards 1…n left-to-right
+            const stages = ordered.map((s, i) => ({
+                ...s,
+                num:         String(i + 1),
+                isFirstCard: i === 0,
+                isLastCard:  i === ordered.length - 1
+            }));
             return {
                 id:                  `grp-${cat}`,
                 label:               COLUMN_CONFIG[cat].label,
@@ -155,8 +170,6 @@ export default class Cc_LeadToCash extends LightningElement {
                 bandClass:           COLUMN_CONFIG[cat].bandClass,
                 connectorArrowClass: COLUMN_CONFIG[cat].connectorArrowClass,
                 hasConnector:        idx < filtered.length - 1,
-                isFirst:             idx === 0,
-                isLast:              idx === filtered.length - 1,
                 category:            cat,
                 stages
             };

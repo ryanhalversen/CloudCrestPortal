@@ -14,18 +14,6 @@
 
                         <div class={group.bandClass} style={group.funnelStyle}>
                             <div class="funnel-band-header">
-                                <div class="reorder-btns">
-                                    <button class="reorder-btn"
-                                            data-category={group.category}
-                                            onclick={handleMoveUp}
-                                            disabled={group.isFirst}
-                                            title="Move up">&#9650;</button>
-                                    <button class="reorder-btn"
-                                            data-category={group.category}
-                                            onclick={handleMoveDown}
-                                            disabled={group.isLast}
-                                            title="Move down">&#9660;</button>
-                                </div>
                                 <div class={group.labelClass}>{group.label}</div>
                                 <button class="add-sop-btn"
                                         data-category={group.category}
@@ -48,6 +36,20 @@
                                                 <div class="stage-title-row">
                                                     <span class="stage-number">{stage.num}</span>
                                                     <span class="stage-name">{stage.title}</span>
+                                                </div>
+                                                <div class="card-reorder-btns">
+                                                    <button class="card-move-btn"
+                                                            data-id={stage.id}
+                                                            data-category={stage.category}
+                                                            disabled={stage.isFirstCard}
+                                                            onclick={handleMoveLeft}
+                                                            title="Move left">&#9664;</button>
+                                                    <button class="card-move-btn"
+                                                            data-id={stage.id}
+                                                            data-category={stage.category}
+                                                            disabled={stage.isLastCard}
+                                                            onclick={handleMoveRight}
+                                                            title="Move right">&#9654;</button>
                                                 </div>
                                                 <button class="edit-btn"
                                                         data-id={stage.id}

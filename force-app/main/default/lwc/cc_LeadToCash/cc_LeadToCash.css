@@ -89,22 +89,21 @@
     padding: 0;
 }
 
-/* ── Reorder Buttons ───────────────────────────────────────── */
-.reorder-btns {
+/* ── Card Reorder Buttons (◀ ▶ per card) ──────────────────── */
+.card-reorder-btns {
     display: flex;
-    flex-direction: column;
     gap: 2px;
     flex-shrink: 0;
 }
 
-.reorder-btn {
+.card-move-btn {
     width: 1.25rem;
-    height: 0.9375rem;
+    height: 1.5rem;
     border: 1px solid #2a2a2a;
     border-radius: 0.2rem;
     background: transparent;
     color: #555555;
-    font-size: 0.45rem;
+    font-size: 0.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -114,13 +113,13 @@
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.reorder-btn:hover:not([disabled]) {
+.card-move-btn:hover:not([disabled]) {
     color: #e2e8f0;
     border-color: #555555;
     background: rgba(255, 255, 255, 0.06);
 }
 
-.reorder-btn[disabled] {
+.card-move-btn[disabled] {
     opacity: 0.2;
     cursor: default;
 }
