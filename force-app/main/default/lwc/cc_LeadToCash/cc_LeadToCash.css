@@ -36,27 +36,83 @@
     margin: 0;
 }
 
-/* ── Horizontal Scroll ─────────────────────────────────────── */
-.board-scroll-container {
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
+/* ── Funnel Layout ─────────────────────────────────────────── */
+.board-funnel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0;
 }
 
-.board-columns {
+.funnel-tier-outer {
     display: flex;
-    gap: 1rem;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* ── Funnel Band (each tier) ───────────────────────────────── */
+.funnel-band {
+    /* width set via inline style per tier */
+    background: #131929;
+    border: 1px solid #1e2d45;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border-top-width: 2px;
+}
+
+.funnel-band-marketing { border-top-color: #fbbf24; }
+.funnel-band-sales     { border-top-color: #4ade80; }
+.funnel-band-delivery  { border-top-color: #60a5fa; }
+.funnel-band-finance   { border-top-color: #a78bfa; }
+.funnel-band-other     { border-top-color: #94a3b8; }
+
+.funnel-band-header {
+    background: #0d1526;
+    border-bottom: 1px solid #1e2d45;
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.funnel-band-scroll {
+    overflow-x: auto;
+    padding: 0.75rem;
+}
+
+.funnel-band-cards {
+    display: flex;
+    gap: 0.75rem;
     min-width: max-content;
 }
 
-/* ── Stage Group (vertical stack) ─────────────────────────── */
-.stage-group {
+/* ── Funnel Connector (arrow between tiers) ────────────────── */
+.funnel-connector {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
-    flex-shrink: 0;
-    width: 260px;
+    align-items: center;
+    padding: 0.125rem 0;
 }
+
+.funnel-stem {
+    width: 2px;
+    height: 0.625rem;
+    background: #1e2d45;
+}
+
+.funnel-arrow {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+}
+
+.funnel-arrow-marketing { border-top: 7px solid rgba(251, 191,  36, 0.55); }
+.funnel-arrow-sales     { border-top: 7px solid rgba( 74, 222, 128, 0.55); }
+.funnel-arrow-delivery  { border-top: 7px solid rgba( 96, 165, 250, 0.55); }
+.funnel-arrow-finance   { border-top: 7px solid rgba(167, 139, 250, 0.55); }
+.funnel-arrow-other     { border-top: 7px solid rgba(148, 163, 184, 0.55); }
 
 /* ── Group Labels ──────────────────────────────────────────── */
 .group-label {
@@ -96,7 +152,8 @@
 
 /* ── Stage Column ──────────────────────────────────────────── */
 .stage-column {
-    width: 100%;
+    width: 240px;
+    flex-shrink: 0;
     background: #131929;
     border-radius: 0.5rem;
     border: 1px solid #1e2d45;

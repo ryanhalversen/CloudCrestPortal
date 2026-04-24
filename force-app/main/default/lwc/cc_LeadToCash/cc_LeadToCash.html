@@ -8,43 +8,57 @@
                 <p class="board-subtitle">Cloudcraft &mdash; Process, Ownership &amp; Artifacts</p>
             </div>
 
-            <div class="board-scroll-container">
-                <div class="board-columns">
-                    <template for:each={stageGroups} for:item="group">
-                        <div key={group.id} class="stage-group">
-                            <div class={group.labelClass}>{group.label}</div>
+            <div class="board-funnel">
+                <template for:each={stageGroups} for:item="group">
+                    <div key={group.id} class="funnel-tier-outer">
 
-                            <template for:each={group.stages} for:item="stage">
-                                <div key={stage.id}
-                                     class="stage-column"
-                                     data-id={stage.id}
-                                     onclick={handleCardClick}>
+                        <div class={group.bandClass} style={group.funnelStyle}>
+                            <div class="funnel-band-header">
+                                <div class={group.labelClass}>{group.label}</div>
+                            </div>
+                            <div class="funnel-band-scroll">
+                                <div class="funnel-band-cards">
+                                    <template for:each={group.stages} for:item="stage">
+                                        <div key={stage.id}
+                                             class="stage-column"
+                                             data-id={stage.id}
+                                             onclick={handleCardClick}>
 
-                                    <!-- Stage Header -->
-                                    <div class="stage-header">
-                                        <div class="stage-title-row">
-                                            <span class="stage-number">{stage.num}</span>
-                                            <span class="stage-name">{stage.title}</span>
-                                        </div>
-                                        <button class="edit-btn"
-                                                data-id={stage.id}
-                                                onclick={handleEditClick}
-                                                title="Edit SOP">
-                                        </button>
-                                    </div>
+                                            <!-- Stage Header -->
+                                            <div class="stage-header">
+                                                <div class="stage-title-row">
+                                                    <span class="stage-number">{stage.num}</span>
+                                                    <span class="stage-name">{stage.title}</span>
+                                                </div>
+                                                <button class="edit-btn"
+                                                        data-id={stage.id}
+                                                        onclick={handleEditClick}
+                                                        title="Edit SOP">
+                                                </button>
+                                            </div>
 
-                                    <!-- Summary only on card -->
-                                    <template if:true={stage.hasSummary}>
-                                        <div class="stage-body">
-                                            <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
+                                            <!-- Summary only on card -->
+                                            <template if:true={stage.hasSummary}>
+                                                <div class="stage-body">
+                                                    <c-cc-sop-html html={stage.summary}></c-cc-sop-html>
+                                                </div>
+                                            </template>
+
                                         </div>
                                     </template>
-
                                 </div>
-                            </template>
+                            </div>
                         </div>
-                    </template>
-                </div>
+
+                        <template if:true={group.hasConnector}>
+                            <div class="funnel-connector">
+                                <div class="funnel-stem"></div>
+                                <div class={group.connectorArrowClass}></div>
+                            </div>
+                        </template>
+
+                    </div>
+                </template>
             </div>
         </div>
 

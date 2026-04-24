@@ -12,11 +12,11 @@ import SUMMARY_FIELD  from '@salesforce/schema/SOP__c.Summary__c';
 const COLUMN_ORDER = ['Marketing & Partnerships', 'Sales', 'Delivery', 'Finance', 'Other'];
 
 const COLUMN_CONFIG = {
-    'Marketing & Partnerships': { label: 'Partnerships & Marketing', css: 'group-label group-label-marketing' },
-    'Sales':                    { label: 'Sales',                    css: 'group-label group-label-sales' },
-    'Delivery':                 { label: 'Delivery',                 css: 'group-label group-label-delivery' },
-    'Finance':                  { label: 'Finance',                  css: 'group-label group-label-finance' },
-    'Other':                    { label: 'Other',                    css: 'group-label group-label-other' }
+    'Marketing & Partnerships': { label: 'Partnerships & Marketing', css: 'group-label group-label-marketing', funnelStyle: 'width:100%', bandClass: 'funnel-band funnel-band-marketing', connectorArrowClass: 'funnel-arrow funnel-arrow-marketing' },
+    'Sales':                    { label: 'Sales',                    css: 'group-label group-label-sales',    funnelStyle: 'width:82%',  bandClass: 'funnel-band funnel-band-sales',     connectorArrowClass: 'funnel-arrow funnel-arrow-sales' },
+    'Delivery':                 { label: 'Delivery',                 css: 'group-label group-label-delivery', funnelStyle: 'width:65%',  bandClass: 'funnel-band funnel-band-delivery',  connectorArrowClass: 'funnel-arrow funnel-arrow-delivery' },
+    'Finance':                  { label: 'Finance',                  css: 'group-label group-label-finance',  funnelStyle: 'width:48%',  bandClass: 'funnel-band funnel-band-finance',   connectorArrowClass: 'funnel-arrow funnel-arrow-finance' },
+    'Other':                    { label: 'Other',                    css: 'group-label group-label-other',    funnelStyle: 'width:34%',  bandClass: 'funnel-band funnel-band-other',     connectorArrowClass: 'funnel-arrow funnel-arrow-other' }
 };
 
 export default class Cc_LeadToCash extends LightningElement {
@@ -92,14 +92,17 @@ export default class Cc_LeadToCash extends LightningElement {
             grouped[cat].push(this._processSop(sop, cat));
         }
 
-        return COLUMN_ORDER
-            .filter(cat => grouped[cat] && grouped[cat].length > 0)
-            .map(cat => ({
-                id:         `grp-${cat}`,
-                label:      COLUMN_CONFIG[cat].label,
-                labelClass: COLUMN_CONFIG[cat].css,
-                stages:     grouped[cat]
-            }));
+        const filtered = COLUMN_ORDER.filter(cat => grouped[cat] && grouped[cat].length > 0);
+        return filtered.map((cat, idx) => ({
+            id:                  `grp-${cat}`,
+            label:               COLUMN_CONFIG[cat].label,
+            labelClass:          COLUMN_CONFIG[cat].css,
+            funnelStyle:         COLUMN_CONFIG[cat].funnelStyle,
+            bandClass:           COLUMN_CONFIG[cat].bandClass,
+            connectorArrowClass: COLUMN_CONFIG[cat].connectorArrowClass,
+            hasConnector:        idx < filtered.length - 1,
+            stages:              grouped[cat]
+        }));
     }
 
     _processSop(sop, cat) {
