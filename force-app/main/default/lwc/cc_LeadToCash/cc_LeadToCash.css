@@ -498,10 +498,16 @@
 }
 
 /* ── Stage Linked Initiatives Bar ─────────────────────────── */
+@keyframes linked-alert-pulse {
+    0%, 100% { background: rgba(239, 68, 68, 0.06); border-top-color: rgba(239, 68, 68, 0.25); }
+    50%       { background: rgba(239, 68, 68, 0.18); border-top-color: rgba(239, 68, 68, 0.7); }
+}
+
 .stage-linked-bar {
     padding: 0.5rem 0.625rem 0.625rem;
-    border-top: 2px solid #1c1c1c;
-    background: rgba(96, 165, 250, 0.03);
+    border-top: 2px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.06);
+    animation: linked-alert-pulse 1.6s ease-in-out infinite;
 }
 
 .stage-linked-label {
