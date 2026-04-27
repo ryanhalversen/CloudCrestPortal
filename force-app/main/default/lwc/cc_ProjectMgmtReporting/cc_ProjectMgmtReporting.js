@@ -49,21 +49,15 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
 
         return {
             accountName:        p.accountName,
-            ownerName:          p.ownerName,
-            contractType:       p.contractType,
-            deliveryType:       p.deliveryType,
-            paceStatus:         p.paceStatus,
             startDateFormatted: this._formatDate(p.startDate),
             endDateFormatted:   this._formatDate(p.endDate),
             hasDates:           !!(p.startDate || p.endDate),
-            hasMeta:            !!(p.ownerName || p.contractType || p.deliveryType || p.paceStatus),
             contractedDisplay: this._fmt(contracted),
             deliveredDisplay:  this._fmt(delivered),
             remainingDisplay:  this._fmt(remaining),
             pct,
             barStyle:          `width:${pct}%`,
             barColorClass:     'progress-fill ' + this._barColorClass(pct),
-            paceBadgeClass:    'pace-badge ' + this._paceClass(p.paceStatus),
             epics,
             hasEpics:          epics.length > 0,
             epicCount:         epics.length,
@@ -92,12 +86,4 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         return 'fill-amber';
     }
 
-    _paceClass(pace) {
-        const p = (pace || '').toLowerCase();
-        if (p.includes('ahead'))   return 'pace-green';
-        if (p.includes('on pace')) return 'pace-blue';
-        if (p.includes('behind'))  return 'pace-amber';
-        if (p.includes('houston')) return 'pace-red';
-        return 'pace-none';
-    }
 }

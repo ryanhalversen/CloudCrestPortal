@@ -64,24 +64,6 @@
                 <span class="progress-label">{project.pct}% delivered</span>
             </div>
 
-            <!-- ── Meta Row ───────────────────────────────────── -->
-            <template if:true={project.hasMeta}>
-                <div class="meta-row">
-                    <template if:true={project.paceStatus}>
-                        <span class={project.paceBadgeClass}>{project.paceStatus}</span>
-                    </template>
-                    <template if:true={project.ownerName}>
-                        <span class="meta-chip">&#128100;&nbsp;{project.ownerName}</span>
-                    </template>
-                    <template if:true={project.contractType}>
-                        <span class="meta-tag meta-tag-purple">{project.contractType}</span>
-                    </template>
-                    <template if:true={project.deliveryType}>
-                        <span class="meta-tag meta-tag-gray">{project.deliveryType}</span>
-                    </template>
-                </div>
-            </template>
-
             <!-- ── Epic Cards ─────────────────────────────────── -->
             <template if:true={project.hasEpics}>
                 <div class="epics-hdr">
