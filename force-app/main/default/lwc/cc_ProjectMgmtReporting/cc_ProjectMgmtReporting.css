@@ -116,6 +116,20 @@
     color: #16a34a;
 }
 
+.delta-chip {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-top: 0.15rem;
+    display: inline-block;
+}
+
+.delta-chip.delta-green { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.delta-chip.delta-red   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
 .date-divider {
     width: 1px;
     height: 2rem;

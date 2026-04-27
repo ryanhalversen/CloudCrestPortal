@@ -37,6 +37,9 @@
                     <div class="date-block date-block-right">
                         <span class="date-label">On Time Hrs / Wk</span>
                         <span class="date-value date-value-green">{project.weeklyPaceDisplay}</span>
+                        <template if:true={project.weeklyPaceDelta}>
+                            <span class={project.weeklyPaceDelta.cssClass}>{project.weeklyPaceDelta.label}</span>
+                        </template>
                     </div>
                 </div>
             </template>

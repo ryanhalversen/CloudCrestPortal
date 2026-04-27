@@ -52,10 +52,11 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             startDateFormatted: this._formatDate(p.startDate),
             endDateFormatted:   this._formatDate(p.endDate),
             hasDates:           !!(p.startDate || p.endDate),
+            weeklyPaceDisplay:    this._fmt(Number(p.weeklyPaceEstimate)   || 0),
+            weeklyPaceDelta:      this._paceDelta(p.weeklyPaceEstimate, p.weeklyRetainedHours),
             contractedDisplay:    this._fmt(contracted),
             deliveredDisplay:     this._fmt(delivered),
             remainingDisplay:     this._fmt(remaining),
-            weeklyPaceDisplay:    this._fmt(Number(p.weeklyPaceEstimate) || 0),
             pct,
             barStyle:          `width:${pct}%`,
             barColorClass:     'progress-fill ' + this._barColorClass(pct),
@@ -79,6 +80,17 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         if (!h && h !== 0) return '—';
         const n = Number(h);
         return n % 1 === 0 ? `${n}h` : `${n.toFixed(1)}h`;
+    }
+
+    // Returns { label, cssClass } for the weekly pace delta chip
+    _paceDelta(onTimePace, retained) {
+        const need = Number(onTimePace) || 0;
+        const have = Number(retained)   || 0;
+        if (!have) return null;
+        const deltaPct = Math.round(((need - have) / have) * 100);
+        if (deltaPct === 0) return { label: 'On Pace',         cssClass: 'delta-chip delta-green' };
+        if (deltaPct > 0)   return { label: `+${deltaPct}% needed`, cssClass: 'delta-chip delta-red'   };
+        return              { label: `${deltaPct}% buffer`,    cssClass: 'delta-chip delta-green' };
     }
 
     _barColorClass(pct) {
