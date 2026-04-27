@@ -47,11 +47,6 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             barStyle:     `width:${Math.round((e.hours / maxHours) * 100)}%`
         }));
 
-        // ── Stories ───────────────────────────────────────────
-        const completed  = p.completedStories  || [];
-        const inProgress = p.inProgressStories || [];
-        const bl         = p.blockedStories    || [];
-
         return {
             accountName:        p.accountName,
             ownerName:          p.ownerName,
@@ -69,21 +64,10 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             barStyle:          `width:${pct}%`,
             barColorClass:     'progress-fill ' + this._barColorClass(pct),
             paceBadgeClass:    'pace-badge ' + this._paceClass(p.paceStatus),
-            // Epics
             epics,
             hasEpics:          epics.length > 0,
             epicCount:         epics.length,
-            totalEpicHrsDisplay: this._fmt(totalEpicHours),
-            // Stories
-            completedStories:  completed,
-            completedCount:    completed.length,
-            hasCompleted:      completed.length > 0,
-            inProgressStories: inProgress,
-            inProgressCount:   inProgress.length,
-            hasInProgress:     inProgress.length > 0,
-            blockedStories:    bl,
-            blockedCount:      bl.length,
-            hasBlocked:        bl.length > 0
+            totalEpicHrsDisplay: this._fmt(totalEpicHours)
         };
     }
 

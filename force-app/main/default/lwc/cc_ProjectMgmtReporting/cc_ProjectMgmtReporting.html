@@ -82,106 +82,30 @@
                 </div>
             </template>
 
-            <!-- ── Epics ─────────────────────────────────────── -->
+            <!-- ── Epic Cards ─────────────────────────────────── -->
             <template if:true={project.hasEpics}>
-                <div class="section-card">
-                    <div class="section-hdr">
-                        <span class="section-title">Epics</span>
-                        <span class="section-sub">{project.epicCount}&nbsp;epics &mdash; {project.totalEpicHrsDisplay}&nbsp;invested</span>
-                    </div>
-                    <div class="epic-list">
-                        <template for:each={project.epics} for:item="epic">
-                            <div key={epic.id} class="epic-row">
-                                <span class="epic-name">{epic.name}</span>
-                                <span class="epic-hours">{epic.hoursDisplay}</span>
-                                <span class="epic-pct">{epic.pctOfTotal}%</span>
-                                <div class="epic-bar-track">
-                                    <div class="epic-bar-fill" style={epic.barStyle}></div>
-                                </div>
+                <div class="epics-hdr">
+                    <span class="epics-hdr-title">Epics</span>
+                    <span class="epics-hdr-sub">{project.epicCount}&nbsp;epics &mdash; {project.totalEpicHrsDisplay}&nbsp;total invested</span>
+                </div>
+                <div class="epic-cards-grid">
+                    <template for:each={project.epics} for:item="epic">
+                        <div key={epic.id} class="epic-card">
+                            <div class="epic-card-hours">{epic.hoursDisplay}</div>
+                            <div class="epic-card-name">{epic.name}</div>
+                            <div class="epic-card-bar-track">
+                                <div class="epic-card-bar-fill" style={epic.barStyle}></div>
                             </div>
-                        </template>
-                    </div>
+                            <div class="epic-card-pct">{epic.pctOfTotal}% of total</div>
+                        </div>
+                    </template>
                 </div>
             </template>
 
-            <!-- ── Stories ───────────────────────────────────── -->
-            <div class="story-sections">
+            <template if:false={project.hasEpics}>
+                <div class="state-empty">No epics found for this project.</div>
+            </template>
 
-                <!-- Delivered -->
-                <template if:true={project.hasCompleted}>
-                    <div class="section-card section-card-green">
-                        <div class="section-hdr">
-                            <span class="dot dot-green"></span>
-                            <span class="section-title">Delivered</span>
-                            <span class="count-pill count-pill-green">{project.completedCount}</span>
-                        </div>
-                        <div class="story-list">
-                            <template for:each={project.completedStories} for:item="s">
-                                <div key={s.id} class="story-row">
-                                    <span class="check-icon">&#10003;</span>
-                                    <span class="story-subject">{s.subject}</span>
-                                    <template if:true={s.type}>
-                                        <span class="story-tag">{s.type}</span>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- In Progress -->
-                <template if:true={project.hasInProgress}>
-                    <div class="section-card section-card-blue">
-                        <div class="section-hdr">
-                            <span class="dot dot-blue"></span>
-                            <span class="section-title">In Progress</span>
-                            <span class="count-pill count-pill-blue">{project.inProgressCount}</span>
-                        </div>
-                        <div class="story-list">
-                            <template for:each={project.inProgressStories} for:item="s">
-                                <div key={s.id} class="story-row">
-                                    <span class="open-icon">&#9679;</span>
-                                    <span class="story-subject">{s.subject}</span>
-                                    <template if:true={s.type}>
-                                        <span class="story-tag">{s.type}</span>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Blocked -->
-                <template if:true={project.hasBlocked}>
-                    <div class="section-card section-card-red">
-                        <div class="section-hdr">
-                            <span class="dot dot-red"></span>
-                            <span class="section-title">Blocked</span>
-                            <span class="count-pill count-pill-red">{project.blockedCount}</span>
-                        </div>
-                        <div class="story-list">
-                            <template for:each={project.blockedStories} for:item="s">
-                                <div key={s.id} class="story-row">
-                                    <span class="open-icon open-icon-red">&#9679;</span>
-                                    <span class="story-subject">{s.subject}</span>
-                                    <template if:true={s.type}>
-                                        <span class="story-tag">{s.type}</span>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <template if:false={project.hasCompleted}>
-                    <template if:false={project.hasInProgress}>
-                        <template if:false={project.hasBlocked}>
-                            <div class="state-empty">No stories found for this project.</div>
-                        </template>
-                    </template>
-                </template>
-
-            </div>
         </template>
 
     </div>
