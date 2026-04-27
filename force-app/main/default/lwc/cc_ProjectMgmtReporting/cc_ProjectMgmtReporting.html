@@ -96,6 +96,52 @@
                 <div class="state-empty">No epics found for this project.</div>
             </template>
 
+            <!-- ── Story Breakdown ───────────────────────────── -->
+            <template if:true={project.hasStories}>
+                <div class="breakdown-grid">
+
+                    <!-- By Type -->
+                    <div class="breakdown-card">
+                        <div class="breakdown-hdr">
+                            <span class="breakdown-title">By Type</span>
+                            <span class="breakdown-total">{project.totalStoryCount} stories</span>
+                        </div>
+                        <div class="breakdown-list">
+                            <template for:each={project.typeBreakdown} for:item="row">
+                                <div key={row.id} class="breakdown-row">
+                                    <span class="breakdown-name">{row.name}</span>
+                                    <div class="breakdown-bar-track">
+                                        <div class="breakdown-bar-fill breakdown-bar-blue" style={row.barStyle}></div>
+                                    </div>
+                                    <span class="breakdown-count">{row.count}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- By Priority -->
+                    <div class="breakdown-card">
+                        <div class="breakdown-hdr">
+                            <span class="breakdown-title">By Priority</span>
+                            <span class="breakdown-total">{project.totalStoryCount} stories</span>
+                        </div>
+                        <div class="breakdown-list">
+                            <template for:each={project.priorityBreakdown} for:item="row">
+                                <div key={row.id} class="breakdown-row breakdown-row-pri">
+                                    <span class={row.dotClass}></span>
+                                    <span class="breakdown-name">{row.name}</span>
+                                    <div class="breakdown-bar-track">
+                                        <div class="breakdown-bar-fill" style={row.barStyle}></div>
+                                    </div>
+                                    <span class="breakdown-count">{row.count}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                </div>
+            </template>
+
         </template>
 
     </div>

@@ -297,6 +297,110 @@
     letter-spacing: 0.03em;
 }
 
+/* ── Story Breakdown Grid ────────────────────────────────────── */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.625rem;
+}
+
+.breakdown-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.breakdown-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fafafa;
+}
+
+.breakdown-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #374151;
+    letter-spacing: 0.03em;
+}
+
+.breakdown-total {
+    font-size: 0.5625rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.breakdown-list {
+    padding: 0.375rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.breakdown-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.breakdown-row-pri {
+    grid-template-columns: 0.5rem 1fr 1fr auto;
+}
+
+.breakdown-name {
+    font-size: 0.75rem;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.breakdown-bar-track {
+    height: 5px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 30px;
+}
+
+.breakdown-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    min-width: 2px;
+    background: #2563eb;
+}
+
+.breakdown-bar-blue  { background: #2563eb; }
+
+.breakdown-count {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #64748b;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Priority dots */
+.pri-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #94a3b8;
+}
+
+.pri-dot-critical { background: #dc2626; }
+.pri-dot-high     { background: #d97706; }
+.pri-dot-medium   { background: #2563eb; }
+.pri-dot-low      { background: #94a3b8; }
+
 /* ── State messages ──────────────────────────────────────────── */
 .state-error {
     font-size: 0.8125rem;

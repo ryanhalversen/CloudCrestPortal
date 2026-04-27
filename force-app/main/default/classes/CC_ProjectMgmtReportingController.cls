@@ -150,6 +150,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         List<StoryWrapper> completed  = new List<StoryWrapper>();
         List<StoryWrapper> inProgress = new List<StoryWrapper>();
         List<StoryWrapper> blocked    = new List<StoryWrapper>();
+        List<StoryWrapper> allStories = new List<StoryWrapper>();
 
         for (Case c : [
             SELECT Id, Subject, Status, Type, Priority, IsClosed
@@ -159,10 +160,12 @@ public with sharing class CC_ProjectMgmtReportingController {
             LIMIT  500
         ]) {
             StoryWrapper sw = new StoryWrapper();
-            sw.id      = c.Id;
-            sw.subject = c.Subject;
-            sw.status  = c.Status;
-            sw.type    = c.Type;
+            sw.id       = c.Id;
+            sw.subject  = c.Subject;
+            sw.status   = c.Status;
+            sw.type     = c.Type;
+            sw.priority = c.Priority;
+            allStories.add(sw);
             String sl  = c.Status != null ? c.Status.toLowerCase() : '';
             if      (c.IsClosed)                                                      completed.add(sw);
             else if (sl.contains('block'))                                            blocked.add(sw);
@@ -195,6 +198,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         pw.completedStories       = completed;
         pw.inProgressStories      = inProgress;
         pw.blockedStories         = blocked;
+        pw.allStories             = allStories;
         return pw;
     }
 
@@ -218,6 +222,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         @AuraEnabled public List<StoryWrapper> completedStories;
         @AuraEnabled public List<StoryWrapper> inProgressStories;
         @AuraEnabled public List<StoryWrapper> blockedStories;
+        @AuraEnabled public List<StoryWrapper> allStories;
     }
 
     public class EpicWrapper {
@@ -257,5 +262,6 @@ public with sharing class CC_ProjectMgmtReportingController {
         @AuraEnabled public String subject;
         @AuraEnabled public String status;
         @AuraEnabled public String type;
+        @AuraEnabled public String priority;
     }
 }

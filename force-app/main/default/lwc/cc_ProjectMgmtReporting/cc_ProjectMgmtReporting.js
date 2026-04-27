@@ -47,6 +47,12 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             barStyle:     `width:${Math.round((e.hours / maxHours) * 100)}%`
         }));
 
+        // ── Story breakdowns ──────────────────────────────────
+        const allStories = p.allStories || [];
+        const typeBreakdown     = this._breakdown(allStories, s => s.type     || '—', null);
+        const priorityBreakdown = this._breakdown(allStories, s => s.priority || '—',
+            ['Critical', 'High', 'Medium', 'Low']);
+
         return {
             accountName:        p.accountName,
             startDateFormatted: this._formatDate(p.startDate),
@@ -63,7 +69,11 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             epics,
             hasEpics:          epics.length > 0,
             epicCount:         epics.length,
-            totalEpicHrsDisplay: this._fmt(totalEpicHours)
+            totalEpicHrsDisplay: this._fmt(totalEpicHours),
+            typeBreakdown,
+            priorityBreakdown,
+            totalStoryCount:   allStories.length,
+            hasStories:        allStories.length > 0
         };
     }
 
@@ -91,6 +101,33 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         if (deltaPct === 0) return { label: 'On Pace',         cssClass: 'delta-chip delta-green' };
         if (deltaPct > 0)   return { label: `+${deltaPct}% needed`, cssClass: 'delta-chip delta-red'   };
         return              { label: `${deltaPct}% buffer`,    cssClass: 'delta-chip delta-green' };
+    }
+
+    // Aggregate stories by a key, optionally sort by a fixed order array
+    _breakdown(stories, keyFn, order) {
+        const counts = {};
+        for (const s of stories) {
+            const k = keyFn(s);
+            counts[k] = (counts[k] || 0) + 1;
+        }
+        const maxCount = Math.max(...Object.values(counts), 1);
+        const rows = Object.entries(counts).map(([name, count]) => ({
+            id:        name,
+            name,
+            count,
+            barStyle:  `width:${Math.round((count / maxCount) * 100)}%`,
+            dotClass:  'pri-dot pri-dot-' + name.toLowerCase().replace(/\s+/g, '-')
+        }));
+        if (order) {
+            rows.sort((a, b) => {
+                const ai = order.indexOf(a.name);
+                const bi = order.indexOf(b.name);
+                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+            });
+        } else {
+            rows.sort((a, b) => b.count - a.count);
+        }
+        return rows;
     }
 
     _barColorClass(pct) {
