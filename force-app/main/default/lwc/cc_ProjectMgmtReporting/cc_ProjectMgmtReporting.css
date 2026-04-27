@@ -67,6 +67,55 @@
     color: #94a3b8;
 }
 
+/* ── Date Strip ──────────────────────────────────────────────── */
+.date-strip {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    gap: 1rem;
+}
+
+.date-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.date-block-right {
+    text-align: right;
+    align-items: flex-end;
+}
+
+.date-label {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.date-value {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.date-value-end {
+    color: #2563eb;
+}
+
+.date-arrow {
+    font-size: 1.25rem;
+    color: #cbd5e1;
+    flex-shrink: 0;
+}
+
 /* ── Progress Bar ────────────────────────────────────────────── */
 .progress-wrap {
     display: flex;

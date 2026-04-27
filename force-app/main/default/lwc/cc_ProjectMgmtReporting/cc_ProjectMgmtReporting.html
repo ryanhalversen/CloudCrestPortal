@@ -41,6 +41,21 @@
                 </div>
             </div>
 
+            <!-- ── Date Strip ────────────────────────────────── -->
+            <template if:true={project.hasDates}>
+                <div class="date-strip">
+                    <div class="date-block">
+                        <span class="date-label">Project Start</span>
+                        <span class="date-value">{project.startDateFormatted}</span>
+                    </div>
+                    <div class="date-arrow">&rarr;</div>
+                    <div class="date-block date-block-right">
+                        <span class="date-label">Target End</span>
+                        <span class="date-value date-value-end">{project.endDateFormatted}</span>
+                    </div>
+                </div>
+            </template>
+
             <!-- ── Progress Bar ───────────────────────────────── -->
             <div class="progress-wrap">
                 <div class="progress-track">
@@ -57,11 +72,6 @@
                     </template>
                     <template if:true={project.ownerName}>
                         <span class="meta-chip">&#128100;&nbsp;{project.ownerName}</span>
-                    </template>
-                    <template if:true={project.hasDates}>
-                        <span class="meta-chip">
-                            &#128197;&nbsp;{project.startDateStr}&nbsp;&rarr;&nbsp;{project.endDateStr}
-                        </span>
                     </template>
                     <template if:true={project.contractType}>
                         <span class="meta-tag meta-tag-purple">{project.contractType}</span>

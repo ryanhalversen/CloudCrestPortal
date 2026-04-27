@@ -53,16 +53,15 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         const bl         = p.blockedStories    || [];
 
         return {
-            accountName:       p.accountName,
-            ownerName:         p.ownerName,
-            contractType:      p.contractType,
-            deliveryType:      p.deliveryType,
-            paceStatus:        p.paceStatus,
-            startDateStr:      p.startDate || '',
-            endDateStr:        p.endDate   || '',
-            hasDates:          !!(p.startDate || p.endDate),
-            hasMeta:           !!(p.ownerName || p.contractType || p.deliveryType
-                                  || p.paceStatus || p.startDate || p.endDate),
+            accountName:        p.accountName,
+            ownerName:          p.ownerName,
+            contractType:       p.contractType,
+            deliveryType:       p.deliveryType,
+            paceStatus:         p.paceStatus,
+            startDateFormatted: this._formatDate(p.startDate),
+            endDateFormatted:   this._formatDate(p.endDate),
+            hasDates:           !!(p.startDate || p.endDate),
+            hasMeta:            !!(p.ownerName || p.contractType || p.deliveryType || p.paceStatus),
             contractedDisplay: this._fmt(contracted),
             deliveredDisplay:  this._fmt(delivered),
             remainingDisplay:  this._fmt(remaining),
@@ -89,6 +88,14 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     }
 
     // ── Helpers ───────────────────────────────────────────────
+    _formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+        });
+    }
+
     _fmt(h) {
         if (!h && h !== 0) return '—';
         const n = Number(h);
