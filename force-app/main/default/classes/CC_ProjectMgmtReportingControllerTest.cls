@@ -87,6 +87,32 @@ private class CC_ProjectMgmtReportingControllerTest {
     }
 
     @IsTest
+    static void testGetProjectReport() {
+        Sprint__c proj = [SELECT Id FROM Sprint__c WHERE Name = 'Test Project Alpha' LIMIT 1];
+
+        Test.startTest();
+        CC_ProjectMgmtReportingController.ProjectReportWrapper result =
+            CC_ProjectMgmtReportingController.getProjectReport(proj.Id);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals('Test Project Alpha', result.name);
+        System.assertEquals('In Progress', result.status);
+        System.assertNotEquals(null, result.completedStories,  'completedStories should not be null');
+        System.assertNotEquals(null, result.inProgressStories, 'inProgressStories should not be null');
+        System.assertNotEquals(null, result.blockedStories,    'blockedStories should not be null');
+    }
+
+    @IsTest
+    static void testGetProjectReport_nullId() {
+        Test.startTest();
+        CC_ProjectMgmtReportingController.ProjectReportWrapper result =
+            CC_ProjectMgmtReportingController.getProjectReport(null);
+        Test.stopTest();
+        System.assertEquals(null, result, 'Should return null for null projectId');
+    }
+
+    @IsTest
     static void testGetClientReportData_excludesCancelledSprints() {
         // Add a cancelled sprint — should not appear in results
         Account acc = [SELECT Id FROM Account LIMIT 1];

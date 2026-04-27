@@ -1,156 +1,154 @@
 <template>
     <div class="report-wrapper">
 
-        <!-- ── Header ────────────────────────────────────────────── -->
-        <div class="report-header">
-            <h2 class="report-title">Project Management Reporting</h2>
-            <p class="report-subtitle">Client delivery &mdash; time invested &amp; work completed</p>
-        </div>
+        <!-- ── Error state ───────────────────────────────────── -->
+        <template if:true={hasError}>
+            <div class="state-msg state-error">Unable to load project report.</div>
+        </template>
 
-        <!-- ── KPI Summary Bar ───────────────────────────────────── -->
-        <div class="kpi-bar">
-            <div class="kpi-card">
-                <div class="kpi-value">{totalClients}</div>
-                <div class="kpi-label">Clients</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{totalActiveProjects}</div>
-                <div class="kpi-label">Active Projects</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{totalContractedDisplay}</div>
-                <div class="kpi-label">Hours Contracted</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{totalDeliveredDisplay}</div>
-                <div class="kpi-label">Hours Delivered</div>
-            </div>
-            <div class="kpi-card kpi-card-highlight">
-                <div class="kpi-value kpi-value-pct">{overallPct}%</div>
-                <div class="kpi-label">Overall Delivered</div>
-            </div>
-        </div>
-
-        <!-- ── Status Filter ─────────────────────────────────────── -->
-        <div class="filter-bar">
-            <template for:each={statusFilters} for:item="f">
-                <button key={f.value}
-                        class={f.btnClass}
-                        data-filter={f.value}
-                        onclick={handleFilterClick}>{f.label}</button>
+        <!-- ── No data yet ───────────────────────────────────── -->
+        <template if:false={hasData}>
+            <template if:false={hasError}>
+                <div class="state-msg state-empty">No project data found.</div>
             </template>
-        </div>
+        </template>
 
-        <!-- ── Client List ───────────────────────────────────────── -->
-        <template if:true={hasClients}>
-            <div class="client-list">
-                <template for:each={processedClients} for:item="client">
-                    <div key={client.accountId} class="client-card">
+        <!-- ── Project report ────────────────────────────────── -->
+        <template if:true={hasData}>
 
-                        <!-- Client header row (click to expand/collapse) -->
-                        <div class="client-header"
-                             data-id={client.accountId}
-                             onclick={handleClientToggle}>
-                            <div class={client.chevronClass}></div>
-                            <span class="client-name">{client.accountName}</span>
-                            <span class="client-proj-count">{client.projectCount}&nbsp;project(s)</span>
-                            <div class="client-hours-group">
-                                <span class="client-hours-delivered">{client.deliveredDisplay}</span>
-                                <span class="client-hours-sep">/</span>
-                                <span class="client-hours-contracted">{client.contractedDisplay}</span>
-                                <span class="client-hours-pct">({client.pct}%)</span>
-                            </div>
-                            <div class="client-bar-wrap">
-                                <div class="client-bar-fill" style={client.barStyle}></div>
-                            </div>
-                        </div>
+            <!-- Account / client name -->
+            <template if:true={project.accountName}>
+                <div class="client-label">&#128203;&nbsp;{project.accountName}</div>
+            </template>
 
-                        <!-- Expanded project rows -->
-                        <template if:true={client.isExpanded}>
-                            <div class="project-list">
-                                <template for:each={client.projects} for:item="proj">
-                                    <div key={proj.id} class="project-row">
+            <!-- ── KPI Bar ────────────────────────────────────── -->
+            <div class="kpi-bar">
+                <div class="kpi-card">
+                    <div class="kpi-value">{project.contractedDisplay}</div>
+                    <div class="kpi-label">Contracted</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value kpi-value-delivered">{project.deliveredDisplay}</div>
+                    <div class="kpi-label">Delivered</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">{project.remainingDisplay}</div>
+                    <div class="kpi-label">Remaining</div>
+                </div>
+                <div class="kpi-card kpi-card-pct">
+                    <div class="kpi-value kpi-value-pct">{project.pct}%</div>
+                    <div class="kpi-label">Complete</div>
+                </div>
+            </div>
 
-                                        <!-- Row 1: name + badges + owner -->
-                                        <div class="proj-top">
-                                            <div class="proj-name-area">
-                                                <span class="proj-name">{proj.name}</span>
-                                                <span class={proj.statusBadgeClass}>{proj.status}</span>
-                                                <template if:true={proj.paceStatus}>
-                                                    <span class={proj.paceBadgeClass}>{proj.paceStatus}</span>
-                                                </template>
-                                            </div>
-                                            <div class="proj-meta-area">
-                                                <template if:true={proj.ownerName}>
-                                                    <span class="proj-owner">&#128100;&nbsp;{proj.ownerName}</span>
-                                                </template>
-                                                <template if:true={proj.contractType}>
-                                                    <span class="proj-contract-badge">{proj.contractType}</span>
-                                                </template>
-                                                <template if:true={proj.deliveryType}>
-                                                    <span class="proj-delivery-badge">{proj.deliveryType}</span>
-                                                </template>
-                                            </div>
-                                        </div>
+            <!-- ── Progress Bar ───────────────────────────────── -->
+            <div class="progress-section">
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill" style={project.barStyle}></div>
+                </div>
 
-                                        <!-- Row 2: hours progress bar -->
-                                        <div class="proj-hours-row">
-                                            <span class="proj-hours-label">Hours</span>
-                                            <span class="proj-hours-delivered">{proj.deliveredDisplay}</span>
-                                            <span class="proj-hours-sep">of</span>
-                                            <span class="proj-hours-contracted">{proj.contractedDisplay}</span>
-                                            <span class="proj-hours-pct">({proj.pct}%)</span>
-                                            <div class="proj-bar-wrap">
-                                                <div class={proj.barFillClass} style={proj.barStyle}></div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Row 3: timeline + story count -->
-                                        <div class="proj-footer-row">
-                                            <template if:true={proj.hasDates}>
-                                                <span class="proj-dates">
-                                                    &#128197;&nbsp;{proj.startDateStr}&nbsp;&rarr;&nbsp;{proj.endDateStr}
-                                                </span>
-                                            </template>
-                                            <span class="proj-story-count">
-                                                &#10003;&nbsp;{proj.completedStoryCount}&nbsp;stories delivered
-                                            </span>
-                                        </div>
-
-                                        <!-- Delivered stories list -->
-                                        <template if:true={proj.hasStories}>
-                                            <div class="story-list">
-                                                <div class="story-list-header">Delivered Stories</div>
-                                                <template for:each={proj.completedStories} for:item="story">
-                                                    <div key={story.id} class="story-row">
-                                                        <span class="story-check">&#10003;</span>
-                                                        <span class="story-subject">{story.subject}</span>
-                                                        <template if:true={story.type}>
-                                                            <span class="story-type-badge">{story.type}</span>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                                <template if:true={proj.hasMoreStories}>
-                                                    <div class="story-more">+{proj.moreStoryCount}&nbsp;more</div>
-                                                </template>
-                                            </div>
-                                        </template>
-
-                                    </div>
-                                </template>
-                            </div>
+                <!-- Meta row: pace, owner, dates, types -->
+                <template if:true={project.hasMeta}>
+                    <div class="meta-row">
+                        <template if:true={project.paceStatus}>
+                            <span class={project.paceBadgeClass}>{project.paceStatus}</span>
                         </template>
-
+                        <template if:true={project.ownerName}>
+                            <span class="meta-item">&#128100;&nbsp;{project.ownerName}</span>
+                        </template>
+                        <template if:true={project.hasDates}>
+                            <span class="meta-item">
+                                &#128197;&nbsp;{project.startDateStr}&nbsp;&rarr;&nbsp;{project.endDateStr}
+                            </span>
+                        </template>
+                        <template if:true={project.contractType}>
+                            <span class="meta-badge meta-contract">{project.contractType}</span>
+                        </template>
+                        <template if:true={project.deliveryType}>
+                            <span class="meta-badge meta-delivery">{project.deliveryType}</span>
+                        </template>
                     </div>
                 </template>
             </div>
-        </template>
 
-        <template if:false={hasClients}>
-            <div class="empty-state">
-                <div class="empty-icon">&#128202;</div>
-                <p class="empty-title">No client project data found</p>
-                <p class="empty-hint">Projects with linked accounts will appear here.</p>
+            <!-- ── Story Sections ─────────────────────────────── -->
+            <div class="story-sections">
+
+                <!-- Delivered -->
+                <template if:true={project.hasCompleted}>
+                    <div class="story-section">
+                        <div class="story-section-hdr hdr-complete">
+                            <span class="hdr-dot dot-complete"></span>
+                            <span class="hdr-title">Delivered</span>
+                            <span class="hdr-count">{project.completedCount}</span>
+                        </div>
+                        <div class="story-list">
+                            <template for:each={project.completedStories} for:item="s">
+                                <div key={s.id} class="story-row">
+                                    <span class="story-check">&#10003;</span>
+                                    <span class="story-subject">{s.subject}</span>
+                                    <template if:true={s.type}>
+                                        <span class="story-type">{s.type}</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- In Progress -->
+                <template if:true={project.hasInProgress}>
+                    <div class="story-section">
+                        <div class="story-section-hdr hdr-active">
+                            <span class="hdr-dot dot-active"></span>
+                            <span class="hdr-title">In Progress</span>
+                            <span class="hdr-count">{project.inProgressCount}</span>
+                        </div>
+                        <div class="story-list">
+                            <template for:each={project.inProgressStories} for:item="s">
+                                <div key={s.id} class="story-row">
+                                    <span class="story-dot dot-active"></span>
+                                    <span class="story-subject">{s.subject}</span>
+                                    <template if:true={s.type}>
+                                        <span class="story-type">{s.type}</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Blocked -->
+                <template if:true={project.hasBlocked}>
+                    <div class="story-section">
+                        <div class="story-section-hdr hdr-blocked">
+                            <span class="hdr-dot dot-blocked"></span>
+                            <span class="hdr-title">Blocked</span>
+                            <span class="hdr-count">{project.blockedCount}</span>
+                        </div>
+                        <div class="story-list">
+                            <template for:each={project.blockedStories} for:item="s">
+                                <div key={s.id} class="story-row">
+                                    <span class="story-dot dot-blocked"></span>
+                                    <span class="story-subject">{s.subject}</span>
+                                    <template if:true={s.type}>
+                                        <span class="story-type">{s.type}</span>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Empty stories state -->
+                <template if:false={project.hasCompleted}>
+                    <template if:false={project.hasInProgress}>
+                        <template if:false={project.hasBlocked}>
+                            <div class="no-stories">No stories found for this project.</div>
+                        </template>
+                    </template>
+                </template>
+
             </div>
         </template>
 

@@ -3,10 +3,16 @@
     <apiVersion>61.0</apiVersion>
     <isExposed>true</isExposed>
     <targets>
-        <target>lightning__AppPage</target>
-        <target>lightning__HomePage</target>
         <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
     </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Sprint__c</object>
+            </objects>
+        </targetConfig>
+    </targetConfigs>
     <masterLabel>CC Project Management Reporting</masterLabel>
-    <description>Client-level project reporting — time invested, hours delivered vs contracted, and completed story breakdown per project.</description>
+    <description>Single-project delivery report — contracted vs delivered hours, progress, pace status, and a full story breakdown by status. Place on the Sprint__c record page.</description>
 </LightningComponentBundle>

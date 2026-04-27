@@ -93,6 +93,92 @@ public with sharing class CC_ProjectMgmtReportingController {
         return clientMap.values();
     }
 
+    // ── Single-project report (for record page) ──────────────────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static ProjectReportWrapper getProjectReport(Id projectId) {
+        if (projectId == null) return null;
+
+        List<Sprint__c> rows = [
+            SELECT Id, Name, Status__c, Contract_Type__c, Delivery_Type__c,
+                   Contracted_Hours_Sprint__c, Hours_Delivered__c,
+                   Completed_Delta_Sprint__c, Pace_Status__c,
+                   Project_Start_Date__c, Project_End_Date__c,
+                   Accountlu__r.Name, Owner.Name
+            FROM Sprint__c
+            WHERE Id = :projectId
+            LIMIT 1
+        ];
+        if (rows.isEmpty()) return null;
+        Sprint__c s = rows[0];
+
+        List<StoryWrapper> completed  = new List<StoryWrapper>();
+        List<StoryWrapper> inProgress = new List<StoryWrapper>();
+        List<StoryWrapper> blocked    = new List<StoryWrapper>();
+
+        for (Case c : [
+            SELECT Id, Subject, Status, Type, Priority, IsClosed
+            FROM   Case
+            WHERE  Projects__c = :projectId
+            ORDER BY IsClosed DESC, LastModifiedDate DESC
+            LIMIT  500
+        ]) {
+            StoryWrapper sw = new StoryWrapper();
+            sw.id      = c.Id;
+            sw.subject = c.Subject;
+            sw.status  = c.Status;
+            sw.type    = c.Type;
+            String sl  = c.Status != null ? c.Status.toLowerCase() : '';
+            if      (c.IsClosed)                                                      completed.add(sw);
+            else if (sl.contains('block'))                                            blocked.add(sw);
+            else if (sl.contains('progress') || sl.contains('wip') ||
+                     sl.contains('review')   || sl.contains('uat')) inProgress.add(sw);
+        }
+
+        Decimal contracted = s.Contracted_Hours_Sprint__c != null ? s.Contracted_Hours_Sprint__c : 0;
+        Decimal delivered  = s.Hours_Delivered__c         != null ? s.Hours_Delivered__c         : 0;
+        Decimal remaining  = s.Completed_Delta_Sprint__c  != null ? s.Completed_Delta_Sprint__c
+                                                                   : contracted - delivered;
+
+        ProjectReportWrapper pw   = new ProjectReportWrapper();
+        pw.id                     = s.Id;
+        pw.name                   = s.Name;
+        pw.status                 = s.Status__c;
+        pw.contractType           = s.Contract_Type__c;
+        pw.deliveryType           = s.Delivery_Type__c;
+        pw.paceStatus             = s.Pace_Status__c;
+        pw.contractedHours        = contracted;
+        pw.deliveredHours         = delivered;
+        pw.remainingHours         = remaining;
+        pw.startDate              = s.Project_Start_Date__c != null ? String.valueOf(s.Project_Start_Date__c) : null;
+        pw.endDate                = s.Project_End_Date__c   != null ? String.valueOf(s.Project_End_Date__c)   : null;
+        pw.accountName            = s.Accountlu__r != null ? s.Accountlu__r.Name : '';
+        pw.ownerName              = s.Owner        != null ? s.Owner.Name        : '';
+        pw.completedStories       = completed;
+        pw.inProgressStories      = inProgress;
+        pw.blockedStories         = blocked;
+        return pw;
+    }
+
+    public class ProjectReportWrapper {
+        @AuraEnabled public String             id;
+        @AuraEnabled public String             name;
+        @AuraEnabled public String             status;
+        @AuraEnabled public String             contractType;
+        @AuraEnabled public String             deliveryType;
+        @AuraEnabled public String             paceStatus;
+        @AuraEnabled public Decimal            contractedHours;
+        @AuraEnabled public Decimal            deliveredHours;
+        @AuraEnabled public Decimal            remainingHours;
+        @AuraEnabled public String             startDate;
+        @AuraEnabled public String             endDate;
+        @AuraEnabled public String             accountName;
+        @AuraEnabled public String             ownerName;
+        @AuraEnabled public List<StoryWrapper> completedStories;
+        @AuraEnabled public List<StoryWrapper> inProgressStories;
+        @AuraEnabled public List<StoryWrapper> blockedStories;
+    }
+
     // ── Wrappers ─────────────────────────────────────────────────────────────
 
     public class ClientWrapper {
