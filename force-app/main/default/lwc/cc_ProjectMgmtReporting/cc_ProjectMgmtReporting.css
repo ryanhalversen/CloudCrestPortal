@@ -341,6 +341,13 @@
     gap: 0.375rem;
 }
 
+.breakdown-list-status {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem 1rem;
+    padding: 0.375rem 0.75rem 0.5rem;
+}
+
 .breakdown-row {
     display: grid;
     grid-template-columns: 1fr 1fr auto;

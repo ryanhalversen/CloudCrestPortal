@@ -49,6 +49,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
 
         // ── Story breakdowns ──────────────────────────────────
         const allStories = p.allStories || [];
+        const statusBreakdown   = this._breakdown(allStories, s => s.status   || '—', null);
         const typeBreakdown     = this._breakdown(allStories, s => s.type     || '—', null);
         const priorityBreakdown = this._breakdown(allStories, s => s.priority || '—',
             ['Critical', 'High', 'Medium', 'Low']);
@@ -70,6 +71,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             hasEpics:          epics.length > 0,
             epicCount:         epics.length,
             totalEpicHrsDisplay: this._fmt(totalEpicHours),
+            statusBreakdown,
             typeBreakdown,
             priorityBreakdown,
             totalStoryCount:   allStories.length,

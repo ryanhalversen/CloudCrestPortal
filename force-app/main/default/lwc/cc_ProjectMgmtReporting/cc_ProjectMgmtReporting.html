@@ -98,6 +98,26 @@
 
             <!-- ── Story Breakdown ───────────────────────────── -->
             <template if:true={project.hasStories}>
+
+                <!-- By Status (full width) -->
+                <div class="breakdown-card">
+                    <div class="breakdown-hdr">
+                        <span class="breakdown-title">By Status</span>
+                        <span class="breakdown-total">{project.totalStoryCount} stories</span>
+                    </div>
+                    <div class="breakdown-list breakdown-list-status">
+                        <template for:each={project.statusBreakdown} for:item="row">
+                            <div key={row.id} class="breakdown-row">
+                                <span class="breakdown-name">{row.name}</span>
+                                <div class="breakdown-bar-track">
+                                    <div class="breakdown-bar-fill breakdown-bar-blue" style={row.barStyle}></div>
+                                </div>
+                                <span class="breakdown-count">{row.count}</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
                 <div class="breakdown-grid">
 
                     <!-- By Type -->
