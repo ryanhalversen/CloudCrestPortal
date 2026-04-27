@@ -29,9 +29,14 @@
                         <span class="date-value">{project.startDateFormatted}</span>
                     </div>
                     <div class="date-arrow">&rarr;</div>
-                    <div class="date-block date-block-right">
+                    <div class="date-block">
                         <span class="date-label">Target End</span>
                         <span class="date-value date-value-end">{project.endDateFormatted}</span>
+                    </div>
+                    <div class="date-divider"></div>
+                    <div class="date-block date-block-right">
+                        <span class="date-label">On Time Hrs / Wk</span>
+                        <span class="date-value date-value-green">{project.weeklyPaceDisplay}</span>
                     </div>
                 </div>
             </template>
@@ -53,10 +58,6 @@
                 <div class="kpi-card kpi-card-accent">
                     <span class="kpi-val kpi-val-accent">{project.pct}%</span>
                     <span class="kpi-lbl">Complete</span>
-                </div>
-                <div class="kpi-card kpi-card-green">
-                    <span class="kpi-val kpi-val-green">{project.weeklyPaceDisplay}</span>
-                    <span class="kpi-lbl">On Time Hrs / Wk</span>
                 </div>
             </div>
 
