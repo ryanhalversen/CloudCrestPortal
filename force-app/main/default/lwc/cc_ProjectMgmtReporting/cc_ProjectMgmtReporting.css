@@ -45,6 +45,7 @@
 
 .kpi-card-blue   { border-top: 3px solid #3b82f6; }
 .kpi-card-accent { border-top: 3px solid #2563eb; background: #eff6ff; }
+.kpi-card-green  { border-top: 3px solid #16a34a; background: #f0fdf4; }
 
 .kpi-val {
     font-size: 1.25rem;
@@ -58,6 +59,7 @@
 
 .kpi-val-blue   { color: #2563eb; }
 .kpi-val-accent { color: #1d4ed8; }
+.kpi-val-green  { color: #16a34a; }
 
 .kpi-lbl {
     font-size: 0.5625rem;

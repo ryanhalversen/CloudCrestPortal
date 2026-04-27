@@ -21,6 +21,21 @@
                 <div class="client-pill">&#128203;&nbsp;{project.accountName}</div>
             </template>
 
+            <!-- ── Date Strip ────────────────────────────────── -->
+            <template if:true={project.hasDates}>
+                <div class="date-strip">
+                    <div class="date-block">
+                        <span class="date-label">Project Start</span>
+                        <span class="date-value">{project.startDateFormatted}</span>
+                    </div>
+                    <div class="date-arrow">&rarr;</div>
+                    <div class="date-block date-block-right">
+                        <span class="date-label">Target End</span>
+                        <span class="date-value date-value-end">{project.endDateFormatted}</span>
+                    </div>
+                </div>
+            </template>
+
             <!-- ── KPI Row ────────────────────────────────────── -->
             <div class="kpi-row">
                 <div class="kpi-card">
@@ -39,22 +54,11 @@
                     <span class="kpi-val kpi-val-accent">{project.pct}%</span>
                     <span class="kpi-lbl">Complete</span>
                 </div>
-            </div>
-
-            <!-- ── Date Strip ────────────────────────────────── -->
-            <template if:true={project.hasDates}>
-                <div class="date-strip">
-                    <div class="date-block">
-                        <span class="date-label">Project Start</span>
-                        <span class="date-value">{project.startDateFormatted}</span>
-                    </div>
-                    <div class="date-arrow">&rarr;</div>
-                    <div class="date-block date-block-right">
-                        <span class="date-label">Target End</span>
-                        <span class="date-value date-value-end">{project.endDateFormatted}</span>
-                    </div>
+                <div class="kpi-card kpi-card-green">
+                    <span class="kpi-val kpi-val-green">{project.weeklyPaceDisplay}</span>
+                    <span class="kpi-lbl">On Time Hrs / Wk</span>
                 </div>
-            </template>
+            </div>
 
             <!-- ── Progress Bar ───────────────────────────────── -->
             <div class="progress-wrap">
