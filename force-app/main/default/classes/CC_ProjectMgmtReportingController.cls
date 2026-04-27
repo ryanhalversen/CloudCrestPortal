@@ -112,6 +112,40 @@ public with sharing class CC_ProjectMgmtReportingController {
         if (rows.isEmpty()) return null;
         Sprint__c s = rows[0];
 
+        // ── Epics + time invested per epic ─────────────────────────────────
+        List<Sprint_Items__c> epicRows = [
+            SELECT Id, Name
+            FROM   Sprint_Items__c
+            WHERE  Projects_new__c = :projectId
+            ORDER BY Name
+            LIMIT  100
+        ];
+
+        Map<Id, Decimal> minutesByEpic = new Map<Id, Decimal>();
+        for (Sprint_Items__c e : epicRows) minutesByEpic.put(e.Id, 0);
+
+        if (!epicRows.isEmpty()) {
+            Set<Id> epicIds = new Map<Id, Sprint_Items__c>(epicRows).keySet();
+            for (AggregateResult ar : [
+                SELECT Epic__c, SUM(Minutes_Logged__c) totalMins
+                FROM   Time__c
+                WHERE  Epic__c IN :epicIds
+                GROUP BY Epic__c
+            ]) {
+                minutesByEpic.put((Id) ar.get('Epic__c'), (Decimal) ar.get('totalMins'));
+            }
+        }
+
+        List<EpicWrapper> epics = new List<EpicWrapper>();
+        for (Sprint_Items__c e : epicRows) {
+            EpicWrapper ew   = new EpicWrapper();
+            ew.id            = e.Id;
+            ew.name          = e.Name;
+            ew.minutesLogged = minutesByEpic.get(e.Id);
+            epics.add(ew);
+        }
+
+        // ── Stories by status ────────────────────────────────────────────────
         List<StoryWrapper> completed  = new List<StoryWrapper>();
         List<StoryWrapper> inProgress = new List<StoryWrapper>();
         List<StoryWrapper> blocked    = new List<StoryWrapper>();
@@ -154,6 +188,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         pw.endDate                = s.Project_End_Date__c   != null ? String.valueOf(s.Project_End_Date__c)   : null;
         pw.accountName            = s.Accountlu__r != null ? s.Accountlu__r.Name : '';
         pw.ownerName              = s.Owner        != null ? s.Owner.Name        : '';
+        pw.epics                  = epics;
         pw.completedStories       = completed;
         pw.inProgressStories      = inProgress;
         pw.blockedStories         = blocked;
@@ -174,9 +209,16 @@ public with sharing class CC_ProjectMgmtReportingController {
         @AuraEnabled public String             endDate;
         @AuraEnabled public String             accountName;
         @AuraEnabled public String             ownerName;
+        @AuraEnabled public List<EpicWrapper>  epics;
         @AuraEnabled public List<StoryWrapper> completedStories;
         @AuraEnabled public List<StoryWrapper> inProgressStories;
         @AuraEnabled public List<StoryWrapper> blockedStories;
+    }
+
+    public class EpicWrapper {
+        @AuraEnabled public String  id;
+        @AuraEnabled public String  name;
+        @AuraEnabled public Decimal minutesLogged;
     }
 
     // ── Wrappers ─────────────────────────────────────────────────────────────
