@@ -104,6 +104,7 @@ public with sharing class CC_ProjectMgmtReportingController {
                    Contracted_Hours_Sprint__c, Hours_Delivered__c,
                    Completed_Delta_Sprint__c, Pace_Status__c,
                    On_Time_Weekly_Pace__c, Weekly_Pace_Estimate__c,
+                   claude_Completed_Work_Highlight__c,
                    Project_Start_Date__c, Project_End_Date__c,
                    Accountlu__r.Name, Owner.Name
             FROM Sprint__c
@@ -188,8 +189,9 @@ public with sharing class CC_ProjectMgmtReportingController {
         pw.contractedHours        = contracted;
         pw.deliveredHours         = delivered;
         pw.remainingHours         = remaining;
-        pw.weeklyPaceEstimate     = s.On_Time_Weekly_Pace__c;
-        pw.weeklyRetainedHours    = s.Weekly_Pace_Estimate__c;
+        pw.weeklyPaceEstimate          = s.On_Time_Weekly_Pace__c;
+        pw.weeklyRetainedHours         = s.Weekly_Pace_Estimate__c;
+        pw.completedWorkHighlight      = s.claude_Completed_Work_Highlight__c;
         pw.startDate              = s.Project_Start_Date__c != null ? String.valueOf(s.Project_Start_Date__c) : null;
         pw.endDate                = s.Project_End_Date__c   != null ? String.valueOf(s.Project_End_Date__c)   : null;
         pw.accountName            = s.Accountlu__r != null ? s.Accountlu__r.Name : '';
@@ -214,6 +216,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         @AuraEnabled public Decimal            remainingHours;
         @AuraEnabled public Decimal            weeklyPaceEstimate;
         @AuraEnabled public Decimal            weeklyRetainedHours;
+        @AuraEnabled public String             completedWorkHighlight;
         @AuraEnabled public String             startDate;
         @AuraEnabled public String             endDate;
         @AuraEnabled public String             accountName;

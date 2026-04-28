@@ -55,6 +55,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             ['Critical', 'High', 'Medium', 'Low']);
 
         return {
+            completedWorkHighlight: p.completedWorkHighlight || null,
             accountName:        p.accountName,
             startDateFormatted: this._formatDate(p.startDate),
             endDateFormatted:   this._formatDate(p.endDate),

@@ -16,6 +16,17 @@
         <!-- ── Report ────────────────────────────────────────── -->
         <template if:true={hasData}>
 
+            <!-- ── Completed Work Highlight ───────────────────── -->
+            <template if:true={project.completedWorkHighlight}>
+                <div class="highlight-banner">
+                    <span class="highlight-icon">&#10022;</span>
+                    <div class="highlight-body">
+                        <span class="highlight-label">Completed Work Highlight</span>
+                        <span class="highlight-text">{project.completedWorkHighlight}</span>
+                    </div>
+                </div>
+            </template>
+
             <!-- Client pill -->
             <template if:true={project.accountName}>
                 <div class="client-pill">&#128203;&nbsp;{project.accountName}</div>
