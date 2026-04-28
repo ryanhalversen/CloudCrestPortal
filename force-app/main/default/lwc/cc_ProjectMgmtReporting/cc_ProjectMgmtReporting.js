@@ -115,6 +115,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         for (const raw of text.split('\n')) {
             const line = raw.trim();
             if (!line) continue;
+            if (/^[-=*_]{2,}$/.test(line)) continue; // skip separator lines like ---
             if (line.startsWith('#')) {
                 current = {
                     id:    String(sections.length),
