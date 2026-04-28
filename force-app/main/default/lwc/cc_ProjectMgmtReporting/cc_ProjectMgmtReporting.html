@@ -17,12 +17,19 @@
         <template if:true={hasData}>
 
             <!-- ── Completed Work Highlight ───────────────────── -->
-            <template if:true={project.completedWorkHighlight}>
-                <div class="highlight-banner">
-                    <span class="highlight-icon">&#10022;</span>
-                    <div class="highlight-body">
-                        <span class="highlight-label">Completed Work Highlight</span>
-                        <span class="highlight-text">{project.completedWorkHighlight}</span>
+            <template if:true={project.hasHighlight}>
+                <div class="highlight-section">
+                    <div class="highlight-section-hdr">
+                        <span class="highlight-section-icon">&#10022;</span>
+                        <span class="highlight-section-title">Completed Work Highlight</span>
+                    </div>
+                    <div class="highlight-cards">
+                        <template for:each={project.highlightItems} for:item="item">
+                            <div key={item.id} class="highlight-card">
+                                <span class="highlight-card-dot"></span>
+                                <span class="highlight-card-text">{item.text}</span>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </template>
