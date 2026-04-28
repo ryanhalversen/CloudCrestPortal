@@ -13,7 +13,7 @@
 .highlight-section {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.625rem;
 }
 
 .highlight-section-hdr {
@@ -28,64 +28,65 @@
 }
 
 .highlight-section-title {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #374151;
+    color: #94a3b8;
 }
 
 .highlight-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 0.625rem;
-}
-
-.highlight-card {
-    background: #ffffff;
-    border: 1px solid #fde68a;
-    border-top: 3px solid #f59e0b;
-    border-radius: 0.5rem;
-    padding: 0.75rem 0.875rem 0.625rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
+.highlight-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #f59e0b;
+    border-radius: 0.5rem;
+    padding: 0.875rem 1.125rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
 .highlight-card-title {
-    font-size: 0.6875rem;
+    font-size: 0.875rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #92400e;
+    color: #0f172a;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .highlight-card-items {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
 }
 
 .highlight-card-item {
     display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    align-items: baseline;
+    gap: 0.625rem;
 }
 
 .highlight-item-dot {
+    content: '';
     width: 0.3125rem;
     height: 0.3125rem;
     border-radius: 50%;
     background: #f59e0b;
     flex-shrink: 0;
-    margin-top: 0.4rem;
+    margin-top: 0.45rem;
 }
 
 .highlight-item-text {
-    font-size: 0.8125rem;
-    color: #1e293b;
-    line-height: 1.5;
+    font-size: 0.875rem;
+    color: #374151;
+    line-height: 1.6;
 }
 
 /* ── Client pill ─────────────────────────────────────────────── */
