@@ -55,12 +55,8 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             ['Critical', 'High', 'Medium', 'Low']);
 
         return {
-            highlightItems: p.completedWorkHighlight
-                ? p.completedWorkHighlight.split('\n')
-                    .map(l => l.trim()).filter(l => l.length > 0)
-                    .map((text, i) => ({ id: String(i), text }))
-                : [],
-            hasHighlight: !!(p.completedWorkHighlight && p.completedWorkHighlight.trim()),
+            highlightSections: this._parseHighlight(p.completedWorkHighlight),
+            hasHighlight:      !!(p.completedWorkHighlight && p.completedWorkHighlight.trim()),
             accountName:        p.accountName,
             startDateFormatted: this._formatDate(p.startDate),
             endDateFormatted:   this._formatDate(p.endDate),
@@ -109,6 +105,33 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         if (deltaPct === 0) return { label: 'On Pace',         cssClass: 'delta-chip delta-green' };
         if (deltaPct > 0)   return { label: `+${deltaPct}% needed`, cssClass: 'delta-chip delta-red'   };
         return              { label: `${deltaPct}% buffer`,    cssClass: 'delta-chip delta-green' };
+    }
+
+    // Parse markdown-style text into section cards
+    _parseHighlight(text) {
+        if (!text || !text.trim()) return [];
+        const sections = [];
+        let current = null;
+        for (const raw of text.split('\n')) {
+            const line = raw.trim();
+            if (!line) continue;
+            if (line.startsWith('#')) {
+                current = {
+                    id:    String(sections.length),
+                    title: line.replace(/^#+\s*/, '').trim(),
+                    items: []
+                };
+                sections.push(current);
+            } else {
+                if (!current) {
+                    current = { id: '0', title: '', items: [] };
+                    sections.push(current);
+                }
+                const item = line.replace(/^[-*•]\s*/, '').trim();
+                if (item) current.items.push({ id: String(current.items.length), text: item });
+            }
+        }
+        return sections.filter(s => s.title || s.items.length > 0);
     }
 
     // Aggregate stories by a key, optionally sort by a fixed order array
