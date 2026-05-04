@@ -104,14 +104,29 @@
                 <div class="wow-section">
                     <div class="wow-hdr">
                         <span class="wow-hdr-title">Hours Delivered by Week</span>
-                        <template if:true={project.hasQuarterButtons}>
-                            <div class="wow-q-btns">
-                                <template for:each={project.quarterButtons} for:item="qb">
-                                    <button key={qb.id} class={qb.cssClass} data-quarter={qb.id} onclick={handleQuarterFilter}>{qb.label}</button>
-                                </template>
-                            </div>
-                        </template>
+                        <div class="wow-hdr-controls">
+                            <template if:true={project.hasQuarterButtons}>
+                                <div class="wow-q-btns">
+                                    <template for:each={project.quarterButtons} for:item="qb">
+                                        <button key={qb.id} class={qb.cssClass} data-quarter={qb.id} onclick={handleQuarterFilter}>{qb.label}</button>
+                                    </template>
+                                </div>
+                                <div class="wow-hdr-sep"></div>
+                            </template>
+                            <button class={project.peopleToggleClass} onclick={handlePeopleToggle}>{project.peopleToggleLabel}</button>
+                        </div>
                     </div>
+                    <template if:true={project.showPeople}>
+                        <div class="wow-people-panel">
+                            <button class={project.allBtnClass} data-person="" onclick={handlePersonFilter}>All</button>
+                            <template for:each={project.allPeople} for:item="person">
+                                <button key={person.id} class={person.btnClass} data-person={person.id} onclick={handlePersonFilter}>
+                                    <span class="wow-person-name">{person.name}</span>
+                                    <span class="wow-person-hrs">{person.hoursDisplay}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
                     <template if:true={project.hasWeeklyBars}>
                         <div class="wow-outer">
                             <!-- Y-axis tick labels -->
@@ -144,13 +159,6 @@
                                         <div key={week.id} class="wow-col-footer">
                                             <span class="wow-col-hours">{week.hoursDisplay}</span>
                                             <span class="wow-col-label">{week.label}</span>
-                                            <template if:true={week.hasPeople}>
-                                                <div class="wow-col-people">
-                                                    <template for:each={week.people} for:item="person">
-                                                        <span key={person.id} class="wow-chip">{person.text}</span>
-                                                    </template>
-                                                </div>
-                                            </template>
                                         </div>
                                     </template>
                                 </div>

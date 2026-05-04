@@ -9,6 +9,8 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     _error           = false;
     _selectedEpicId  = null;
     _quarterFilter   = null;
+    _showPeople      = false;
+    _personFilter    = null;
 
     @wire(getProjectReport, { projectId: '$recordId' })
     wiredData({ data, error }) {
@@ -33,6 +35,19 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     handleQuarterFilter(event) {
         const q = event.currentTarget.dataset.quarter;
         this._quarterFilter = (this._quarterFilter === q) ? null : q;
+    }
+
+    handlePeopleToggle() {
+        this._showPeople = !this._showPeople;
+    }
+
+    handlePersonFilter(event) {
+        const p = event.currentTarget.dataset.person;
+        if (!p) {
+            this._personFilter = null; // "All" button
+        } else {
+            this._personFilter = (this._personFilter === p) ? null : p;
+        }
     }
 
     get project() {
@@ -92,17 +107,41 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             cssClass: 'wow-q-btn' + (this._quarterFilter === q ? ' wow-q-btn-active' : '')
         }));
 
-        // Filter by selected quarter
-        const filteredWeeks = this._quarterFilter
+        // All people across entire project (not quarter-filtered) for the people panel
+        const allPeopleMap = {};
+        for (const w of rawWeeks) {
+            for (const per of w.people) {
+                allPeopleMap[per.id] = (allPeopleMap[per.id] || 0) + per.mins;
+            }
+        }
+        const allPeople = Object.entries(allPeopleMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, totalMins]) => ({
+                id:           name,
+                name,
+                hoursDisplay: this._fmt(totalMins / 60),
+                btnClass:     'wow-person-btn' + (this._personFilter === name ? ' wow-person-btn-active' : '')
+            }));
+
+        // Quarter filter
+        const quarterFiltered = this._quarterFilter
             ? rawWeeks.filter(w => w.quarter === this._quarterFilter)
             : rawWeeks;
 
-        // Nice max for Y-axis — must cover retained hours too
+        // Person filter — replace each week's totalMins with just that person's
+        const weeksToShow = this._personFilter
+            ? quarterFiltered.map(w => ({
+                ...w,
+                totalMins: w.personMap[this._personFilter] || 0,
+                hours:     (w.personMap[this._personFilter] || 0) / 60
+            }))
+            : quarterFiltered;
+
+        // Nice max — when person-filtered, don't pad to retained (different scale)
         const retained     = Number(p.weeklyRetainedHours) || 0;
-        const maxWeekHours = filteredWeeks.length > 0
-            ? Math.max(...filteredWeeks.map(w => w.hours))
-            : 0;
-        const niceMax      = this._niceMax(Math.max(maxWeekHours, retained, 1));
+        const maxWeekHours = weeksToShow.length > 0 ? Math.max(...weeksToShow.map(w => w.hours)) : 0;
+        const niceMaxBase  = this._personFilter ? maxWeekHours : Math.max(maxWeekHours, retained);
+        const niceMax      = this._niceMax(Math.max(niceMaxBase, 1));
         const niceMaxMins  = niceMax * 60;
 
         // Y-axis ticks: top → bottom = niceMax → 0
@@ -112,18 +151,25 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             topStyle: `top:${pct}%`
         }));
 
-        // Retained reference line position
+        // Retained reference line — hide when person-filtered (irrelevant scale)
         const retainedPct          = niceMax > 0 ? Math.round((1 - retained / niceMax) * 100) : 0;
         const retainedLineStyle    = `top:${retainedPct}%`;
         const retainedLabelDisplay = this._fmt(retained) + '/wk';
-        const hasRetainedLine      = retained > 0;
+        const hasRetainedLine      = retained > 0 && !this._personFilter;
 
-        // Final weekly data with barStyle relative to niceMax
-        const weeklyData = filteredWeeks.map(w => ({
+        // Final weekly data with barStyle
+        const weeklyData = weeksToShow.map(w => ({
             ...w,
             hoursDisplay: this._fmt(w.hours),
             barStyle:     `height:${niceMaxMins > 0 ? Math.round((w.totalMins / niceMaxMins) * 100) : 0}%`
         }));
+
+        // People toggle button
+        const peopleToggleLabel = this._personFilter
+            ? this._personFilter.split(' ')[0]
+            : 'People';
+        const peopleToggleClass = 'wow-q-btn' +
+            (this._showPeople || this._personFilter ? ' wow-q-btn-active' : '');
 
         const selectedEpic = epics.find(e => e.isSelected) || null;
 
@@ -161,7 +207,12 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             yTicks,
             retainedLineStyle,
             retainedLabelDisplay,
-            hasRetainedLine
+            hasRetainedLine,
+            showPeople:            this._showPeople,
+            peopleToggleLabel,
+            peopleToggleClass,
+            allPeople,
+            allBtnClass:           'wow-person-btn' + (!this._personFilter ? ' wow-person-btn-active' : '')
         };
     }
 
@@ -307,16 +358,14 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             const b      = weekMap[key];
             const people = Object.entries(b.personMap)
                 .sort((a, c) => c[1] - a[1])
-                .map(([name, mins]) => ({
-                    id:   name,
-                    text: `${name.split(' ')[0]} ${this._fmt(mins / 60)}`
-                }));
+                .map(([name, mins]) => ({ id: name, name, mins }));
             return {
                 id:        key,
                 label:     this._weekLabel(key),
                 totalMins: b.totalMins,
                 hours:     b.totalMins / 60,
                 quarter:   this._weekQuarter(key),
+                personMap: b.personMap,
                 people,
                 hasPeople: people.length > 0
             };
