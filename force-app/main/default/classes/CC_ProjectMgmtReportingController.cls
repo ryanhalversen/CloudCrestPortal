@@ -126,8 +126,12 @@ public with sharing class CC_ProjectMgmtReportingController {
         Map<Id, Decimal> minutesByEpic = new Map<Id, Decimal>();
         for (Sprint_Items__c e : epicRows) minutesByEpic.put(e.Id, 0);
 
+        Map<Id, List<StoryTimeWrapper>> storiesByEpic = new Map<Id, List<StoryTimeWrapper>>();
+
         if (!epicRows.isEmpty()) {
             Set<Id> epicIds = new Map<Id, Sprint_Items__c>(epicRows).keySet();
+            for (Id eid : epicIds) storiesByEpic.put(eid, new List<StoryTimeWrapper>());
+
             for (AggregateResult ar : [
                 SELECT Epic__c, SUM(Minutes_Logged__c) totalMins
                 FROM   Time__c
@@ -135,6 +139,22 @@ public with sharing class CC_ProjectMgmtReportingController {
                 GROUP BY Epic__c
             ]) {
                 minutesByEpic.put((Id) ar.get('Epic__c'), (Decimal) ar.get('totalMins'));
+            }
+
+            // ── Per-story time within each epic ───────────────────────────────
+            for (AggregateResult ar : [
+                SELECT Epic__c epicId, Case__c caseId, Case__r.Subject caseSubj,
+                       SUM(Minutes_Logged__c) totalMins
+                FROM   Time__c
+                WHERE  Epic__c IN :epicIds
+                GROUP BY Epic__c, Case__c, Case__r.Subject
+            ]) {
+                Id epicId = (Id) ar.get('epicId');
+                StoryTimeWrapper st = new StoryTimeWrapper();
+                st.id            = (String)(Id) ar.get('caseId');
+                st.subject       = (String) ar.get('caseSubj');
+                st.minutesLogged = ar.get('totalMins') != null ? (Decimal) ar.get('totalMins') : 0;
+                storiesByEpic.get(epicId).add(st);
             }
         }
 
@@ -144,7 +164,25 @@ public with sharing class CC_ProjectMgmtReportingController {
             ew.id            = e.Id;
             ew.name          = e.Name;
             ew.minutesLogged = minutesByEpic.get(e.Id);
+            ew.stories       = storiesByEpic.containsKey(e.Id) ? storiesByEpic.get(e.Id) : new List<StoryTimeWrapper>();
             epics.add(ew);
+        }
+
+        // ── Week-over-week time entries ──────────────────────────────────────
+        List<TimeEntryWrapper> timeEntries = new List<TimeEntryWrapper>();
+        for (Time__c t : [
+            SELECT Logged_Date__c, Minutes_Logged__c, CreatedBy.Name
+            FROM   Time__c
+            WHERE  Case__r.Projects__c = :projectId
+              AND  Logged_Date__c != null
+            ORDER BY Logged_Date__c ASC
+            LIMIT  2000
+        ]) {
+            TimeEntryWrapper te = new TimeEntryWrapper();
+            te.loggedDate    = String.valueOf(t.Logged_Date__c);
+            te.minutesLogged = t.Minutes_Logged__c != null ? t.Minutes_Logged__c : 0;
+            te.personName    = t.CreatedBy != null ? t.CreatedBy.Name : 'Unknown';
+            timeEntries.add(te);
         }
 
         // ── Stories by status ────────────────────────────────────────────────
@@ -201,6 +239,7 @@ public with sharing class CC_ProjectMgmtReportingController {
         pw.inProgressStories      = inProgress;
         pw.blockedStories         = blocked;
         pw.allStories             = allStories;
+        pw.timeEntries            = timeEntries;
         return pw;
     }
 
@@ -225,13 +264,27 @@ public with sharing class CC_ProjectMgmtReportingController {
         @AuraEnabled public List<StoryWrapper> completedStories;
         @AuraEnabled public List<StoryWrapper> inProgressStories;
         @AuraEnabled public List<StoryWrapper> blockedStories;
-        @AuraEnabled public List<StoryWrapper> allStories;
+        @AuraEnabled public List<StoryWrapper>     allStories;
+        @AuraEnabled public List<TimeEntryWrapper> timeEntries;
     }
 
     public class EpicWrapper {
         @AuraEnabled public String  id;
         @AuraEnabled public String  name;
         @AuraEnabled public Decimal minutesLogged;
+        @AuraEnabled public List<StoryTimeWrapper> stories;
+    }
+
+    public class StoryTimeWrapper {
+        @AuraEnabled public String  id;
+        @AuraEnabled public String  subject;
+        @AuraEnabled public Decimal minutesLogged;
+    }
+
+    public class TimeEntryWrapper {
+        @AuraEnabled public String  loggedDate;
+        @AuraEnabled public Decimal minutesLogged;
+        @AuraEnabled public String  personName;
     }
 
     // ── Wrappers ─────────────────────────────────────────────────────────────

@@ -99,6 +99,33 @@
                 <span class="progress-label">{project.pct}% delivered</span>
             </div>
 
+            <!-- ── Week-over-Week ─────────────────────────────── -->
+            <template if:true={project.hasWeeklyData}>
+                <div class="wow-section">
+                    <div class="wow-hdr">
+                        <span class="wow-hdr-title">Hours Delivered by Week</span>
+                    </div>
+                    <div class="wow-table">
+                        <template for:each={project.weeklyData} for:item="week">
+                            <div key={week.id} class="wow-row">
+                                <span class="wow-label">{week.label}</span>
+                                <div class="wow-bar-track">
+                                    <div class="wow-bar-fill" style={week.barStyle}></div>
+                                </div>
+                                <span class="wow-hours">{week.hoursDisplay}</span>
+                                <template if:true={week.hasPeople}>
+                                    <div class="wow-people">
+                                        <template for:each={week.people} for:item="person">
+                                            <span key={person.id} class="wow-chip">{person.text}</span>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
             <!-- ── Epic Cards ─────────────────────────────────── -->
             <template if:true={project.hasEpics}>
                 <div class="epics-hdr">
@@ -107,16 +134,47 @@
                 </div>
                 <div class="epic-cards-grid">
                     <template for:each={project.epics} for:item="epic">
-                        <div key={epic.id} class="epic-card">
+                        <div key={epic.id}
+                             class={epic.epicCardClass}
+                             data-epic-id={epic.id}
+                             onclick={handleEpicClick}
+                             role="button"
+                             tabindex="0">
                             <div class="epic-card-hours">{epic.hoursDisplay}</div>
                             <div class="epic-card-name">{epic.name}</div>
                             <div class="epic-card-bar-track">
                                 <div class="epic-card-bar-fill" style={epic.barStyle}></div>
                             </div>
-                            <div class="epic-card-pct">{epic.pctOfTotal}% of total</div>
+                            <div class="epic-card-footer">
+                                <span class="epic-card-pct">{epic.pctOfTotal}% of total</span>
+                                <span class="epic-card-expand">&#8964;</span>
+                            </div>
                         </div>
                     </template>
                 </div>
+
+                <!-- Expanded epic stories panel -->
+                <template if:true={project.hasSelectedEpic}>
+                    <div class="epic-panel">
+                        <div class="epic-panel-hdr">
+                            <span class="epic-panel-name">{project.selectedEpic.name}</span>
+                            <span class="epic-panel-hrs">{project.selectedEpic.hoursDisplay} invested</span>
+                        </div>
+                        <template if:true={project.selectedEpic.hasStories}>
+                            <div class="epic-panel-stories">
+                                <template for:each={project.selectedEpic.stories} for:item="story">
+                                    <div key={story.id} class="epic-panel-row">
+                                        <span class="epic-panel-story-name">{story.subject}</span>
+                                        <span class="epic-panel-story-hrs">{story.hoursDisplay}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:false={project.selectedEpic.hasStories}>
+                            <div class="state-empty">No time logged against stories in this epic.</div>
+                        </template>
+                    </div>
+                </template>
             </template>
 
             <template if:false={project.hasEpics}>
