@@ -144,12 +144,21 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         const niceMax      = this._niceMax(Math.max(niceMaxBase, 1));
         const niceMaxMins  = niceMax * 60;
 
-        // Y-axis ticks: top → bottom = niceMax → 0
-        const yTicks = [0, 25, 50, 75, 100].map(pct => ({
-            id:       String(pct),
-            value:    this._fmt(niceMax * (1 - pct / 100)),
-            topStyle: `top:${pct}%`
-        }));
+        // Y-axis ticks and gridlines at 10h intervals
+        const yTicks    = [];
+        const gridLines = [];
+        for (let h = 0; h <= niceMax; h += 10) {
+            const topPct = Math.round((1 - h / niceMax) * 100);
+            yTicks.push({
+                id:       String(h),
+                value:    `${h}h`,
+                topStyle: `top:${topPct}%`
+            });
+            gridLines.push({
+                id:       String(h),
+                topStyle: h === 0 ? 'bottom:0' : `top:${topPct}%`
+            });
+        }
 
         // Retained reference line — hide when person-filtered (irrelevant scale)
         const retainedPct          = niceMax > 0 ? Math.round((1 - retained / niceMax) * 100) : 0;
@@ -205,6 +214,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             quarterButtons,
             hasQuarterButtons:     quarterButtons.length > 1,
             yTicks,
+            gridLines,
             retainedLineStyle,
             retainedLabelDisplay,
             hasRetainedLine,
@@ -247,20 +257,10 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         return 'fill-amber';
     }
 
-    // Round up to a nice number for chart axes
+    // Round up to the next multiple of 10 hours
     _niceMax(hours) {
         if (hours <= 0) return 10;
-        const exp  = Math.floor(Math.log10(hours));
-        const mag  = Math.pow(10, exp);
-        const frac = hours / mag; // 1–10
-        let nice;
-        if      (frac <= 1)   nice = 1;
-        else if (frac <= 2)   nice = 2;
-        else if (frac <= 2.5) nice = 2.5;
-        else if (frac <= 5)   nice = 5;
-        else if (frac <= 7.5) nice = 7.5;
-        else                  nice = 10;
-        return nice * mag;
+        return Math.ceil(hours / 10) * 10;
     }
 
     _weekQuarter(keyStr) {

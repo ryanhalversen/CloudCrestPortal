@@ -479,16 +479,21 @@
     min-width: 0;
 }
 
-/* Bar zone — fixed height with static gridlines via background */
+/* Bar zone — fixed height; gridlines rendered as child divs */
 .wow-bar-zone {
     height: 90px;
     position: relative;
-    background:
-        linear-gradient(to bottom, #e2e8f0, #e2e8f0) 0 0   / 100% 1px no-repeat,
-        linear-gradient(to bottom, #e2e8f0, #e2e8f0) 0 25% / 100% 1px no-repeat,
-        linear-gradient(to bottom, #e2e8f0, #e2e8f0) 0 50% / 100% 1px no-repeat,
-        linear-gradient(to bottom, #e2e8f0, #e2e8f0) 0 75% / 100% 1px no-repeat,
-        linear-gradient(to bottom, #e2e8f0, #e2e8f0) 0 100% / 100% 1px no-repeat;
+}
+
+/* Dynamic gridlines at each 10h increment */
+.wow-gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e2e8f0;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* Red retained-hours reference line */

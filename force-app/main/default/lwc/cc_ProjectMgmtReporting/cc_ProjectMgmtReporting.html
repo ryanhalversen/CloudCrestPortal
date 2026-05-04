@@ -138,6 +138,10 @@
                             <!-- Scrollable bar + labels area -->
                             <div class="wow-chart-scroll">
                                 <div class="wow-bar-zone">
+                                    <!-- Horizontal gridlines at 10h intervals -->
+                                    <template for:each={project.gridLines} for:item="gl">
+                                        <div key={gl.id} class="wow-gridline" style={gl.topStyle}></div>
+                                    </template>
                                     <!-- Red retained-hours reference line -->
                                     <template if:true={project.hasRetainedLine}>
                                         <div class="wow-retained-line" style={project.retainedLineStyle}>
