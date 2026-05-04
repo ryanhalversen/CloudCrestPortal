@@ -273,26 +273,31 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     }
 
     // Week-over-week grouping — returns raw data without barStyle
+
+    // Returns 'YYYY-MM-DD' of the Monday for the given date string.
+    // Uses UTC throughout so the key never shifts due to browser timezone.
     _weekStart(dateStr) {
         const [y, m, d] = dateStr.split('-').map(Number);
-        const dt  = new Date(y, m - 1, d);
-        const day = dt.getDay(); // 0=Sun
-        dt.setDate(dt.getDate() + (day === 0 ? -6 : 1 - day));
-        return dt;
+        const dt  = new Date(Date.UTC(y, m - 1, d));
+        const day = dt.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
+        dt.setUTCDate(dt.getUTCDate() + (day === 0 ? -6 : 1 - day));
+        return dt.toISOString().slice(0, 10); // 'YYYY-MM-DD' of Monday
     }
 
-    _weekLabel(monday) {
-        return monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Display the Monday date; use timeZone:'UTC' so the date string matches the key.
+    _weekLabel(mondayKey) {
+        const [y, m, d] = mondayKey.split('-').map(Number);
+        return new Date(Date.UTC(y, m - 1, d))
+            .toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
     }
 
     _buildWeeklyData(timeEntries) {
         if (!timeEntries || timeEntries.length === 0) return [];
         const weekMap = {};
         for (const te of timeEntries) {
-            const monday = this._weekStart(te.loggedDate);
-            const key    = monday.toISOString().slice(0, 10);
-            if (!weekMap[key]) weekMap[key] = { monday, totalMins: 0, personMap: {} };
-            const mins   = Number(te.minutesLogged) || 0;
+            const key  = this._weekStart(te.loggedDate); // always a Monday 'YYYY-MM-DD'
+            if (!weekMap[key]) weekMap[key] = { totalMins: 0, personMap: {} };
+            const mins = Number(te.minutesLogged) || 0;
             weekMap[key].totalMins += mins;
             const person = te.personName || 'Unknown';
             weekMap[key].personMap[person] = (weekMap[key].personMap[person] || 0) + mins;
@@ -308,7 +313,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
                 }));
             return {
                 id:        key,
-                label:     this._weekLabel(b.monday),
+                label:     this._weekLabel(key),
                 totalMins: b.totalMins,
                 hours:     b.totalMins / 60,
                 quarter:   this._weekQuarter(key),
