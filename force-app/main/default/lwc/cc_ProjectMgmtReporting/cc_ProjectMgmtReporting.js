@@ -8,6 +8,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     _raw             = null;
     _error           = false;
     _selectedEpicId  = null;
+    _quarterFilter   = null;
 
     @wire(getProjectReport, { projectId: '$recordId' })
     wiredData({ data, error }) {
@@ -29,6 +30,11 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         this._selectedEpicId = (this._selectedEpicId === id) ? null : id;
     }
 
+    handleQuarterFilter(event) {
+        const q = event.currentTarget.dataset.quarter;
+        this._quarterFilter = (this._quarterFilter === q) ? null : q;
+    }
+
     get project() {
         if (!this._raw) return null;
         const p          = this._raw;
@@ -42,7 +48,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             .map(e => ({ ...e, hours: (Number(e.minutesLogged) || 0) / 60 }))
             .sort((a, b) => b.hours - a.hours);
 
-        const maxHours       = epicsSorted.length > 0 ? Math.max(...epicsSorted.map(e => e.hours), 0.01) : 0.01;
+        const maxEpicHours   = epicsSorted.length > 0 ? Math.max(...epicsSorted.map(e => e.hours), 0.01) : 0.01;
         const totalEpicHours = epicsSorted.reduce((s, e) => s + e.hours, 0);
 
         const epics = epicsSorted.map(e => {
@@ -60,7 +66,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
                 name:          e.name,
                 hoursDisplay:  this._fmt(e.hours),
                 pctOfTotal:    totalEpicHours > 0 ? Math.round((e.hours / totalEpicHours) * 100) : 0,
-                barStyle:      `width:${Math.round((e.hours / maxHours) * 100)}%`,
+                barStyle:      `width:${Math.round((e.hours / maxEpicHours) * 100)}%`,
                 isSelected,
                 epicCardClass: 'epic-card' + (isSelected ? ' epic-card-selected' : ''),
                 stories,
@@ -76,38 +82,86 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             ['Critical', 'High', 'Medium', 'Low']);
 
         // ── Week-over-week ────────────────────────────────────
-        const weeklyData = this._buildWeeklyData(p.timeEntries || []);
+        const rawWeeks = this._buildWeeklyData(p.timeEntries || []);
+
+        // Quarter buttons (only show quarters present in data)
+        const quartersInData = [...new Set(rawWeeks.map(w => w.quarter))].sort();
+        const quarterButtons = quartersInData.map(q => ({
+            id:       q,
+            label:    q,
+            cssClass: 'wow-q-btn' + (this._quarterFilter === q ? ' wow-q-btn-active' : '')
+        }));
+
+        // Filter by selected quarter
+        const filteredWeeks = this._quarterFilter
+            ? rawWeeks.filter(w => w.quarter === this._quarterFilter)
+            : rawWeeks;
+
+        // Nice max for Y-axis — must cover retained hours too
+        const retained     = Number(p.weeklyRetainedHours) || 0;
+        const maxWeekHours = filteredWeeks.length > 0
+            ? Math.max(...filteredWeeks.map(w => w.hours))
+            : 0;
+        const niceMax      = this._niceMax(Math.max(maxWeekHours, retained, 1));
+        const niceMaxMins  = niceMax * 60;
+
+        // Y-axis ticks: top → bottom = niceMax → 0
+        const yTicks = [0, 25, 50, 75, 100].map(pct => ({
+            id:       String(pct),
+            value:    this._fmt(niceMax * (1 - pct / 100)),
+            topStyle: `top:${pct}%`
+        }));
+
+        // Retained reference line position
+        const retainedPct          = niceMax > 0 ? Math.round((1 - retained / niceMax) * 100) : 0;
+        const retainedLineStyle    = `top:${retainedPct}%`;
+        const retainedLabelDisplay = this._fmt(retained) + '/wk';
+        const hasRetainedLine      = retained > 0;
+
+        // Final weekly data with barStyle relative to niceMax
+        const weeklyData = filteredWeeks.map(w => ({
+            ...w,
+            hoursDisplay: this._fmt(w.hours),
+            barStyle:     `height:${niceMaxMins > 0 ? Math.round((w.totalMins / niceMaxMins) * 100) : 0}%`
+        }));
 
         const selectedEpic = epics.find(e => e.isSelected) || null;
 
         return {
-            highlightSections: this._parseHighlight(p.completedWorkHighlight),
-            hasHighlight:      !!(p.completedWorkHighlight && p.completedWorkHighlight.trim()),
-            accountName:        p.accountName,
-            startDateFormatted: this._formatDate(p.startDate),
-            endDateFormatted:   this._formatDate(p.endDate),
-            hasDates:           !!(p.startDate || p.endDate),
-            weeklyPaceDisplay:    this._fmt(Number(p.weeklyPaceEstimate)   || 0),
-            weeklyPaceDelta:      this._paceDelta(p.weeklyPaceEstimate, p.weeklyRetainedHours),
-            contractedDisplay:    this._fmt(contracted),
-            deliveredDisplay:     this._fmt(delivered),
-            remainingDisplay:     this._fmt(remaining),
+            highlightSections:     this._parseHighlight(p.completedWorkHighlight),
+            hasHighlight:          !!(p.completedWorkHighlight && p.completedWorkHighlight.trim()),
+            accountName:           p.accountName,
+            startDateFormatted:    this._formatDate(p.startDate),
+            endDateFormatted:      this._formatDate(p.endDate),
+            hasDates:              !!(p.startDate || p.endDate),
+            weeklyPaceDisplay:     this._fmt(Number(p.weeklyPaceEstimate)   || 0),
+            weeklyPaceDelta:       this._paceDelta(p.weeklyPaceEstimate, p.weeklyRetainedHours),
+            contractedDisplay:     this._fmt(contracted),
+            deliveredDisplay:      this._fmt(delivered),
+            remainingDisplay:      this._fmt(remaining),
             pct,
-            barStyle:          `width:${pct}%`,
-            barColorClass:     'progress-fill ' + this._barColorClass(pct),
+            barStyle:              `width:${pct}%`,
+            barColorClass:         'progress-fill ' + this._barColorClass(pct),
             epics,
-            hasEpics:          epics.length > 0,
-            epicCount:         epics.length,
-            totalEpicHrsDisplay: this._fmt(totalEpicHours),
+            hasEpics:              epics.length > 0,
+            epicCount:             epics.length,
+            totalEpicHrsDisplay:   this._fmt(totalEpicHours),
             selectedEpic,
-            hasSelectedEpic:   !!selectedEpic,
+            hasSelectedEpic:       !!selectedEpic,
             statusBreakdown,
             typeBreakdown,
             priorityBreakdown,
-            totalStoryCount:   allStories.length,
-            hasStories:        allStories.length > 0,
+            totalStoryCount:       allStories.length,
+            hasStories:            allStories.length > 0,
             weeklyData,
-            hasWeeklyData:     weeklyData.length > 0
+            hasWeeklyData:         rawWeeks.length > 0,
+            hasWeeklyBars:         weeklyData.length > 0,
+            quarterButtons,
+            hasQuarterButtons:     quarterButtons.length > 1,
+            yTicks,
+            retainedLineStyle,
+            retainedLabelDisplay,
+            hasRetainedLine
         };
     }
 
@@ -131,15 +185,36 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         const have = Number(retained)   || 0;
         if (!have) return null;
         const deltaPct = Math.round(((need - have) / have) * 100);
-        if (deltaPct === 0) return { label: 'On Pace',             cssClass: 'delta-chip delta-green' };
+        if (deltaPct === 0) return { label: 'On Pace',              cssClass: 'delta-chip delta-green' };
         if (deltaPct > 0)   return { label: `+${deltaPct}% needed`, cssClass: 'delta-chip delta-red'   };
-        return              { label: `${deltaPct}% buffer`,        cssClass: 'delta-chip delta-green' };
+        return              { label: `${deltaPct}% buffer`,         cssClass: 'delta-chip delta-green' };
     }
 
     _barColorClass(pct) {
         if (pct >= 90) return 'fill-green';
         if (pct >= 50) return 'fill-blue';
         return 'fill-amber';
+    }
+
+    // Round up to a nice number for chart axes
+    _niceMax(hours) {
+        if (hours <= 0) return 10;
+        const exp  = Math.floor(Math.log10(hours));
+        const mag  = Math.pow(10, exp);
+        const frac = hours / mag; // 1–10
+        let nice;
+        if      (frac <= 1)   nice = 1;
+        else if (frac <= 2)   nice = 2;
+        else if (frac <= 2.5) nice = 2.5;
+        else if (frac <= 5)   nice = 5;
+        else if (frac <= 7.5) nice = 7.5;
+        else                  nice = 10;
+        return nice * mag;
+    }
+
+    _weekQuarter(keyStr) {
+        const month = parseInt(keyStr.slice(5, 7), 10);
+        return month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
     }
 
     // Parse markdown-style text into section cards
@@ -197,7 +272,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         return rows;
     }
 
-    // Week-over-week grouping
+    // Week-over-week grouping — returns raw data without barStyle
     _weekStart(dateStr) {
         const [y, m, d] = dateStr.split('-').map(Number);
         const dt  = new Date(y, m - 1, d);
@@ -222,11 +297,9 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
             const person = te.personName || 'Unknown';
             weekMap[key].personMap[person] = (weekMap[key].personMap[person] || 0) + mins;
         }
-        const keys    = Object.keys(weekMap).sort().reverse(); // most recent first
-        const maxMins = Math.max(...keys.map(k => weekMap[k].totalMins), 1);
+        const keys = Object.keys(weekMap).sort(); // ascending → oldest left
         return keys.map(key => {
-            const b     = weekMap[key];
-            const hours = b.totalMins / 60;
+            const b      = weekMap[key];
             const people = Object.entries(b.personMap)
                 .sort((a, c) => c[1] - a[1])
                 .map(([name, mins]) => ({
@@ -234,12 +307,13 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
                     text: `${name.split(' ')[0]} ${this._fmt(mins / 60)}`
                 }));
             return {
-                id:           key,
-                label:        this._weekLabel(b.monday),
-                hoursDisplay: this._fmt(hours),
-                barStyle:     `height:${Math.round((b.totalMins / maxMins) * 100)}%`,
+                id:        key,
+                label:     this._weekLabel(b.monday),
+                totalMins: b.totalMins,
+                hours:     b.totalMins / 60,
+                quarter:   this._weekQuarter(key),
                 people,
-                hasPeople:    people.length > 0
+                hasPeople: people.length > 0
             };
         });
     }

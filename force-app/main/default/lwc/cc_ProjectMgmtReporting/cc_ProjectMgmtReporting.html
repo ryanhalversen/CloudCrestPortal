@@ -104,25 +104,62 @@
                 <div class="wow-section">
                     <div class="wow-hdr">
                         <span class="wow-hdr-title">Hours Delivered by Week</span>
-                    </div>
-                    <div class="wow-chart">
-                        <template for:each={project.weeklyData} for:item="week">
-                            <div key={week.id} class="wow-col">
-                                <span class="wow-col-hours">{week.hoursDisplay}</span>
-                                <div class="wow-col-bar-area">
-                                    <div class="wow-col-bar" style={week.barStyle}></div>
-                                </div>
-                                <span class="wow-col-label">{week.label}</span>
-                                <template if:true={week.hasPeople}>
-                                    <div class="wow-col-people">
-                                        <template for:each={week.people} for:item="person">
-                                            <span key={person.id} class="wow-chip">{person.text}</span>
-                                        </template>
-                                    </div>
+                        <template if:true={project.hasQuarterButtons}>
+                            <div class="wow-q-btns">
+                                <template for:each={project.quarterButtons} for:item="qb">
+                                    <button key={qb.id} class={qb.cssClass} data-quarter={qb.id} onclick={handleQuarterFilter}>{qb.label}</button>
                                 </template>
                             </div>
                         </template>
                     </div>
+                    <template if:true={project.hasWeeklyBars}>
+                        <div class="wow-outer">
+                            <!-- Y-axis tick labels -->
+                            <div class="wow-y-axis">
+                                <template for:each={project.yTicks} for:item="tick">
+                                    <span key={tick.id} class="wow-y-label" style={tick.topStyle}>{tick.value}</span>
+                                </template>
+                            </div>
+                            <!-- Scrollable bar + labels area -->
+                            <div class="wow-chart-scroll">
+                                <div class="wow-bar-zone">
+                                    <!-- Red retained-hours reference line -->
+                                    <template if:true={project.hasRetainedLine}>
+                                        <div class="wow-retained-line" style={project.retainedLineStyle}>
+                                            <span class="wow-retained-label">{project.retainedLabelDisplay}</span>
+                                        </div>
+                                    </template>
+                                    <!-- Vertical bars -->
+                                    <div class="wow-bars-row">
+                                        <template for:each={project.weeklyData} for:item="week">
+                                            <div key={week.id} class="wow-col-bar-wrap">
+                                                <div class="wow-col-bar" style={week.barStyle}></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <!-- Date / hours / people labels below bars -->
+                                <div class="wow-labels-row">
+                                    <template for:each={project.weeklyData} for:item="week">
+                                        <div key={week.id} class="wow-col-footer">
+                                            <span class="wow-col-hours">{week.hoursDisplay}</span>
+                                            <span class="wow-col-label">{week.label}</span>
+                                            <template if:true={week.hasPeople}>
+                                                <div class="wow-col-people">
+                                                    <template for:each={week.people} for:item="person">
+                                                        <span key={person.id} class="wow-chip">{person.text}</span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:false={project.hasWeeklyBars}>
+                        <div class="state-empty">No data for this quarter.</div>
+                    </template>
                 </div>
             </template>
 
