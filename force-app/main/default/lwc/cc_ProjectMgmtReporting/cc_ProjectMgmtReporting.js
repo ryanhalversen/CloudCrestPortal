@@ -207,10 +207,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     }
 
     _weekLabel(monday) {
-        const end = new Date(monday);
-        end.setDate(end.getDate() + 6);
-        const fmt = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return `${fmt(monday)} – ${fmt(end)}`;
+        return monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
     _buildWeeklyData(timeEntries) {
@@ -240,7 +237,7 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
                 id:           key,
                 label:        this._weekLabel(b.monday),
                 hoursDisplay: this._fmt(hours),
-                barStyle:     `width:${Math.round((b.totalMins / maxMins) * 100)}%`,
+                barStyle:     `height:${Math.round((b.totalMins / maxMins) * 100)}%`,
                 people,
                 hasPeople:    people.length > 0
             };

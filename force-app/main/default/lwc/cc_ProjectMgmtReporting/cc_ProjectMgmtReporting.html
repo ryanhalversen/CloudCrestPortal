@@ -105,16 +105,16 @@
                     <div class="wow-hdr">
                         <span class="wow-hdr-title">Hours Delivered by Week</span>
                     </div>
-                    <div class="wow-table">
+                    <div class="wow-chart">
                         <template for:each={project.weeklyData} for:item="week">
-                            <div key={week.id} class="wow-row">
-                                <span class="wow-label">{week.label}</span>
-                                <div class="wow-bar-track">
-                                    <div class="wow-bar-fill" style={week.barStyle}></div>
+                            <div key={week.id} class="wow-col">
+                                <span class="wow-col-hours">{week.hoursDisplay}</span>
+                                <div class="wow-col-bar-area">
+                                    <div class="wow-col-bar" style={week.barStyle}></div>
                                 </div>
-                                <span class="wow-hours">{week.hoursDisplay}</span>
+                                <span class="wow-col-label">{week.label}</span>
                                 <template if:true={week.hasPeople}>
-                                    <div class="wow-people">
+                                    <div class="wow-col-people">
                                         <template for:each={week.people} for:item="person">
                                             <span key={person.id} class="wow-chip">{person.text}</span>
                                         </template>
