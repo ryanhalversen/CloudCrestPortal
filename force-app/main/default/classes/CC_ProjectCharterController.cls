@@ -135,18 +135,33 @@ public with sharing class CC_ProjectCharterController {
         update charter;
     }
 
-    // ── Save milestones: delete orphans, upsert rest ─────────────────────────
+    // ── Save milestones: delete orphans, insert new, update existing ─────────
 
     @AuraEnabled
     public static void saveMilestones(Id charterId, List<Charter_Milestone__c> records) {
         Set<Id> keepIds = new Set<Id>();
+        List<Charter_Milestone__c> toInsert = new List<Charter_Milestone__c>();
+        List<Charter_Milestone__c> toUpdate = new List<Charter_Milestone__c>();
         for (Charter_Milestone__c r : records) {
-            r.Charter__c = charterId;
-            if (r.Id != null) keepIds.add(r.Id);
+            if (r.Id != null) {
+                keepIds.add(r.Id);
+                toUpdate.add(new Charter_Milestone__c(
+                    Id            = r.Id,
+                    Name          = r.Name,
+                    Start_Date__c = r.Start_Date__c,
+                    End_Date__c   = r.End_Date__c,
+                    Status__c     = r.Status__c,
+                    Sort_Order__c = r.Sort_Order__c
+                ));
+            } else {
+                r.Charter__c = charterId;
+                toInsert.add(r);
+            }
         }
         delete [SELECT Id FROM Charter_Milestone__c
                 WHERE  Charter__c = :charterId AND Id NOT IN :keepIds];
-        upsert records;
+        if (!toUpdate.isEmpty()) update toUpdate;
+        if (!toInsert.isEmpty()) insert toInsert;
     }
 
     // ── Save RACI: full replace (matrix shape can change) ────────────────────
@@ -167,31 +182,60 @@ public with sharing class CC_ProjectCharterController {
         if (!toInsert.isEmpty()) insert toInsert;
     }
 
-    // ── Save risks: delete orphans, upsert rest ───────────────────────────────
+    // ── Save risks: delete orphans, insert new, update existing ──────────────
 
     @AuraEnabled
     public static void saveRisks(Id charterId, List<Charter_Risk__c> records) {
         Set<Id> keepIds = new Set<Id>();
+        List<Charter_Risk__c> toInsert = new List<Charter_Risk__c>();
+        List<Charter_Risk__c> toUpdate = new List<Charter_Risk__c>();
         for (Charter_Risk__c r : records) {
-            r.Charter__c = charterId;
-            if (r.Id != null) keepIds.add(r.Id);
+            if (r.Id != null) {
+                keepIds.add(r.Id);
+                toUpdate.add(new Charter_Risk__c(
+                    Id                  = r.Id,
+                    Risk_Description__c = r.Risk_Description__c,
+                    Likelihood__c       = r.Likelihood__c,
+                    Impact__c           = r.Impact__c,
+                    Mitigation__c       = r.Mitigation__c,
+                    Sort_Order__c       = r.Sort_Order__c
+                ));
+            } else {
+                r.Charter__c = charterId;
+                toInsert.add(r);
+            }
         }
         delete [SELECT Id FROM Charter_Risk__c
                 WHERE  Charter__c = :charterId AND Id NOT IN :keepIds];
-        upsert records;
+        if (!toUpdate.isEmpty()) update toUpdate;
+        if (!toInsert.isEmpty()) insert toInsert;
     }
 
-    // ── Save sign-offs: delete orphans, upsert rest ───────────────────────────
+    // ── Save sign-offs: delete orphans, insert new, update existing ───────────
 
     @AuraEnabled
     public static void saveSignoffs(Id charterId, List<Charter_Signoff__c> records) {
         Set<Id> keepIds = new Set<Id>();
+        List<Charter_Signoff__c> toInsert = new List<Charter_Signoff__c>();
+        List<Charter_Signoff__c> toUpdate = new List<Charter_Signoff__c>();
         for (Charter_Signoff__c r : records) {
-            r.Charter__c = charterId;
-            if (r.Id != null) keepIds.add(r.Id);
+            if (r.Id != null) {
+                keepIds.add(r.Id);
+                toUpdate.add(new Charter_Signoff__c(
+                    Id             = r.Id,
+                    Signer_Name__c = r.Signer_Name__c,
+                    Role__c        = r.Role__c,
+                    Status__c      = r.Status__c,
+                    Signed_Date__c = r.Signed_Date__c
+                ));
+            } else {
+                r.Charter__c = charterId;
+                toInsert.add(r);
+            }
         }
         delete [SELECT Id FROM Charter_Signoff__c
                 WHERE  Charter__c = :charterId AND Id NOT IN :keepIds];
-        upsert records;
+        if (!toUpdate.isEmpty()) update toUpdate;
+        if (!toInsert.isEmpty()) insert toInsert;
     }
 }
