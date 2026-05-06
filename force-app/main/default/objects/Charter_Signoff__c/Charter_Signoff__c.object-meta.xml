@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <enableActivities>false</enableActivities>
+    <enableBulkApi>true</enableBulkApi>
+    <enableFeeds>false</enableFeeds>
+    <enableHistory>false</enableHistory>
+    <enableReports>false</enableReports>
+    <enableSearch>false</enableSearch>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <externalSharingModel>ControlledByParent</externalSharingModel>
+    <label>Charter Sign-Off</label>
+    <nameField>
+        <displayFormat>SGN-{0000}</displayFormat>
+        <label>Sign-Off Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Charter Sign-Offs</pluralLabel>
+    <sharingModel>ControlledByParent</sharingModel>
+</CustomObject>

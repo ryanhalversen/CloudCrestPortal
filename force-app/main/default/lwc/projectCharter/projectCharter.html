@@ -1,0 +1,703 @@
+<template>
+    <!-- ── Loading / Error ──────────────────────────────────────────────────── -->
+    <template if:false={hasData}>
+        <template if:false={hasError}>
+            <div class="charter-loading">
+                <lightning-spinner size="medium" alternative-text="Loading charter..."></lightning-spinner>
+            </div>
+        </template>
+        <template if:true={hasError}>
+            <div class="charter-error">
+                <lightning-icon icon-name="utility:error" variant="error" size="small"></lightning-icon>
+                <span>Unable to load charter. Please refresh the page.</span>
+            </div>
+        </template>
+    </template>
+
+    <!-- ── Charter ──────────────────────────────────────────────────────────── -->
+    <template if:true={hasData}>
+        <div class="charter-wrap">
+
+            <!-- Header ──────────────────────────────────────────────────────── -->
+            <div class="charter-header">
+                <div class="charter-title-row">
+                    <h1 class="charter-project-name">{data.projectName}</h1>
+                    <span class={statusBadgeClass}>{data.charterStatus}</span>
+                </div>
+                <div class="charter-meta">
+                    <template if:true={data.accountName}>
+                        <span class="charter-meta-item">
+                            <lightning-icon icon-name="utility:company" size="xx-small" class="meta-icon"></lightning-icon>
+                            {data.accountName}
+                        </span>
+                    </template>
+                    <template if:true={projectDateRange}>
+                        <span class="charter-meta-sep">·</span>
+                        <span class="charter-meta-item">
+                            <lightning-icon icon-name="utility:event" size="xx-small" class="meta-icon"></lightning-icon>
+                            {projectDateRange}
+                        </span>
+                    </template>
+                    <template if:true={data.ownerName}>
+                        <span class="charter-meta-sep">·</span>
+                        <span class="charter-meta-item">
+                            <lightning-icon icon-name="utility:user" size="xx-small" class="meta-icon"></lightning-icon>
+                            {data.ownerName}
+                        </span>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ── 01 Project Overview ────────────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">01</span>
+                    <h2 class="section-title">Project Overview</h2>
+                    <template if:false={isEditing.overview}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="overview">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.overview}>
+                    <div class="section-body two-col">
+                        <div class="field-block">
+                            <div class="field-label">Business Problem</div>
+                            <div class="field-value">{data.businessProblem}</div>
+                        </div>
+                        <div class="field-block">
+                            <div class="field-label">Solution Summary</div>
+                            <div class="field-value">{data.solutionSummary}</div>
+                        </div>
+                    </div>
+                </template>
+                <template if:true={isEditing.overview}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="Business Problem"
+                            value={draftCharter.businessProblem}
+                            data-field="businessProblem"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                        <lightning-textarea label="Solution Summary"
+                            value={draftCharter.solutionSummary}
+                            data-field="solutionSummary"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="overview" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 02 Objectives & Success Criteria ──────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">02</span>
+                    <h2 class="section-title">Objectives &amp; Success Criteria</h2>
+                    <template if:false={isEditing.objectives}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="objectives">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.objectives}>
+                    <div class="section-body two-col">
+                        <div class="field-block">
+                            <div class="field-label">Objectives</div>
+                            <div class="field-value">{data.objectives}</div>
+                        </div>
+                        <div class="field-block">
+                            <div class="field-label">Success Criteria</div>
+                            <div class="field-value">{data.successCriteria}</div>
+                        </div>
+                    </div>
+                </template>
+                <template if:true={isEditing.objectives}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="Objectives"
+                            value={draftCharter.objectives}
+                            data-field="objectives"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                        <lightning-textarea label="Success Criteria"
+                            value={draftCharter.successCriteria}
+                            data-field="successCriteria"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="objectives" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 03 Scope ───────────────────────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">03</span>
+                    <h2 class="section-title">Scope</h2>
+                    <template if:false={isEditing.scope}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="scope">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.scope}>
+                    <div class="section-body two-col">
+                        <div class="field-block">
+                            <div class="field-label scope-in-label">
+                                <lightning-icon icon-name="utility:success" size="xx-small" class="icon-green"></lightning-icon>
+                                In Scope
+                            </div>
+                            <div class="field-value">{data.scopeIn}</div>
+                        </div>
+                        <div class="field-block">
+                            <div class="field-label scope-out-label">
+                                <lightning-icon icon-name="utility:ban" size="xx-small" class="icon-muted"></lightning-icon>
+                                Out of Scope
+                            </div>
+                            <div class="field-value">{data.scopeOut}</div>
+                        </div>
+                    </div>
+                </template>
+                <template if:true={isEditing.scope}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="In Scope"
+                            value={draftCharter.scopeIn}
+                            data-field="scopeIn"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                        <lightning-textarea label="Out of Scope"
+                            value={draftCharter.scopeOut}
+                            data-field="scopeOut"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="scope" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 04 RACI Matrix ─────────────────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">04</span>
+                    <h2 class="section-title">RACI Matrix</h2>
+                    <template if:false={isEditing.raci}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="raci">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+
+                <!-- View mode -->
+                <template if:false={isEditing.raci}>
+                    <template if:true={hasRaciData}>
+                        <div class="section-body">
+                            <div class="raci-legend">
+                                <span class="raci-badge raci-r">R</span> Responsible &nbsp;
+                                <span class="raci-badge raci-a">A</span> Accountable &nbsp;
+                                <span class="raci-badge raci-c">C</span> Consulted &nbsp;
+                                <span class="raci-badge raci-i">I</span> Informed
+                            </div>
+                            <div class="raci-scroll">
+                                <table class="raci-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="raci-activity-hdr">Activity</th>
+                                            <template for:each={raciRoles} for:item="role">
+                                                <th key={role.key} class="raci-role-hdr">{role.name}</th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={raciRows} for:item="row">
+                                            <tr key={row.key}>
+                                                <td class="raci-activity-cell">{row.activity}</td>
+                                                <template for:each={row.cells} for:item="cell">
+                                                    <td key={cell.key} class="raci-cell">
+                                                        <span class={cell.badgeClass}>{cell.assignment}</span>
+                                                    </td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:false={hasRaciData}>
+                        <div class="section-body empty-state">No RACI data yet. Click Edit to add activities and roles.</div>
+                    </template>
+                </template>
+
+                <!-- Edit mode -->
+                <template if:true={isEditing.raci}>
+                    <div class="section-body edit-mode">
+                        <p class="raci-hint">Click a cell to cycle assignments: R → A → C → I → blank</p>
+                        <div class="raci-scroll">
+                            <table class="raci-table raci-edit">
+                                <thead>
+                                    <tr>
+                                        <th class="raci-activity-hdr">Activity</th>
+                                        <template for:each={raciRoles} for:item="role">
+                                            <th key={role.key} class="raci-role-hdr">
+                                                <div class="raci-role-wrap">
+                                                    <span class="raci-role-name">{role.name}</span>
+                                                    <button class="raci-del-btn" onclick={handleDeleteRole}
+                                                        data-role={role.name} title="Remove role">×</button>
+                                                </div>
+                                            </th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={raciRows} for:item="row">
+                                        <tr key={row.key}>
+                                            <td class="raci-activity-cell">
+                                                <div class="raci-activity-wrap">
+                                                    <span class="raci-activity-name">{row.activity}</span>
+                                                    <button class="raci-del-btn" onclick={handleDeleteActivity}
+                                                        data-activity={row.activity} title="Remove activity">×</button>
+                                                </div>
+                                            </td>
+                                            <template for:each={row.cells} for:item="cell">
+                                                <td key={cell.key} class="raci-cell raci-cell-edit">
+                                                    <button class={cell.badgeClass}
+                                                        onclick={handleRaciCellClick}
+                                                        data-activity={row.activity}
+                                                        data-role={cell.role}>
+                                                        {cell.assignment}
+                                                    </button>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="raci-add-row">
+                            <div class="raci-add-inputs">
+                                <lightning-input type="text" label="New Activity"
+                                    value={newActivity}
+                                    onchange={handleNewActivityChange}>
+                                </lightning-input>
+                                <lightning-button label="Add Activity" onclick={handleAddActivity}
+                                    disabled={isSaving}></lightning-button>
+                            </div>
+                            <div class="raci-add-inputs">
+                                <lightning-input type="text" label="New Role"
+                                    value={newRole}
+                                    onchange={handleNewRoleChange}>
+                                </lightning-input>
+                                <lightning-button label="Add Role" onclick={handleAddRole}
+                                    disabled={isSaving}></lightning-button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveRaci}
+                            disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 05 Timeline & Milestones ──────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">05</span>
+                    <h2 class="section-title">Timeline &amp; Milestones</h2>
+                    <template if:false={isEditing.timeline}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="timeline">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+
+                <!-- View mode -->
+                <template if:false={isEditing.timeline}>
+                    <template if:true={hasTimeline}>
+                        <div class="section-body">
+                            <div class="ms-chart">
+                                <template for:each={milestonesWithBars} for:item="ms">
+                                    <div key={ms.key} class="ms-row">
+                                        <div class="ms-name">{ms.Name}</div>
+                                        <div class="ms-track-wrap">
+                                            <div class="ms-track">
+                                                <template if:true={ms.hasBar}>
+                                                    <div class={ms.barClass} style={ms.barStyle}></div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div class="ms-dates">{ms.startFmt} – {ms.endFmt}</div>
+                                        <span class="ms-status-badge">{ms.Status__c}</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:false={hasTimeline}>
+                        <div class="section-body empty-state">No milestones yet. Click Edit to add phases.</div>
+                    </template>
+                </template>
+
+                <!-- Edit mode -->
+                <template if:true={isEditing.timeline}>
+                    <div class="section-body edit-mode">
+                        <template for:each={milestonesWithBars} for:item="ms">
+                            <div key={ms.key} class="ms-edit-row">
+                                <div class="ms-edit-fields">
+                                    <lightning-input type="text" label="Phase Name"
+                                        value={ms.Name} data-idx={ms.idx} data-field="Name"
+                                        onchange={handleMilestoneFieldChange}>
+                                    </lightning-input>
+                                    <lightning-input type="date" label="Start Date"
+                                        value={ms.Start_Date__c} data-idx={ms.idx} data-field="Start_Date__c"
+                                        onchange={handleMilestoneFieldChange}>
+                                    </lightning-input>
+                                    <lightning-input type="date" label="End Date"
+                                        value={ms.End_Date__c} data-idx={ms.idx} data-field="End_Date__c"
+                                        onchange={handleMilestoneFieldChange}>
+                                    </lightning-input>
+                                    <div class="ms-status-select">
+                                        <label class="input-label">Status</label>
+                                        <select class="charter-select" data-idx={ms.idx} data-field="Status__c"
+                                            onchange={handleMilestoneFieldChange}>
+                                            <template for:each={ms.statusOpts} for:item="opt">
+                                                <option key={opt.value} value={opt.value}
+                                                    selected={opt.selected}>{opt.label}</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button class="delete-row-btn" onclick={handleDeleteMilestone}
+                                    data-idx={ms.idx} title="Remove milestone">
+                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                </button>
+                            </div>
+                        </template>
+                        <button class="add-row-btn" onclick={handleAddMilestone}>+ Add Phase</button>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveMilestones}
+                            disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 06 Assumptions & Dependencies ─────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">06</span>
+                    <h2 class="section-title">Assumptions &amp; Dependencies</h2>
+                    <template if:false={isEditing.assumptions}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="assumptions">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.assumptions}>
+                    <div class="section-body two-col">
+                        <div class="field-block">
+                            <div class="field-label">Assumptions</div>
+                            <div class="field-value">{data.assumptions}</div>
+                        </div>
+                        <div class="field-block">
+                            <div class="field-label">Dependencies</div>
+                            <div class="field-value">{data.dependencies}</div>
+                        </div>
+                    </div>
+                </template>
+                <template if:true={isEditing.assumptions}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="Assumptions"
+                            value={draftCharter.assumptions}
+                            data-field="assumptions"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                        <lightning-textarea label="Dependencies"
+                            value={draftCharter.dependencies}
+                            data-field="dependencies"
+                            onchange={handleCharterFieldChange}
+                            rows="5">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="assumptions" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 07 Risks ───────────────────────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">07</span>
+                    <h2 class="section-title">Risks</h2>
+                    <template if:false={isEditing.risks}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="risks">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+
+                <!-- View mode -->
+                <template if:false={isEditing.risks}>
+                    <template if:true={hasRisks}>
+                        <div class="section-body">
+                            <div class="risk-hdr-row">
+                                <span class="risk-col-desc">Description</span>
+                                <span class="risk-col-lh">Likelihood</span>
+                                <span class="risk-col-lh">Impact</span>
+                                <span class="risk-col-mit">Mitigation</span>
+                            </div>
+                            <template for:each={risksDisplay} for:item="risk">
+                                <div key={risk.key} class="risk-row">
+                                    <span class="risk-col-desc">{risk.Risk_Description__c}</span>
+                                    <span class="risk-col-lh">
+                                        <span class={risk.likelihoodClass}>{risk.Likelihood__c}</span>
+                                    </span>
+                                    <span class="risk-col-lh">
+                                        <span class={risk.impactClass}>{risk.Impact__c}</span>
+                                    </span>
+                                    <span class="risk-col-mit">{risk.Mitigation__c}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasRisks}>
+                        <div class="section-body empty-state">No risks identified yet. Click Edit to add.</div>
+                    </template>
+                </template>
+
+                <!-- Edit mode -->
+                <template if:true={isEditing.risks}>
+                    <div class="section-body edit-mode">
+                        <template for:each={risksDisplay} for:item="risk">
+                            <div key={risk.key} class="risk-edit-row">
+                                <div class="risk-edit-fields">
+                                    <lightning-textarea label="Risk Description"
+                                        value={risk.Risk_Description__c}
+                                        data-idx={risk.idx} data-field="Risk_Description__c"
+                                        onchange={handleRiskFieldChange}
+                                        rows="2">
+                                    </lightning-textarea>
+                                    <div class="risk-selects">
+                                        <div class="risk-select-wrap">
+                                            <label class="input-label">Likelihood</label>
+                                            <select class="charter-select" data-idx={risk.idx}
+                                                data-field="Likelihood__c" onchange={handleRiskFieldChange}>
+                                                <template for:each={risk.likelihoodOpts} for:item="opt">
+                                                    <option key={opt.value} value={opt.value}
+                                                        selected={opt.selected}>{opt.label}</option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div class="risk-select-wrap">
+                                            <label class="input-label">Impact</label>
+                                            <select class="charter-select" data-idx={risk.idx}
+                                                data-field="Impact__c" onchange={handleRiskFieldChange}>
+                                                <template for:each={risk.impactOpts} for:item="opt">
+                                                    <option key={opt.value} value={opt.value}
+                                                        selected={opt.selected}>{opt.label}</option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <lightning-textarea label="Mitigation"
+                                        value={risk.Mitigation__c}
+                                        data-idx={risk.idx} data-field="Mitigation__c"
+                                        onchange={handleRiskFieldChange}
+                                        rows="2">
+                                    </lightning-textarea>
+                                </div>
+                                <button class="delete-row-btn" onclick={handleDeleteRisk}
+                                    data-idx={risk.idx} title="Remove risk">
+                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                </button>
+                            </div>
+                        </template>
+                        <button class="add-row-btn" onclick={handleAddRisk}>+ Add Risk</button>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveRisks}
+                            disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 08 Communication Plan ──────────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">08</span>
+                    <h2 class="section-title">Communication Plan</h2>
+                    <template if:false={isEditing.comms}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="comms">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.comms}>
+                    <div class="section-body">
+                        <div class="field-value">{data.communicationPlan}</div>
+                    </div>
+                </template>
+                <template if:true={isEditing.comms}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="Communication Plan"
+                            value={draftCharter.communicationPlan}
+                            data-field="communicationPlan"
+                            onchange={handleCharterFieldChange}
+                            rows="6">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="comms" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 09 Change Order Process ───────────────────────────────── -->
+            <div class="charter-section">
+                <div class="section-hdr">
+                    <span class="section-num">09</span>
+                    <h2 class="section-title">Change Order Process</h2>
+                    <template if:false={isEditing.changeOrder}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="changeOrder">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+                <template if:false={isEditing.changeOrder}>
+                    <div class="section-body">
+                        <div class="field-value">{data.changeOrderProcess}</div>
+                    </div>
+                </template>
+                <template if:true={isEditing.changeOrder}>
+                    <div class="section-body edit-mode">
+                        <lightning-textarea label="Change Order Process"
+                            value={draftCharter.changeOrderProcess}
+                            data-field="changeOrderProcess"
+                            onchange={handleCharterFieldChange}
+                            rows="6">
+                        </lightning-textarea>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveTextSection}
+                            data-section="changeOrder" disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ── 10 Sign-Off ────────────────────────────────────────────── -->
+            <div class="charter-section charter-section-last">
+                <div class="section-hdr">
+                    <span class="section-num">10</span>
+                    <h2 class="section-title">Sign-Off</h2>
+                    <template if:false={isEditing.signoff}>
+                        <button class="section-edit-btn" onclick={handleEdit} data-section="signoff">
+                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                        </button>
+                    </template>
+                </div>
+
+                <!-- View mode -->
+                <template if:false={isEditing.signoff}>
+                    <template if:true={hasSignoffs}>
+                        <div class="section-body">
+                            <div class="signoff-hdr-row">
+                                <span class="signoff-col-name">Name</span>
+                                <span class="signoff-col-role">Role</span>
+                                <span class="signoff-col-status">Status</span>
+                                <span class="signoff-col-date">Date Signed</span>
+                            </div>
+                            <template for:each={signoffsDisplay} for:item="signoff">
+                                <div key={signoff.key} class="signoff-row">
+                                    <span class="signoff-col-name">{signoff.Signer_Name__c}</span>
+                                    <span class="signoff-col-role">{signoff.Role__c}</span>
+                                    <span class="signoff-col-status">
+                                        <span class={signoff.statusClass}>{signoff.Status__c}</span>
+                                    </span>
+                                    <span class="signoff-col-date">{signoff.Signed_Date__c}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasSignoffs}>
+                        <div class="section-body empty-state">No signatories added yet. Click Edit to add.</div>
+                    </template>
+                </template>
+
+                <!-- Edit mode -->
+                <template if:true={isEditing.signoff}>
+                    <div class="section-body edit-mode">
+                        <template for:each={signoffsDisplay} for:item="signoff">
+                            <div key={signoff.key} class="signoff-edit-row">
+                                <div class="signoff-edit-fields">
+                                    <lightning-input type="text" label="Name"
+                                        value={signoff.Signer_Name__c}
+                                        data-idx={signoff.idx} data-field="Signer_Name__c"
+                                        onchange={handleSignoffFieldChange}>
+                                    </lightning-input>
+                                    <lightning-input type="text" label="Role"
+                                        value={signoff.Role__c}
+                                        data-idx={signoff.idx} data-field="Role__c"
+                                        onchange={handleSignoffFieldChange}>
+                                    </lightning-input>
+                                    <div class="signoff-status-wrap">
+                                        <label class="input-label">Status</label>
+                                        <select class="charter-select" data-idx={signoff.idx}
+                                            data-field="Status__c" onchange={handleSignoffFieldChange}>
+                                            <template for:each={signoff.statusOpts} for:item="opt">
+                                                <option key={opt.value} value={opt.value}
+                                                    selected={opt.selected}>{opt.label}</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <lightning-input type="date" label="Signed Date"
+                                        value={signoff.Signed_Date__c}
+                                        data-idx={signoff.idx} data-field="Signed_Date__c"
+                                        onchange={handleSignoffFieldChange}>
+                                    </lightning-input>
+                                </div>
+                                <button class="delete-row-btn" onclick={handleDeleteSignoff}
+                                    data-idx={signoff.idx} title="Remove signatory">
+                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                </button>
+                            </div>
+                        </template>
+                        <button class="add-row-btn" onclick={handleAddSignoff}>+ Add Signatory</button>
+                    </div>
+                    <div class="section-actions">
+                        <lightning-button label="Save" variant="brand" onclick={handleSaveSignoffs}
+                            disabled={isSaving}></lightning-button>
+                        <lightning-button label="Cancel" onclick={handleCancel} disabled={isSaving}></lightning-button>
+                    </div>
+                </template>
+            </div>
+
+        </div><!-- /charter-wrap -->
+    </template>
+</template>
