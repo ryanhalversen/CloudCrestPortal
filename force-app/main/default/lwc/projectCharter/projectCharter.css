@@ -187,6 +187,133 @@
 .icon-green  { --lwc-colorTextIconSuccess: #2e844a; }
 .icon-muted  { --lwc-colorTextIconDefault: #9399a6; }
 
+/* ── RACI info button ────────────────────────────────────────────────────── */
+.raci-info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: 1px solid #b0c4de;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #0176d3;
+    padding: 0;
+    transition: background .12s, border-color .12s;
+    flex-shrink: 0;
+}
+.raci-info-btn:hover {
+    background: #f0f6ff;
+    border-color: #0176d3;
+}
+
+/* ── RACI info modal ─────────────────────────────────────────────────────── */
+.raci-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .3);
+    z-index: 8000;
+}
+.raci-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8001;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+    width: min(520px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.raci-modal-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}
+.raci-modal-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1b1b1b;
+    margin: 0;
+}
+.raci-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #706e6b;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+}
+.raci-modal-close:hover {
+    background: #f3f4f6;
+    color: #1b1b1b;
+}
+.raci-modal-body {
+    padding: 20px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.raci-modal-intro {
+    margin: 0;
+    font-size: .875rem;
+    color: #444;
+    line-height: 1.6;
+}
+.raci-modal-roles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.raci-modal-role-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+.raci-modal-role-text {
+    font-size: .875rem;
+    color: #3e3d3d;
+    line-height: 1.55;
+    padding-top: 2px;
+}
+.raci-modal-how {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px 18px;
+}
+.raci-modal-how-title {
+    font-size: .875rem;
+    font-weight: 700;
+    color: #1b1b1b;
+    margin: 0 0 10px;
+}
+.raci-modal-steps {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.raci-modal-steps li {
+    font-size: .875rem;
+    color: #3e3d3d;
+    line-height: 1.55;
+}
+
 /* ── RACI ─────────────────────────────────────────────────────────────────── */
 .raci-legend {
     display: flex;

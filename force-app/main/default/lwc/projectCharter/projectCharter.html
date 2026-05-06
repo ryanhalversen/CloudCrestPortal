@@ -197,12 +197,74 @@
                 <div class="section-hdr">
                     <span class="section-num">04</span>
                     <h2 class="section-title">RACI Matrix</h2>
+                    <button class="raci-info-btn" onclick={handleRaciInfoOpen} title="What is RACI?">
+                        <lightning-icon icon-name="utility:info" size="xx-small"></lightning-icon>
+                    </button>
                     <template if:false={isEditing.raci}>
                         <button class="section-edit-btn" onclick={handleEdit} data-section="raci">
                             <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
                         </button>
                     </template>
                 </div>
+
+                <!-- RACI info modal -->
+                <template if:true={showRaciInfo}>
+                    <div class="raci-modal-backdrop" onclick={handleRaciInfoClose}></div>
+                    <div class="raci-modal" role="dialog" aria-modal="true" aria-label="About RACI">
+                        <div class="raci-modal-hdr">
+                            <h3 class="raci-modal-title">What is a RACI Matrix?</h3>
+                            <button class="raci-modal-close" onclick={handleRaciInfoClose} title="Close">
+                                <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
+                            </button>
+                        </div>
+                        <div class="raci-modal-body">
+                            <p class="raci-modal-intro">
+                                A RACI matrix maps every project activity to the people involved,
+                                clarifying who does what and who makes the final call.
+                                Each cell is assigned one of four roles:
+                            </p>
+                            <div class="raci-modal-roles">
+                                <div class="raci-modal-role-row">
+                                    <span class="raci-badge raci-r">R</span>
+                                    <div class="raci-modal-role-text">
+                                        <strong>Responsible</strong> — the person who does the work.
+                                        At least one R is required per activity.
+                                    </div>
+                                </div>
+                                <div class="raci-modal-role-row">
+                                    <span class="raci-badge raci-a">A</span>
+                                    <div class="raci-modal-role-text">
+                                        <strong>Accountable</strong> — the one person who owns the outcome
+                                        and has final sign-off authority. Only one A per activity.
+                                    </div>
+                                </div>
+                                <div class="raci-modal-role-row">
+                                    <span class="raci-badge raci-c">C</span>
+                                    <div class="raci-modal-role-text">
+                                        <strong>Consulted</strong> — subject-matter experts whose input
+                                        is sought before decisions are made (two-way communication).
+                                    </div>
+                                </div>
+                                <div class="raci-modal-role-row">
+                                    <span class="raci-badge raci-i">I</span>
+                                    <div class="raci-modal-role-text">
+                                        <strong>Informed</strong> — stakeholders kept up to date on progress
+                                        and outcomes (one-way communication).
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="raci-modal-how">
+                                <p class="raci-modal-how-title">How to use this matrix</p>
+                                <ol class="raci-modal-steps">
+                                    <li>Click <strong>Edit</strong>, then use <strong>Add Activity</strong> to list each key task or deliverable (rows).</li>
+                                    <li>Use <strong>Add Role</strong> to define the people or teams involved (columns).</li>
+                                    <li>Click any cell to cycle through R → A → C → I → blank until the assignment is correct.</li>
+                                    <li>Click <strong>Save</strong> when finished.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
                 <!-- View mode -->
                 <template if:false={isEditing.raci}>

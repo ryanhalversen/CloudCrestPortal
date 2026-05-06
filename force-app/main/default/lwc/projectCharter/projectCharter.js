@@ -48,6 +48,7 @@ export default class ProjectCharter extends LightningElement {
     _error         = null;
     _saving        = false;
     _editSection   = null;
+    _showRaciInfo  = false;
 
     // Draft state — populated when entering edit mode
     _draftCharter     = {};
@@ -108,6 +109,11 @@ export default class ProjectCharter extends LightningElement {
     }
 
     get isAnyEditing() { return this._editSection !== null; }
+
+    get showRaciInfo() { return this._showRaciInfo; }
+
+    handleRaciInfoOpen()  { this._showRaciInfo = true;  }
+    handleRaciInfoClose() { this._showRaciInfo = false; }
 
     // ── Charter header display ────────────────────────────────────────────────
 
