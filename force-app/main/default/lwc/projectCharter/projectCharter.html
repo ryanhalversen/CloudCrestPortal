@@ -327,7 +327,7 @@
                                                     data-role={role.key}
                                                     oninput={handleContactSearch}
                                                     onblur={handleContactBlur}
-                                                    placeholder="Search contacts..."
+                                                    placeholder={role.placeholder}
                                                     autocomplete="off" />
                                                 <template if:true={role.showDropdown}>
                                                     <ul class="contact-dropdown">
@@ -365,7 +365,7 @@
                                                     data-role={role.key}
                                                     oninput={handleContactSearch}
                                                     onblur={handleContactBlur}
-                                                    placeholder="Search contacts..."
+                                                    placeholder={role.placeholder}
                                                     autocomplete="off" />
                                                 <template if:true={role.showDropdown}>
                                                     <ul class="contact-dropdown">

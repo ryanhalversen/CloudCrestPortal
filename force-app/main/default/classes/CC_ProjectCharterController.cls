@@ -77,7 +77,9 @@ public with sharing class CC_ProjectCharterController {
         ];
 
         List<Charter_RACI__c> raciCells = [
-            SELECT Id, Role__c, Contact_Name__c, Contact__c, Contact__r.Name
+            SELECT Id, Role__c, Contact_Name__c,
+                   Contact__c, Contact__r.Name,
+                   User__c, User__r.Name
             FROM   Charter_RACI__c
             WHERE  Charter__c = :charter.Id
             ORDER BY CreatedDate ASC
@@ -174,6 +176,7 @@ public with sharing class CC_ProjectCharterController {
             toInsert.add(new Charter_RACI__c(
                 Charter__c = charterId,
                 Role__c    = r.Role__c,
+                User__c    = r.User__c,
                 Contact__c = r.Contact__c
             ));
         }
@@ -209,7 +212,7 @@ public with sharing class CC_ProjectCharterController {
         if (!toInsert.isEmpty()) insert toInsert;
     }
 
-    // ── Contact search (typeahead for Roles & Responsibilities) ─────────────────
+    // ── Contact search — client roles ────────────────────────────────────────────
 
     @AuraEnabled(cacheable=true)
     public static List<Contact> searchContacts(String searchTerm) {
@@ -222,6 +225,23 @@ public with sharing class CC_ProjectCharterController {
             RETURNING Contact(Id, Name ORDER BY Name LIMIT 10)
         ];
         return (List<Contact>) results[0];
+    }
+
+    // ── User search — CloudCrest roles ───────────────────────────────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static List<User> searchUsers(String searchTerm) {
+        if (String.isBlank(searchTerm) || searchTerm.trim().length() < 2) {
+            return new List<User>();
+        }
+        String likeTerm = '%' + searchTerm.trim() + '%';
+        return [
+            SELECT Id, Name
+            FROM   User
+            WHERE  IsActive = true AND Name LIKE :likeTerm
+            ORDER BY Name
+            LIMIT  10
+        ];
     }
 
     // ── Save sign-offs: delete orphans, insert new, update existing ───────────

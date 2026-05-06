@@ -7,6 +7,7 @@ import saveRaci         from '@salesforce/apex/CC_ProjectCharterController.saveR
 import saveRisks        from '@salesforce/apex/CC_ProjectCharterController.saveRisks';
 import saveSignoffs     from '@salesforce/apex/CC_ProjectCharterController.saveSignoffs';
 import searchContacts   from '@salesforce/apex/CC_ProjectCharterController.searchContacts';
+import searchUsers      from '@salesforce/apex/CC_ProjectCharterController.searchUsers';
 
 // ── Section → charter field mappings ─────────────────────────────────────────
 const SECTION_FIELDS = {
@@ -144,26 +145,29 @@ export default class ProjectCharter extends LightningElement {
         return this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
     }
 
-    // CloudCrest fixed roles — always shown, contact looked up from data
+    // CloudCrest fixed roles — assigned to internal Users
     get ccRoles() {
         const infoMap = {};
         for (const c of this._rolesSource()) {
-            if (c.Role__c) infoMap[c.Role__c] = {
-                id:   c.Contact__c || null,
-                name: c.contactName || (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
-            };
+            if (c.Role__c && CC_ROLES.includes(c.Role__c)) {
+                infoMap[c.Role__c] = {
+                    id:   c.User__c || null,
+                    name: c.contactName || (c.User__r && c.User__r.Name) || ''
+                };
+            }
         }
         return CC_ROLES.map(r => ({
             key:          r,
             name:         r,
             contactId:    (infoMap[r] || {}).id   || null,
             contactName:  (infoMap[r] || {}).name || '',
+            placeholder:  'Search users...',
             showDropdown: this._searchRole === r &&
                           (this._searchResults.length > 0 || this._searchNoResults)
         }));
     }
 
-    // Client roles — any role NOT in CC_ROLES
+    // Client roles — assigned to Contacts
     get clientRoles() {
         const seen = new Set();
         const roles = [];
@@ -175,6 +179,7 @@ export default class ProjectCharter extends LightningElement {
                     name:         c.Role__c,
                     contactId:    c.Contact__c || null,
                     contactName:  c.contactName || (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || '',
+                    placeholder:  'Search contacts...',
                     showDropdown: this._searchRole === c.Role__c &&
                                   (this._searchResults.length > 0 || this._searchNoResults)
                 });
@@ -266,31 +271,42 @@ export default class ProjectCharter extends LightningElement {
         this._draftSignoffs   = (this._data?.signoffs   || []).map(s => ({ ...s }));
         this._newRole         = '';
 
-        // Build roles draft — ensure all CC roles are always present
+        // Build roles draft — CC roles get User__c, client roles get Contact__c
+        const userMap        = {};
+        const userNameMap    = {};
         const contactMap     = {};
         const contactNameMap = {};
         const clientRolesInData = [];
         const seenRoles = new Set(CC_ROLES);
         for (const c of (this._data?.raciCells || [])) {
             if (!c.Role__c) continue;
-            if (!contactMap[c.Role__c]) {
-                contactMap[c.Role__c]     = c.Contact__c || null;
-                contactNameMap[c.Role__c] = (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || '';
-            }
-            if (!seenRoles.has(c.Role__c)) {
-                seenRoles.add(c.Role__c);
-                clientRolesInData.push({
-                    Role__c:     c.Role__c,
-                    Contact__c:  c.Contact__c || null,
-                    contactName: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
-                });
+            if (CC_ROLES.includes(c.Role__c)) {
+                if (!userMap[c.Role__c]) {
+                    userMap[c.Role__c]     = c.User__c || null;
+                    userNameMap[c.Role__c] = (c.User__r && c.User__r.Name) || '';
+                }
+            } else {
+                if (!contactMap[c.Role__c]) {
+                    contactMap[c.Role__c]     = c.Contact__c || null;
+                    contactNameMap[c.Role__c] = (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || '';
+                }
+                if (!seenRoles.has(c.Role__c)) {
+                    seenRoles.add(c.Role__c);
+                    clientRolesInData.push({
+                        Role__c:     c.Role__c,
+                        User__c:     null,
+                        Contact__c:  c.Contact__c || null,
+                        contactName: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+                    });
+                }
             }
         }
         this._draftRaci = [
             ...CC_ROLES.map(r => ({
                 Role__c:     r,
-                Contact__c:  contactMap[r]     || null,
-                contactName: contactNameMap[r] || ''
+                User__c:     userMap[r]     || null,
+                Contact__c:  null,
+                contactName: userNameMap[r] || ''
             })),
             ...clientRolesInData
         ];
@@ -388,17 +404,18 @@ export default class ProjectCharter extends LightningElement {
 
     handleNewRoleChange(event) { this._newRole = event.target.value; }
 
-    // Contact typeahead: update draft name + debounce SOSL search
+    // Contact/User typeahead — CC roles search Users, client roles search Contacts
     handleContactSearch(event) {
-        const role = event.target.dataset.role;
-        const term = event.target.value;
+        const role  = event.target.dataset.role;
+        const term  = event.target.value;
+        const isCc  = CC_ROLES.includes(role);
         this._searchRole      = role;
         this._searchNoResults = false;
-        // Keep contactName in sync so the value binding doesn't reset the input
+        // Clear stored ID and keep display name in sync so value binding doesn't reset input
         const idx = this._draftRaci.findIndex(c => c.Role__c === role);
         if (idx !== -1) {
             this._draftRaci = this._draftRaci.map((c, i) =>
-                i === idx ? { ...c, Contact__c: null, contactName: term } : c
+                i === idx ? { ...c, User__c: null, Contact__c: null, contactName: term } : c
             );
         }
         if (this._searchTimer) clearTimeout(this._searchTimer);
@@ -406,12 +423,29 @@ export default class ProjectCharter extends LightningElement {
             this._searchResults = [];
             return;
         }
-        this._searchTimer = setTimeout(() => this._runContactSearch(term), 300);
+        this._searchTimer = setTimeout(() => {
+            if (isCc) {
+                this._runUserSearch(term);
+            } else {
+                this._runContactSearch(term);
+            }
+        }, 300);
+    }
+
+    async _runUserSearch(term) {
+        try {
+            const results         = await searchUsers({ searchTerm: term.trim() });
+            this._searchResults   = results || [];
+            this._searchNoResults = this._searchResults.length === 0;
+        } catch (e) {
+            this._searchResults   = [];
+            this._searchNoResults = false;
+        }
     }
 
     async _runContactSearch(term) {
         try {
-            const results       = await searchContacts({ searchTerm: term.trim() });
+            const results         = await searchContacts({ searchTerm: term.trim() });
             this._searchResults   = results || [];
             this._searchNoResults = this._searchResults.length === 0;
         } catch (e) {
@@ -421,13 +455,19 @@ export default class ProjectCharter extends LightningElement {
     }
 
     handleContactSelect(event) {
-        const role = event.currentTarget.dataset.role;
-        const id   = event.currentTarget.dataset.id;
-        const name = event.currentTarget.dataset.name;
-        const idx  = this._draftRaci.findIndex(c => c.Role__c === role);
+        const role  = event.currentTarget.dataset.role;
+        const id    = event.currentTarget.dataset.id;
+        const name  = event.currentTarget.dataset.name;
+        const isCc  = CC_ROLES.includes(role);
+        const idx   = this._draftRaci.findIndex(c => c.Role__c === role);
         if (idx !== -1) {
             this._draftRaci = this._draftRaci.map((c, i) =>
-                i === idx ? { ...c, Contact__c: id, contactName: name } : c
+                i === idx ? {
+                    ...c,
+                    User__c:     isCc ? id   : null,
+                    Contact__c:  isCc ? null : id,
+                    contactName: name
+                } : c
             );
         }
         this._searchRole      = null;
@@ -448,7 +488,7 @@ export default class ProjectCharter extends LightningElement {
         const name = (this._newRole || '').trim();
         if (!name || CC_ROLES.includes(name)) return;
         if (this._draftRaci.some(c => c.Role__c === name)) return; // no duplicates
-        this._draftRaci = [...this._draftRaci, { Role__c: name, Contact__c: null, contactName: '' }];
+        this._draftRaci = [...this._draftRaci, { Role__c: name, User__c: null, Contact__c: null, contactName: '' }];
         this._newRole   = '';
     }
 
