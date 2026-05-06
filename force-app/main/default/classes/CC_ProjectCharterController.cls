@@ -209,6 +209,21 @@ public with sharing class CC_ProjectCharterController {
         if (!toInsert.isEmpty()) insert toInsert;
     }
 
+    // ── Contact search (typeahead for Roles & Responsibilities) ─────────────────
+
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> searchContacts(String searchTerm) {
+        if (String.isBlank(searchTerm) || searchTerm.trim().length() < 2) {
+            return new List<Contact>();
+        }
+        String q = searchTerm.trim() + '*';
+        List<List<SObject>> results = [
+            FIND :q IN NAME FIELDS
+            RETURNING Contact(Id, Name ORDER BY Name LIMIT 10)
+        ];
+        return (List<Contact>) results[0];
+    }
+
     // ── Save sign-offs: delete orphans, insert new, update existing ───────────
 
     @AuraEnabled

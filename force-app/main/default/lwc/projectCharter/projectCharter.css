@@ -806,3 +806,61 @@
 }
 .roles-modal-cc     { background: #e8f4ff; color: #032d60; }
 .roles-modal-client { background: #edf7e6; color: #1e5c11; }
+
+/* ── Contact typeahead ───────────────────────────────────────────────────── */
+.contact-search-wrap {
+    position: relative;
+}
+.contact-search-input {
+    width: 100%;
+    padding: 5px 10px;
+    border: 1px solid #d0d7e3;
+    border-radius: 4px;
+    font-size: .875rem;
+    color: #1b1b1b;
+    background: #fff;
+    height: 32px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+.contact-search-input:focus {
+    outline: none;
+    border-color: #0176d3;
+    box-shadow: 0 0 0 3px rgba(1, 118, 211, .15);
+}
+.contact-search-input::placeholder {
+    color: #9399a6;
+}
+.contact-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #d0d7e3;
+    border-radius: 4px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+    z-index: 200;
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.contact-dropdown-item {
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: .875rem;
+    color: #1b1b1b;
+    user-select: none;
+}
+.contact-dropdown-item:hover {
+    background: #f0f6ff;
+    color: #0176d3;
+}
+.contact-dropdown-empty {
+    padding: 7px 12px;
+    font-size: .875rem;
+    color: #9399a6;
+    font-style: italic;
+}

@@ -1,11 +1,12 @@
 import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getCharterData  from '@salesforce/apex/CC_ProjectCharterController.getCharterData';
-import saveCharter     from '@salesforce/apex/CC_ProjectCharterController.saveCharter';
-import saveMilestones  from '@salesforce/apex/CC_ProjectCharterController.saveMilestones';
-import saveRaci        from '@salesforce/apex/CC_ProjectCharterController.saveRaci';
-import saveRisks       from '@salesforce/apex/CC_ProjectCharterController.saveRisks';
-import saveSignoffs    from '@salesforce/apex/CC_ProjectCharterController.saveSignoffs';
+import getCharterData   from '@salesforce/apex/CC_ProjectCharterController.getCharterData';
+import saveCharter      from '@salesforce/apex/CC_ProjectCharterController.saveCharter';
+import saveMilestones   from '@salesforce/apex/CC_ProjectCharterController.saveMilestones';
+import saveRaci         from '@salesforce/apex/CC_ProjectCharterController.saveRaci';
+import saveRisks        from '@salesforce/apex/CC_ProjectCharterController.saveRisks';
+import saveSignoffs     from '@salesforce/apex/CC_ProjectCharterController.saveSignoffs';
+import searchContacts   from '@salesforce/apex/CC_ProjectCharterController.searchContacts';
 
 // ── Section → charter field mappings ─────────────────────────────────────────
 const SECTION_FIELDS = {
@@ -62,6 +63,12 @@ export default class ProjectCharter extends LightningElement {
 
     // New client role input buffer
     _newRole = '';
+
+    // Contact typeahead state
+    _searchRole      = null;
+    _searchResults   = [];
+    _searchNoResults = false;
+    _searchTimer     = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -139,18 +146,20 @@ export default class ProjectCharter extends LightningElement {
 
     // CloudCrest fixed roles — always shown, contact looked up from data
     get ccRoles() {
-        const contactMap = {};
+        const infoMap = {};
         for (const c of this._rolesSource()) {
-            if (c.Role__c) contactMap[c.Role__c] = {
+            if (c.Role__c) infoMap[c.Role__c] = {
                 id:   c.Contact__c || null,
-                name: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+                name: c.contactName || (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
             };
         }
         return CC_ROLES.map(r => ({
-            key:         r,
-            name:        r,
-            contactId:   (contactMap[r] || {}).id   || null,
-            contactName: (contactMap[r] || {}).name || ''
+            key:          r,
+            name:         r,
+            contactId:    (infoMap[r] || {}).id   || null,
+            contactName:  (infoMap[r] || {}).name || '',
+            showDropdown: this._searchRole === r &&
+                          (this._searchResults.length > 0 || this._searchNoResults)
         }));
     }
 
@@ -162,18 +171,22 @@ export default class ProjectCharter extends LightningElement {
             if (c.Role__c && !CC_ROLES.includes(c.Role__c) && !seen.has(c.Role__c)) {
                 seen.add(c.Role__c);
                 roles.push({
-                    key:         c.Role__c,
-                    name:        c.Role__c,
-                    contactId:   c.Contact__c || null,
-                    contactName: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+                    key:          c.Role__c,
+                    name:         c.Role__c,
+                    contactId:    c.Contact__c || null,
+                    contactName:  c.contactName || (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || '',
+                    showDropdown: this._searchRole === c.Role__c &&
+                                  (this._searchResults.length > 0 || this._searchNoResults)
                 });
             }
         }
         return roles;
     }
 
-    get hasClientRoles() { return this.clientRoles.length > 0; }
-    get hasRaciData()    { return !!this._data; }
+    get hasClientRoles()         { return this.clientRoles.length > 0; }
+    get hasRaciData()            { return !!this._data; }
+    get contactDropdownResults() { return this._searchResults; }
+    get searchNoResults()        { return this._searchNoResults; }
 
     // ── Milestone timeline chart ──────────────────────────────────────────────
 
@@ -254,19 +267,31 @@ export default class ProjectCharter extends LightningElement {
         this._newRole         = '';
 
         // Build roles draft — ensure all CC roles are always present
-        const contactMap = {};
+        const contactMap     = {};
+        const contactNameMap = {};
         const clientRolesInData = [];
         const seenRoles = new Set(CC_ROLES);
         for (const c of (this._data?.raciCells || [])) {
             if (!c.Role__c) continue;
-            if (!contactMap[c.Role__c]) contactMap[c.Role__c] = c.Contact__c || null;
+            if (!contactMap[c.Role__c]) {
+                contactMap[c.Role__c]     = c.Contact__c || null;
+                contactNameMap[c.Role__c] = (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || '';
+            }
             if (!seenRoles.has(c.Role__c)) {
                 seenRoles.add(c.Role__c);
-                clientRolesInData.push({ Role__c: c.Role__c, Contact__c: c.Contact__c || null });
+                clientRolesInData.push({
+                    Role__c:     c.Role__c,
+                    Contact__c:  c.Contact__c || null,
+                    contactName: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+                });
             }
         }
         this._draftRaci = [
-            ...CC_ROLES.map(r => ({ Role__c: r, Contact__c: contactMap[r] || null })),
+            ...CC_ROLES.map(r => ({
+                Role__c:     r,
+                Contact__c:  contactMap[r]     || null,
+                contactName: contactNameMap[r] || ''
+            })),
             ...clientRolesInData
         ];
     }
@@ -278,6 +303,9 @@ export default class ProjectCharter extends LightningElement {
         this._draftRaci       = [];
         this._draftRisks      = [];
         this._draftSignoffs   = [];
+        this._searchRole      = null;
+        this._searchResults   = [];
+        this._searchNoResults = false;
     }
 
     // ── Charter field change ──────────────────────────────────────────────────
@@ -360,24 +388,67 @@ export default class ProjectCharter extends LightningElement {
 
     handleNewRoleChange(event) { this._newRole = event.target.value; }
 
-    handleContactChange(event) {
-        const role      = event.target.dataset.role;
-        const contactId = event.detail.recordId || null;
-        const idx       = this._draftRaci.findIndex(c => c.Role__c === role);
+    // Contact typeahead: update draft name + debounce SOSL search
+    handleContactSearch(event) {
+        const role = event.target.dataset.role;
+        const term = event.target.value;
+        this._searchRole      = role;
+        this._searchNoResults = false;
+        // Keep contactName in sync so the value binding doesn't reset the input
+        const idx = this._draftRaci.findIndex(c => c.Role__c === role);
         if (idx !== -1) {
             this._draftRaci = this._draftRaci.map((c, i) =>
-                i === idx ? { ...c, Contact__c: contactId } : c
+                i === idx ? { ...c, Contact__c: null, contactName: term } : c
             );
-        } else {
-            this._draftRaci = [...this._draftRaci, { Role__c: role, Contact__c: contactId }];
         }
+        if (this._searchTimer) clearTimeout(this._searchTimer);
+        if (term.trim().length < 2) {
+            this._searchResults = [];
+            return;
+        }
+        this._searchTimer = setTimeout(() => this._runContactSearch(term), 300);
+    }
+
+    async _runContactSearch(term) {
+        try {
+            const results       = await searchContacts({ searchTerm: term.trim() });
+            this._searchResults   = results || [];
+            this._searchNoResults = this._searchResults.length === 0;
+        } catch (e) {
+            this._searchResults   = [];
+            this._searchNoResults = false;
+        }
+    }
+
+    handleContactSelect(event) {
+        const role = event.currentTarget.dataset.role;
+        const id   = event.currentTarget.dataset.id;
+        const name = event.currentTarget.dataset.name;
+        const idx  = this._draftRaci.findIndex(c => c.Role__c === role);
+        if (idx !== -1) {
+            this._draftRaci = this._draftRaci.map((c, i) =>
+                i === idx ? { ...c, Contact__c: id, contactName: name } : c
+            );
+        }
+        this._searchRole      = null;
+        this._searchResults   = [];
+        this._searchNoResults = false;
+    }
+
+    // Delay lets onmousedown on dropdown items fire before blur closes the list
+    handleContactBlur() {
+        setTimeout(() => {
+            this._searchRole      = null;
+            this._searchResults   = [];
+            this._searchNoResults = false;
+        }, 200);
     }
 
     handleAddRole() {
         const name = (this._newRole || '').trim();
         if (!name || CC_ROLES.includes(name)) return;
         if (this._draftRaci.some(c => c.Role__c === name)) return; // no duplicates
-        this._draftRaci = [...this._draftRaci, { Role__c: name, Contact_Name__c: '' }];
+        this._draftRaci = [...this._draftRaci, { Role__c: name, Contact__c: null, contactName: '' }];
         this._newRole   = '';
     }
 

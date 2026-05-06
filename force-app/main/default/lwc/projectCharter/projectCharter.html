@@ -320,15 +320,33 @@
                                     <tr key={role.key} class="roles-edit-row roles-cc-row">
                                         <td class="roles-edit-name">{role.name}</td>
                                         <td class="roles-edit-contact">
-                                            <lightning-record-picker
-                                                label=""
-                                                variant="label-hidden"
-                                                object-api-name="Contact"
-                                                value={role.contactId}
-                                                data-role={role.key}
-                                                onchange={handleContactChange}
-                                                placeholder="Search contacts...">
-                                            </lightning-record-picker>
+                                            <div class="contact-search-wrap">
+                                                <input type="text"
+                                                    class="contact-search-input"
+                                                    value={role.contactName}
+                                                    data-role={role.key}
+                                                    oninput={handleContactSearch}
+                                                    onblur={handleContactBlur}
+                                                    placeholder="Search contacts..."
+                                                    autocomplete="off" />
+                                                <template if:true={role.showDropdown}>
+                                                    <ul class="contact-dropdown">
+                                                        <template for:each={contactDropdownResults} for:item="result">
+                                                            <li key={result.Id}
+                                                                class="contact-dropdown-item"
+                                                                data-role={role.key}
+                                                                data-id={result.Id}
+                                                                data-name={result.Name}
+                                                                onmousedown={handleContactSelect}>
+                                                                {result.Name}
+                                                            </li>
+                                                        </template>
+                                                        <template if:true={searchNoResults}>
+                                                            <li class="contact-dropdown-empty">No contacts found</li>
+                                                        </template>
+                                                    </ul>
+                                                </template>
+                                            </div>
                                         </td>
                                         <td class="roles-edit-actions"></td>
                                     </tr>
@@ -340,15 +358,33 @@
                                     <tr key={role.key} class="roles-edit-row">
                                         <td class="roles-edit-name">{role.name}</td>
                                         <td class="roles-edit-contact">
-                                            <lightning-record-picker
-                                                label=""
-                                                variant="label-hidden"
-                                                object-api-name="Contact"
-                                                value={role.contactId}
-                                                data-role={role.key}
-                                                onchange={handleContactChange}
-                                                placeholder="Search contacts...">
-                                            </lightning-record-picker>
+                                            <div class="contact-search-wrap">
+                                                <input type="text"
+                                                    class="contact-search-input"
+                                                    value={role.contactName}
+                                                    data-role={role.key}
+                                                    oninput={handleContactSearch}
+                                                    onblur={handleContactBlur}
+                                                    placeholder="Search contacts..."
+                                                    autocomplete="off" />
+                                                <template if:true={role.showDropdown}>
+                                                    <ul class="contact-dropdown">
+                                                        <template for:each={contactDropdownResults} for:item="result">
+                                                            <li key={result.Id}
+                                                                class="contact-dropdown-item"
+                                                                data-role={role.key}
+                                                                data-id={result.Id}
+                                                                data-name={result.Name}
+                                                                onmousedown={handleContactSelect}>
+                                                                {result.Name}
+                                                            </li>
+                                                        </template>
+                                                        <template if:true={searchNoResults}>
+                                                            <li class="contact-dropdown-empty">No contacts found</li>
+                                                        </template>
+                                                    </ul>
+                                                </template>
+                                            </div>
                                         </td>
                                         <td class="roles-edit-actions">
                                             <button class="raci-del-btn" onclick={handleDeleteRole}
