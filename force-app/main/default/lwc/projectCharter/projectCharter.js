@@ -60,9 +60,8 @@ export default class ProjectCharter extends LightningElement {
     _draftRisks       = [];
     _draftSignoffs    = [];
 
-    // RACI add-row / add-column input buffers
-    _newActivity = '';
-    _newRole     = '';
+    // New client role input buffer
+    _newRole = '';
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -132,62 +131,36 @@ export default class ProjectCharter extends LightningElement {
         return [s ? this._fmtDate(s) : '?', e ? this._fmtDate(e) : '?'].join(' → ');
     }
 
-    // ── RACI computed properties ──────────────────────────────────────────────
+    // ── Roles & Responsibilities computed properties ──────────────────────────
 
-    // CloudCrest roles are always the same three columns
-    get ccRoles() {
-        return CC_ROLES.map(r => ({ key: r, name: r }));
+    _rolesSource() {
+        return this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
     }
 
-    // Client roles are any roles in the data that are NOT CloudCrest roles
+    // CloudCrest fixed roles — always shown, contact looked up from data
+    get ccRoles() {
+        const contactMap = {};
+        for (const c of this._rolesSource()) {
+            if (c.Role__c) contactMap[c.Role__c] = c.Contact_Name__c || '';
+        }
+        return CC_ROLES.map(r => ({ key: r, name: r, contact: contactMap[r] || '' }));
+    }
+
+    // Client roles — any role NOT in CC_ROLES
     get clientRoles() {
-        const cells = this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
         const seen = new Set();
         const roles = [];
-        for (const c of cells) {
+        for (const c of this._rolesSource()) {
             if (c.Role__c && !CC_ROLES.includes(c.Role__c) && !seen.has(c.Role__c)) {
                 seen.add(c.Role__c);
-                roles.push(c.Role__c);
+                roles.push({ key: c.Role__c, name: c.Role__c, contact: c.Contact_Name__c || '' });
             }
         }
-        return roles.map(r => ({ key: r, name: r }));
+        return roles;
     }
 
     get hasClientRoles() { return this.clientRoles.length > 0; }
-    get clientRolesCount() { return this.clientRoles.length; }
-
-    get raciRows() {
-        const cells        = this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
-        const clientRoles  = this.clientRoles.map(r => r.name);
-        const actMap = {};
-        for (const c of cells) {
-            if (!c.Activity__c) continue;
-            if (!actMap[c.Activity__c]) actMap[c.Activity__c] = { order: c.Activity_Order__c || 0, map: {} };
-            if (c.Role__c) actMap[c.Activity__c].map[c.Role__c] = c.Assignment__c || '';
-        }
-        return Object.entries(actMap)
-            .sort((a, b) => a[1].order - b[1].order)
-            .map(([activity, data]) => ({
-                key: activity,
-                activity,
-                ccCells: CC_ROLES.map(role => ({
-                    key:        `${activity}::${role}`,
-                    role,
-                    assignment: data.map[role] || '',
-                    badgeClass: this._raciBadgeClass(data.map[role])
-                })),
-                clientCells: clientRoles.map(role => ({
-                    key:        `${activity}::${role}`,
-                    role,
-                    assignment: data.map[role] || '',
-                    badgeClass: this._raciBadgeClass(data.map[role])
-                }))
-            }));
-    }
-
-    get hasRaciData() {
-        return this.raciRows.length > 0;
-    }
+    get hasRaciData()    { return !!this._data; }
 
     // ── Milestone timeline chart ──────────────────────────────────────────────
 
@@ -263,11 +236,26 @@ export default class ProjectCharter extends LightningElement {
         this._editSection     = section;
         this._draftCharter    = { ...(this._data || {}) };
         this._draftMilestones = (this._data?.milestones || []).map(m => ({ ...m }));
-        this._draftRaci       = (this._data?.raciCells  || []).map(c => ({ ...c }));
         this._draftRisks      = (this._data?.risks      || []).map(r => ({ ...r }));
         this._draftSignoffs   = (this._data?.signoffs   || []).map(s => ({ ...s }));
-        this._newActivity     = '';
         this._newRole         = '';
+
+        // Build roles draft — ensure all CC roles are always present
+        const contactMap = {};
+        const clientRolesInData = [];
+        const seenRoles = new Set(CC_ROLES);
+        for (const c of (this._data?.raciCells || [])) {
+            if (!c.Role__c) continue;
+            if (!contactMap[c.Role__c]) contactMap[c.Role__c] = c.Contact_Name__c || '';
+            if (!seenRoles.has(c.Role__c)) {
+                seenRoles.add(c.Role__c);
+                clientRolesInData.push({ Role__c: c.Role__c, Contact_Name__c: c.Contact_Name__c || '' });
+            }
+        }
+        this._draftRaci = [
+            ...CC_ROLES.map(r => ({ Role__c: r, Contact_Name__c: contactMap[r] || '' })),
+            ...clientRolesInData
+        ];
     }
 
     handleCancel() {
@@ -355,65 +343,37 @@ export default class ProjectCharter extends LightningElement {
         }
     }
 
-    // ── RACI handlers ─────────────────────────────────────────────────────────
+    // ── Roles & Responsibilities handlers ─────────────────────────────────────
 
-    handleNewActivityChange(event) { this._newActivity = event.target.value; }
-    handleNewRoleChange(event)     { this._newRole     = event.target.value; }
+    handleNewRoleChange(event) { this._newRole = event.target.value; }
 
-    handleAddActivity() {
-        const name = (this._newActivity || '').trim();
-        if (!name) return;
-        const order     = this.raciRows.length + 1;
-        const allRoles  = [...CC_ROLES, ...this.clientRoles.map(r => r.name)];
-        const newCells  = allRoles.map(role => ({
-            Activity__c: name, Role__c: role, Assignment__c: '', Activity_Order__c: order
-        }));
-        this._draftRaci   = [...this._draftRaci, ...newCells];
-        this._newActivity = '';
+    handleContactChange(event) {
+        const role    = event.target.dataset.role;
+        const contact = event.target.value;
+        const idx     = this._draftRaci.findIndex(c => c.Role__c === role);
+        if (idx !== -1) {
+            this._draftRaci = this._draftRaci.map((c, i) =>
+                i === idx ? { ...c, Contact_Name__c: contact } : c
+            );
+        } else {
+            this._draftRaci = [...this._draftRaci, { Role__c: role, Contact_Name__c: contact }];
+        }
     }
 
     handleAddRole() {
         const name = (this._newRole || '').trim();
-        if (!name || CC_ROLES.includes(name)) return; // CC roles are fixed — block duplicates
-        const activities = [...new Set(this._draftRaci.map(c => c.Activity__c))];
-        const newCells   = activities.map((act, i) => ({
-            Activity__c: act, Role__c: name, Assignment__c: '',
-            Activity_Order__c: this._draftRaci.find(c => c.Activity__c === act)?.Activity_Order__c || i
-        }));
-        this._draftRaci = [...this._draftRaci, ...newCells];
+        if (!name || CC_ROLES.includes(name)) return;
+        if (this._draftRaci.some(c => c.Role__c === name)) return; // no duplicates
+        this._draftRaci = [...this._draftRaci, { Role__c: name, Contact_Name__c: '' }];
         this._newRole   = '';
     }
 
-    handleDeleteActivity(event) {
-        const activity    = event.currentTarget.dataset.activity;
-        this._draftRaci   = this._draftRaci.filter(c => c.Activity__c !== activity);
-    }
-
     handleDeleteRole(event) {
-        const role       = event.currentTarget.dataset.role;
-        this._draftRaci  = this._draftRaci.filter(c => c.Role__c !== role);
-    }
-
-    handleRaciCellClick(event) {
-        if (this._editSection !== 'raci') return;
-        const activity = event.currentTarget.dataset.activity;
-        const role     = event.currentTarget.dataset.role;
-        const idx      = this._draftRaci.findIndex(c => c.Activity__c === activity && c.Role__c === role);
-        if (idx === -1) {
-            this._draftRaci = [...this._draftRaci,
-                { Activity__c: activity, Role__c: role, Assignment__c: 'R', Activity_Order__c: 0 }];
-        } else {
-            const current  = this._draftRaci[idx].Assignment__c || '';
-            const nextIdx  = (RACI_CYCLE.indexOf(current) + 1) % RACI_CYCLE.length;
-            const updated  = this._draftRaci.map((c, i) =>
-                i === idx ? { ...c, Assignment__c: RACI_CYCLE[nextIdx] } : c
-            );
-            this._draftRaci = updated;
-        }
+        const role      = event.currentTarget.dataset.role;
+        this._draftRaci = this._draftRaci.filter(c => c.Role__c !== role);
     }
 
     async handleSaveRaci() {
-        // Save all cells (including blank) so activities are preserved
         this._saving = true;
         try {
             await saveRaci({ charterId: this._data.charterId, records: this._draftRaci });

@@ -192,12 +192,12 @@
                 </template>
             </div>
 
-            <!-- ── 04 RACI Matrix ─────────────────────────────────────────── -->
+            <!-- ── 04 Roles & Responsibilities ──────────────────────────────── -->
             <div class="charter-section">
                 <div class="section-hdr">
                     <span class="section-num">04</span>
-                    <h2 class="section-title">RACI Matrix</h2>
-                    <button class="raci-info-btn" onclick={handleRaciInfoOpen} title="What is RACI?">
+                    <h2 class="section-title">Roles &amp; Responsibilities</h2>
+                    <button class="raci-info-btn" onclick={handleRaciInfoOpen} title="About Roles &amp; Responsibilities">
                         <lightning-icon icon-name="utility:info" size="xx-small"></lightning-icon>
                     </button>
                     <template if:false={isEditing.raci}>
@@ -207,58 +207,46 @@
                     </template>
                 </div>
 
-                <!-- RACI info modal -->
+                <!-- Info modal -->
                 <template if:true={showRaciInfo}>
                     <div class="raci-modal-backdrop" onclick={handleRaciInfoClose}></div>
-                    <div class="raci-modal" role="dialog" aria-modal="true" aria-label="About RACI">
+                    <div class="raci-modal" role="dialog" aria-modal="true" aria-label="About Roles and Responsibilities">
                         <div class="raci-modal-hdr">
-                            <h3 class="raci-modal-title">What is a RACI Matrix?</h3>
+                            <h3 class="raci-modal-title">Roles &amp; Responsibilities</h3>
                             <button class="raci-modal-close" onclick={handleRaciInfoClose} title="Close">
                                 <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
                             </button>
                         </div>
                         <div class="raci-modal-body">
                             <p class="raci-modal-intro">
-                                A RACI matrix maps every project activity to the people involved,
-                                clarifying who does what and who makes the final call.
-                                Each cell is assigned one of four roles:
+                                This section captures the key contacts for the project.
+                                CloudCrest roles are standard on every engagement; client roles are
+                                customized per project.
                             </p>
                             <div class="raci-modal-roles">
                                 <div class="raci-modal-role-row">
-                                    <span class="raci-badge raci-r">R</span>
+                                    <div class="roles-modal-group-label roles-modal-cc">CloudCrest</div>
                                     <div class="raci-modal-role-text">
-                                        <strong>Responsible</strong> — the person who does the work.
-                                        At least one R is required per activity.
+                                        <strong>Executive Sponsor, Project Manager, Development Team</strong> —
+                                        Standard CloudCrest roles present on every project.
+                                        Assign the name of the person filling each role.
                                     </div>
                                 </div>
                                 <div class="raci-modal-role-row">
-                                    <span class="raci-badge raci-a">A</span>
+                                    <div class="roles-modal-group-label roles-modal-client">Client</div>
                                     <div class="raci-modal-role-text">
-                                        <strong>Accountable</strong> — the one person who owns the outcome
-                                        and has final sign-off authority. Only one A per activity.
-                                    </div>
-                                </div>
-                                <div class="raci-modal-role-row">
-                                    <span class="raci-badge raci-c">C</span>
-                                    <div class="raci-modal-role-text">
-                                        <strong>Consulted</strong> — subject-matter experts whose input
-                                        is sought before decisions are made (two-way communication).
-                                    </div>
-                                </div>
-                                <div class="raci-modal-role-row">
-                                    <span class="raci-badge raci-i">I</span>
-                                    <div class="raci-modal-role-text">
-                                        <strong>Informed</strong> — stakeholders kept up to date on progress
-                                        and outcomes (one-way communication).
+                                        <strong>Client-side contacts</strong> — Add any roles relevant
+                                        to this engagement (e.g., Project Owner, IT Lead, Business Analyst)
+                                        and assign the person responsible.
                                     </div>
                                 </div>
                             </div>
                             <div class="raci-modal-how">
-                                <p class="raci-modal-how-title">How to use this matrix</p>
+                                <p class="raci-modal-how-title">How to use this section</p>
                                 <ol class="raci-modal-steps">
-                                    <li>Click <strong>Edit</strong>, then use <strong>Add Activity</strong> to list each key task or deliverable (rows).</li>
-                                    <li>Use <strong>Add Role</strong> to define the people or teams involved (columns).</li>
-                                    <li>Click any cell to cycle through R → A → C → I → blank until the assignment is correct.</li>
+                                    <li>Click <strong>Edit</strong> to enter edit mode.</li>
+                                    <li>Type a contact name next to each CloudCrest role.</li>
+                                    <li>Use <strong>Add Client Role</strong> to create client-side roles, then fill in the contact.</li>
                                     <li>Click <strong>Save</strong> when finished.</li>
                                 </ol>
                             </div>
@@ -270,140 +258,103 @@
                 <template if:false={isEditing.raci}>
                     <template if:true={hasRaciData}>
                         <div class="section-body">
-                            <div class="raci-legend">
-                                <span class="raci-badge raci-r">R</span> Responsible &nbsp;
-                                <span class="raci-badge raci-a">A</span> Accountable &nbsp;
-                                <span class="raci-badge raci-c">C</span> Consulted &nbsp;
-                                <span class="raci-badge raci-i">I</span> Informed
-                            </div>
-                            <div class="raci-scroll">
-                                <table class="raci-table">
-                                    <thead>
-                                        <tr class="raci-group-row">
-                                            <th class="raci-activity-hdr" rowspan="2">Activity</th>
-                                            <th class="raci-group-hdr raci-cc-hdr" colspan="3">
-                                                <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
-                                                CloudCrest
-                                            </th>
-                                            <template if:true={hasClientRoles}>
-                                                <th class="raci-group-hdr raci-client-hdr" colspan={clientRolesCount}>Client</th>
-                                            </template>
+                            <table class="roles-table">
+                                <thead>
+                                    <tr>
+                                        <th class="roles-th-name">Role</th>
+                                        <th class="roles-th-contact">Contact / Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="roles-group-hdr roles-cc-hdr">
+                                        <td class="roles-group-td" colspan="2">
+                                            <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
+                                            CloudCrest
+                                        </td>
+                                    </tr>
+                                    <template for:each={ccRoles} for:item="role">
+                                        <tr key={role.key} class="roles-row roles-cc-row">
+                                            <td class="roles-td-name">{role.name}</td>
+                                            <td class="roles-td-contact">{role.contact}</td>
                                         </tr>
-                                        <tr>
-                                            <template for:each={ccRoles} for:item="role">
-                                                <th key={role.key} class="raci-role-hdr raci-cc-role-hdr">{role.name}</th>
-                                            </template>
-                                            <template for:each={clientRoles} for:item="role">
-                                                <th key={role.key} class="raci-role-hdr">{role.name}</th>
-                                            </template>
+                                    </template>
+                                    <template if:true={hasClientRoles}>
+                                        <tr class="roles-group-hdr roles-client-hdr">
+                                            <td class="roles-group-td" colspan="2">Client</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template for:each={raciRows} for:item="row">
-                                            <tr key={row.key}>
-                                                <td class="raci-activity-cell">{row.activity}</td>
-                                                <template for:each={row.ccCells} for:item="cell">
-                                                    <td key={cell.key} class="raci-cell raci-cc-cell">
-                                                        <span class={cell.badgeClass}>{cell.assignment}</span>
-                                                    </td>
-                                                </template>
-                                                <template for:each={row.clientCells} for:item="cell">
-                                                    <td key={cell.key} class="raci-cell">
-                                                        <span class={cell.badgeClass}>{cell.assignment}</span>
-                                                    </td>
-                                                </template>
+                                        <template for:each={clientRoles} for:item="role">
+                                            <tr key={role.key} class="roles-row">
+                                                <td class="roles-td-name">{role.name}</td>
+                                                <td class="roles-td-contact">{role.contact}</td>
                                             </tr>
                                         </template>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>
                     </template>
                     <template if:false={hasRaciData}>
-                        <div class="section-body empty-state">No RACI data yet. Click Edit to add activities and roles.</div>
+                        <div class="section-body empty-state">No roles assigned yet. Click Edit to add contacts.</div>
                     </template>
                 </template>
 
                 <!-- Edit mode -->
                 <template if:true={isEditing.raci}>
                     <div class="section-body edit-mode">
-                        <p class="raci-hint">Click a cell to cycle assignments: R → A → C → I → blank</p>
-                        <div class="raci-scroll">
-                            <table class="raci-table raci-edit">
-                                <thead>
-                                    <tr class="raci-group-row">
-                                        <th class="raci-activity-hdr" rowspan="2">Activity</th>
-                                        <th class="raci-group-hdr raci-cc-hdr" colspan="3">
-                                            <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
-                                            CloudCrest
-                                        </th>
-                                        <template if:true={hasClientRoles}>
-                                            <th class="raci-group-hdr raci-client-hdr" colspan={clientRolesCount}>Client</th>
-                                        </template>
+                        <table class="roles-table">
+                            <thead>
+                                <tr>
+                                    <th class="roles-th-name">Role</th>
+                                    <th class="roles-th-contact">Contact / Name</th>
+                                    <th class="roles-th-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="roles-group-hdr roles-cc-hdr">
+                                    <td class="roles-group-td" colspan="3">
+                                        <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
+                                        CloudCrest
+                                    </td>
+                                </tr>
+                                <template for:each={ccRoles} for:item="role">
+                                    <tr key={role.key} class="roles-edit-row roles-cc-row">
+                                        <td class="roles-edit-name">{role.name}</td>
+                                        <td class="roles-edit-contact">
+                                            <lightning-input type="text" label="" variant="label-hidden"
+                                                value={role.contact}
+                                                data-role={role.key}
+                                                onchange={handleContactChange}
+                                                placeholder="Enter contact name">
+                                            </lightning-input>
+                                        </td>
+                                        <td class="roles-edit-actions"></td>
                                     </tr>
-                                    <tr>
-                                        <!-- CC roles — fixed, no delete -->
-                                        <template for:each={ccRoles} for:item="role">
-                                            <th key={role.key} class="raci-role-hdr raci-cc-role-hdr">{role.name}</th>
-                                        </template>
-                                        <!-- Client roles — removable -->
-                                        <template for:each={clientRoles} for:item="role">
-                                            <th key={role.key} class="raci-role-hdr">
-                                                <div class="raci-role-wrap">
-                                                    <span class="raci-role-name">{role.name}</span>
-                                                    <button class="raci-del-btn" onclick={handleDeleteRole}
-                                                        data-role={role.name} title="Remove role">×</button>
-                                                </div>
-                                            </th>
-                                        </template>
+                                </template>
+                                <tr class="roles-group-hdr roles-client-hdr">
+                                    <td class="roles-group-td" colspan="3">Client</td>
+                                </tr>
+                                <template for:each={clientRoles} for:item="role">
+                                    <tr key={role.key} class="roles-edit-row">
+                                        <td class="roles-edit-name">{role.name}</td>
+                                        <td class="roles-edit-contact">
+                                            <lightning-input type="text" label="" variant="label-hidden"
+                                                value={role.contact}
+                                                data-role={role.key}
+                                                onchange={handleContactChange}
+                                                placeholder="Enter contact name">
+                                            </lightning-input>
+                                        </td>
+                                        <td class="roles-edit-actions">
+                                            <button class="raci-del-btn" onclick={handleDeleteRole}
+                                                data-role={role.key} title="Remove role">×</button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <template for:each={raciRows} for:item="row">
-                                        <tr key={row.key}>
-                                            <td class="raci-activity-cell">
-                                                <div class="raci-activity-wrap">
-                                                    <span class="raci-activity-name">{row.activity}</span>
-                                                    <button class="raci-del-btn" onclick={handleDeleteActivity}
-                                                        data-activity={row.activity} title="Remove activity">×</button>
-                                                </div>
-                                            </td>
-                                            <template for:each={row.ccCells} for:item="cell">
-                                                <td key={cell.key} class="raci-cell raci-cc-cell raci-cell-edit">
-                                                    <button class={cell.badgeClass}
-                                                        onclick={handleRaciCellClick}
-                                                        data-activity={row.activity}
-                                                        data-role={cell.role}>
-                                                        {cell.assignment}
-                                                    </button>
-                                                </td>
-                                            </template>
-                                            <template for:each={row.clientCells} for:item="cell">
-                                                <td key={cell.key} class="raci-cell raci-cell-edit">
-                                                    <button class={cell.badgeClass}
-                                                        onclick={handleRaciCellClick}
-                                                        data-activity={row.activity}
-                                                        data-role={cell.role}>
-                                                        {cell.assignment}
-                                                    </button>
-                                                </td>
-                                            </template>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
+                                </template>
+                            </tbody>
+                        </table>
                         <div class="raci-add-row">
                             <div class="raci-add-inputs">
-                                <lightning-input type="text" label="New Activity"
-                                    value={newActivity}
-                                    onchange={handleNewActivityChange}>
-                                </lightning-input>
-                                <lightning-button label="Add Activity" onclick={handleAddActivity}
-                                    disabled={isSaving}></lightning-button>
-                            </div>
-                            <div class="raci-add-inputs">
-                                <lightning-input type="text" label="Add Client Contact / Role"
+                                <lightning-input type="text" label="Add Client Role"
                                     value={newRole}
                                     onchange={handleNewRoleChange}>
                                 </lightning-input>

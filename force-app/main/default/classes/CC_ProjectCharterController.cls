@@ -77,10 +77,10 @@ public with sharing class CC_ProjectCharterController {
         ];
 
         List<Charter_RACI__c> raciCells = [
-            SELECT Id, Activity__c, Role__c, Assignment__c, Activity_Order__c
+            SELECT Id, Role__c, Contact_Name__c
             FROM   Charter_RACI__c
             WHERE  Charter__c = :charter.Id
-            ORDER BY Activity_Order__c ASC NULLS LAST, Activity__c ASC
+            ORDER BY CreatedDate ASC
         ];
 
         List<Charter_Risk__c> risks = [
@@ -164,7 +164,7 @@ public with sharing class CC_ProjectCharterController {
         if (!toInsert.isEmpty()) insert toInsert;
     }
 
-    // ── Save RACI: full replace (matrix shape can change) ────────────────────
+    // ── Save roles: full replace ─────────────────────────────────────────────
 
     @AuraEnabled
     public static void saveRaci(Id charterId, List<Charter_RACI__c> records) {
@@ -172,11 +172,9 @@ public with sharing class CC_ProjectCharterController {
         List<Charter_RACI__c> toInsert = new List<Charter_RACI__c>();
         for (Charter_RACI__c r : records) {
             toInsert.add(new Charter_RACI__c(
-                Charter__c        = charterId,
-                Activity__c       = r.Activity__c,
-                Role__c           = r.Role__c,
-                Assignment__c     = r.Assignment__c,
-                Activity_Order__c = r.Activity_Order__c
+                Charter__c      = charterId,
+                Role__c         = r.Role__c,
+                Contact_Name__c = r.Contact_Name__c
             ));
         }
         if (!toInsert.isEmpty()) insert toInsert;

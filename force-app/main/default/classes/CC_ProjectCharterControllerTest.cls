@@ -125,28 +125,32 @@ private class CC_ProjectCharterControllerTest {
         ProjectCharter__c charter = new ProjectCharter__c(Sprint__c = sprint.Id);
         insert charter;
 
+        // Insert an old-format record that should be replaced
         insert new Charter_RACI__c(
-            Charter__c = charter.Id, Activity__c = 'Old Activity',
-            Role__c = 'PM', Assignment__c = 'R'
+            Charter__c = charter.Id,
+            Role__c = 'Old Role', Contact_Name__c = 'Old Person'
         );
 
-        List<Charter_RACI__c> newCells = new List<Charter_RACI__c>{
-            new Charter_RACI__c(Activity__c = 'Kickoff', Role__c = 'PM',  Assignment__c = 'A', Activity_Order__c = 1),
-            new Charter_RACI__c(Activity__c = 'Kickoff', Role__c = 'Dev', Assignment__c = 'R', Activity_Order__c = 1)
+        // New roles-roster format: Role__c + Contact_Name__c only
+        List<Charter_RACI__c> newRoles = new List<Charter_RACI__c>{
+            new Charter_RACI__c(Role__c = 'Project Manager', Contact_Name__c = 'Alice'),
+            new Charter_RACI__c(Role__c = 'Developer',       Contact_Name__c = 'Bob')
         };
 
         Test.startTest();
-        CC_ProjectCharterController.saveRaci(charter.Id, newCells);
+        CC_ProjectCharterController.saveRaci(charter.Id, newRoles);
         Test.stopTest();
 
         List<Charter_RACI__c> result = [
-            SELECT Activity__c, Role__c, Assignment__c
+            SELECT Role__c, Contact_Name__c
             FROM   Charter_RACI__c WHERE Charter__c = :charter.Id
+            ORDER BY Role__c
         ];
-        System.assertEquals(2, result.size());
-        for (Charter_RACI__c cell : result) {
-            System.assertEquals('Kickoff', cell.Activity__c, 'Old activity should be gone');
-        }
+        System.assertEquals(2, result.size(), 'Should have exactly 2 role records');
+        System.assertEquals('Developer',       result[0].Role__c);
+        System.assertEquals('Bob',             result[0].Contact_Name__c);
+        System.assertEquals('Project Manager', result[1].Role__c);
+        System.assertEquals('Alice',           result[1].Contact_Name__c);
     }
 
     @isTest

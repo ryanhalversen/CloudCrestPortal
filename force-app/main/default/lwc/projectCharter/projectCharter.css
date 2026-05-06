@@ -718,3 +718,91 @@
 .add-row-btn:hover {
     background: #cfe9ff;
 }
+
+/* ── Roles & Responsibilities table ──────────────────────────────────────── */
+.roles-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .875rem;
+}
+.roles-th-name,
+.roles-th-contact,
+.roles-th-actions {
+    background: #f8fafc;
+    font-weight: 600;
+    font-size: .6875rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #706e6b;
+    padding: 8px 14px;
+    border: 1px solid #e5e7eb;
+    text-align: left;
+}
+.roles-th-name    { width: 220px; }
+.roles-th-actions { width: 48px; }
+
+.roles-group-td {
+    padding: 6px 14px;
+    font-size: .6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border: 1px solid #e5e7eb;
+}
+.roles-cc-hdr .roles-group-td {
+    background: #e8f4ff;
+    color: #032d60;
+    border-bottom-color: #a8cff0;
+    --lwc-colorTextIconDefault: #0176d3;
+}
+.roles-client-hdr .roles-group-td {
+    background: #edf7e6;
+    color: #1e5c11;
+    border-bottom-color: #a4d18c;
+}
+
+.roles-td-name,
+.roles-td-contact {
+    padding: 10px 14px;
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+    color: #3e3d3d;
+}
+.roles-td-name { font-weight: 500; color: #1b1b1b; }
+.roles-cc-row .roles-td-name,
+.roles-cc-row .roles-td-contact { background: #fafcff; }
+
+.roles-edit-name,
+.roles-edit-contact,
+.roles-edit-actions {
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+    padding: 6px 10px;
+}
+.roles-edit-name {
+    font-weight: 500;
+    color: #1b1b1b;
+    padding: 8px 14px;
+    white-space: nowrap;
+    width: 220px;
+}
+.roles-edit-actions { text-align: center; width: 48px; }
+.roles-cc-row .roles-edit-name,
+.roles-cc-row .roles-edit-contact,
+.roles-cc-row .roles-edit-actions { background: #fafcff; }
+
+/* Info modal group labels */
+.roles-modal-group-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 76px;
+}
+.roles-modal-cc     { background: #e8f4ff; color: #032d60; }
+.roles-modal-client { background: #edf7e6; color: #1e5c11; }
