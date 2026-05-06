@@ -275,7 +275,7 @@
                                     <template for:each={ccRoles} for:item="role">
                                         <tr key={role.key} class="roles-row roles-cc-row">
                                             <td class="roles-td-name">{role.name}</td>
-                                            <td class="roles-td-contact">{role.contact}</td>
+                                            <td class="roles-td-contact">{role.contactName}</td>
                                         </tr>
                                     </template>
                                     <template if:true={hasClientRoles}>
@@ -285,7 +285,7 @@
                                         <template for:each={clientRoles} for:item="role">
                                             <tr key={role.key} class="roles-row">
                                                 <td class="roles-td-name">{role.name}</td>
-                                                <td class="roles-td-contact">{role.contact}</td>
+                                                <td class="roles-td-contact">{role.contactName}</td>
                                             </tr>
                                         </template>
                                     </template>
@@ -320,12 +320,15 @@
                                     <tr key={role.key} class="roles-edit-row roles-cc-row">
                                         <td class="roles-edit-name">{role.name}</td>
                                         <td class="roles-edit-contact">
-                                            <lightning-input type="text" label="" variant="label-hidden"
-                                                value={role.contact}
+                                            <lightning-record-picker
+                                                label=""
+                                                variant="label-hidden"
+                                                object-api-name="Contact"
+                                                value={role.contactId}
                                                 data-role={role.key}
                                                 onchange={handleContactChange}
-                                                placeholder="Enter contact name">
-                                            </lightning-input>
+                                                placeholder="Search contacts...">
+                                            </lightning-record-picker>
                                         </td>
                                         <td class="roles-edit-actions"></td>
                                     </tr>
@@ -337,12 +340,15 @@
                                     <tr key={role.key} class="roles-edit-row">
                                         <td class="roles-edit-name">{role.name}</td>
                                         <td class="roles-edit-contact">
-                                            <lightning-input type="text" label="" variant="label-hidden"
-                                                value={role.contact}
+                                            <lightning-record-picker
+                                                label=""
+                                                variant="label-hidden"
+                                                object-api-name="Contact"
+                                                value={role.contactId}
                                                 data-role={role.key}
                                                 onchange={handleContactChange}
-                                                placeholder="Enter contact name">
-                                            </lightning-input>
+                                                placeholder="Search contacts...">
+                                            </lightning-record-picker>
                                         </td>
                                         <td class="roles-edit-actions">
                                             <button class="raci-del-btn" onclick={handleDeleteRole}

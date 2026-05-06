@@ -77,7 +77,7 @@ public with sharing class CC_ProjectCharterController {
         ];
 
         List<Charter_RACI__c> raciCells = [
-            SELECT Id, Role__c, Contact_Name__c
+            SELECT Id, Role__c, Contact_Name__c, Contact__c, Contact__r.Name
             FROM   Charter_RACI__c
             WHERE  Charter__c = :charter.Id
             ORDER BY CreatedDate ASC
@@ -172,9 +172,9 @@ public with sharing class CC_ProjectCharterController {
         List<Charter_RACI__c> toInsert = new List<Charter_RACI__c>();
         for (Charter_RACI__c r : records) {
             toInsert.add(new Charter_RACI__c(
-                Charter__c      = charterId,
-                Role__c         = r.Role__c,
-                Contact_Name__c = r.Contact_Name__c
+                Charter__c = charterId,
+                Role__c    = r.Role__c,
+                Contact__c = r.Contact__c
             ));
         }
         if (!toInsert.isEmpty()) insert toInsert;

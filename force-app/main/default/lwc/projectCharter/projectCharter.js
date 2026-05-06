@@ -33,8 +33,8 @@ const FIELD_TO_KEY = {
 
 const RACI_CYCLE = ['R', 'A', 'C', 'I', ''];
 
-// CloudCrest's fixed role columns — always present in every RACI matrix
-const CC_ROLES = ['Executive Sponsor', 'Project Manager', 'Development Team'];
+// CloudCrest's fixed role columns — always present in every project
+const CC_ROLES = ['Commercial', 'Executive Sponsor', 'Project Manager', 'Development Team'];
 
 const STATUS_COLORS = {
     Complete:      'bar-green',
@@ -141,9 +141,17 @@ export default class ProjectCharter extends LightningElement {
     get ccRoles() {
         const contactMap = {};
         for (const c of this._rolesSource()) {
-            if (c.Role__c) contactMap[c.Role__c] = c.Contact_Name__c || '';
+            if (c.Role__c) contactMap[c.Role__c] = {
+                id:   c.Contact__c || null,
+                name: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+            };
         }
-        return CC_ROLES.map(r => ({ key: r, name: r, contact: contactMap[r] || '' }));
+        return CC_ROLES.map(r => ({
+            key:         r,
+            name:        r,
+            contactId:   (contactMap[r] || {}).id   || null,
+            contactName: (contactMap[r] || {}).name || ''
+        }));
     }
 
     // Client roles — any role NOT in CC_ROLES
@@ -153,7 +161,12 @@ export default class ProjectCharter extends LightningElement {
         for (const c of this._rolesSource()) {
             if (c.Role__c && !CC_ROLES.includes(c.Role__c) && !seen.has(c.Role__c)) {
                 seen.add(c.Role__c);
-                roles.push({ key: c.Role__c, name: c.Role__c, contact: c.Contact_Name__c || '' });
+                roles.push({
+                    key:         c.Role__c,
+                    name:        c.Role__c,
+                    contactId:   c.Contact__c || null,
+                    contactName: (c.Contact__r && c.Contact__r.Name) || c.Contact_Name__c || ''
+                });
             }
         }
         return roles;
@@ -246,14 +259,14 @@ export default class ProjectCharter extends LightningElement {
         const seenRoles = new Set(CC_ROLES);
         for (const c of (this._data?.raciCells || [])) {
             if (!c.Role__c) continue;
-            if (!contactMap[c.Role__c]) contactMap[c.Role__c] = c.Contact_Name__c || '';
+            if (!contactMap[c.Role__c]) contactMap[c.Role__c] = c.Contact__c || null;
             if (!seenRoles.has(c.Role__c)) {
                 seenRoles.add(c.Role__c);
-                clientRolesInData.push({ Role__c: c.Role__c, Contact_Name__c: c.Contact_Name__c || '' });
+                clientRolesInData.push({ Role__c: c.Role__c, Contact__c: c.Contact__c || null });
             }
         }
         this._draftRaci = [
-            ...CC_ROLES.map(r => ({ Role__c: r, Contact_Name__c: contactMap[r] || '' })),
+            ...CC_ROLES.map(r => ({ Role__c: r, Contact__c: contactMap[r] || null })),
             ...clientRolesInData
         ];
     }
@@ -348,15 +361,15 @@ export default class ProjectCharter extends LightningElement {
     handleNewRoleChange(event) { this._newRole = event.target.value; }
 
     handleContactChange(event) {
-        const role    = event.target.dataset.role;
-        const contact = event.target.value;
-        const idx     = this._draftRaci.findIndex(c => c.Role__c === role);
+        const role      = event.target.dataset.role;
+        const contactId = event.detail.recordId || null;
+        const idx       = this._draftRaci.findIndex(c => c.Role__c === role);
         if (idx !== -1) {
             this._draftRaci = this._draftRaci.map((c, i) =>
-                i === idx ? { ...c, Contact_Name__c: contact } : c
+                i === idx ? { ...c, Contact__c: contactId } : c
             );
         } else {
-            this._draftRaci = [...this._draftRaci, { Role__c: role, Contact_Name__c: contact }];
+            this._draftRaci = [...this._draftRaci, { Role__c: role, Contact__c: contactId }];
         }
     }
 

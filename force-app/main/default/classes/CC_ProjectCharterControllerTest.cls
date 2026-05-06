@@ -125,16 +125,13 @@ private class CC_ProjectCharterControllerTest {
         ProjectCharter__c charter = new ProjectCharter__c(Sprint__c = sprint.Id);
         insert charter;
 
-        // Insert an old-format record that should be replaced
-        insert new Charter_RACI__c(
-            Charter__c = charter.Id,
-            Role__c = 'Old Role', Contact_Name__c = 'Old Person'
-        );
+        // Insert an old record that should be replaced on save
+        insert new Charter_RACI__c(Charter__c = charter.Id, Role__c = 'Old Role');
 
-        // New roles-roster format: Role__c + Contact_Name__c only
+        // New roles-roster format: Role__c + Contact__c (Contact lookup, null in test)
         List<Charter_RACI__c> newRoles = new List<Charter_RACI__c>{
-            new Charter_RACI__c(Role__c = 'Project Manager', Contact_Name__c = 'Alice'),
-            new Charter_RACI__c(Role__c = 'Developer',       Contact_Name__c = 'Bob')
+            new Charter_RACI__c(Role__c = 'Project Manager'),
+            new Charter_RACI__c(Role__c = 'Developer')
         };
 
         Test.startTest();
@@ -142,15 +139,11 @@ private class CC_ProjectCharterControllerTest {
         Test.stopTest();
 
         List<Charter_RACI__c> result = [
-            SELECT Role__c, Contact_Name__c
-            FROM   Charter_RACI__c WHERE Charter__c = :charter.Id
-            ORDER BY Role__c
+            SELECT Role__c FROM Charter_RACI__c WHERE Charter__c = :charter.Id ORDER BY Role__c
         ];
         System.assertEquals(2, result.size(), 'Should have exactly 2 role records');
         System.assertEquals('Developer',       result[0].Role__c);
-        System.assertEquals('Bob',             result[0].Contact_Name__c);
         System.assertEquals('Project Manager', result[1].Role__c);
-        System.assertEquals('Alice',           result[1].Contact_Name__c);
     }
 
     @isTest
