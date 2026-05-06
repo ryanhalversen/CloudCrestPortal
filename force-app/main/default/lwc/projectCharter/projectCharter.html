@@ -279,9 +279,21 @@
                             <div class="raci-scroll">
                                 <table class="raci-table">
                                     <thead>
+                                        <tr class="raci-group-row">
+                                            <th class="raci-activity-hdr" rowspan="2">Activity</th>
+                                            <th class="raci-group-hdr raci-cc-hdr" colspan="3">
+                                                <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
+                                                CloudCrest
+                                            </th>
+                                            <template if:true={hasClientRoles}>
+                                                <th class="raci-group-hdr raci-client-hdr" colspan={clientRolesCount}>Client</th>
+                                            </template>
+                                        </tr>
                                         <tr>
-                                            <th class="raci-activity-hdr">Activity</th>
-                                            <template for:each={raciRoles} for:item="role">
+                                            <template for:each={ccRoles} for:item="role">
+                                                <th key={role.key} class="raci-role-hdr raci-cc-role-hdr">{role.name}</th>
+                                            </template>
+                                            <template for:each={clientRoles} for:item="role">
                                                 <th key={role.key} class="raci-role-hdr">{role.name}</th>
                                             </template>
                                         </tr>
@@ -290,7 +302,12 @@
                                         <template for:each={raciRows} for:item="row">
                                             <tr key={row.key}>
                                                 <td class="raci-activity-cell">{row.activity}</td>
-                                                <template for:each={row.cells} for:item="cell">
+                                                <template for:each={row.ccCells} for:item="cell">
+                                                    <td key={cell.key} class="raci-cell raci-cc-cell">
+                                                        <span class={cell.badgeClass}>{cell.assignment}</span>
+                                                    </td>
+                                                </template>
+                                                <template for:each={row.clientCells} for:item="cell">
                                                     <td key={cell.key} class="raci-cell">
                                                         <span class={cell.badgeClass}>{cell.assignment}</span>
                                                     </td>
@@ -314,9 +331,23 @@
                         <div class="raci-scroll">
                             <table class="raci-table raci-edit">
                                 <thead>
+                                    <tr class="raci-group-row">
+                                        <th class="raci-activity-hdr" rowspan="2">Activity</th>
+                                        <th class="raci-group-hdr raci-cc-hdr" colspan="3">
+                                            <lightning-icon icon-name="utility:company" size="xx-small"></lightning-icon>
+                                            CloudCrest
+                                        </th>
+                                        <template if:true={hasClientRoles}>
+                                            <th class="raci-group-hdr raci-client-hdr" colspan={clientRolesCount}>Client</th>
+                                        </template>
+                                    </tr>
                                     <tr>
-                                        <th class="raci-activity-hdr">Activity</th>
-                                        <template for:each={raciRoles} for:item="role">
+                                        <!-- CC roles — fixed, no delete -->
+                                        <template for:each={ccRoles} for:item="role">
+                                            <th key={role.key} class="raci-role-hdr raci-cc-role-hdr">{role.name}</th>
+                                        </template>
+                                        <!-- Client roles — removable -->
+                                        <template for:each={clientRoles} for:item="role">
                                             <th key={role.key} class="raci-role-hdr">
                                                 <div class="raci-role-wrap">
                                                     <span class="raci-role-name">{role.name}</span>
@@ -337,7 +368,17 @@
                                                         data-activity={row.activity} title="Remove activity">×</button>
                                                 </div>
                                             </td>
-                                            <template for:each={row.cells} for:item="cell">
+                                            <template for:each={row.ccCells} for:item="cell">
+                                                <td key={cell.key} class="raci-cell raci-cc-cell raci-cell-edit">
+                                                    <button class={cell.badgeClass}
+                                                        onclick={handleRaciCellClick}
+                                                        data-activity={row.activity}
+                                                        data-role={cell.role}>
+                                                        {cell.assignment}
+                                                    </button>
+                                                </td>
+                                            </template>
+                                            <template for:each={row.clientCells} for:item="cell">
                                                 <td key={cell.key} class="raci-cell raci-cell-edit">
                                                     <button class={cell.badgeClass}
                                                         onclick={handleRaciCellClick}
@@ -362,11 +403,11 @@
                                     disabled={isSaving}></lightning-button>
                             </div>
                             <div class="raci-add-inputs">
-                                <lightning-input type="text" label="New Role"
+                                <lightning-input type="text" label="Add Client Contact / Role"
                                     value={newRole}
                                     onchange={handleNewRoleChange}>
                                 </lightning-input>
-                                <lightning-button label="Add Role" onclick={handleAddRole}
+                                <lightning-button label="Add" onclick={handleAddRole}
                                     disabled={isSaving}></lightning-button>
                             </div>
                         </div>

@@ -33,6 +33,9 @@ const FIELD_TO_KEY = {
 
 const RACI_CYCLE = ['R', 'A', 'C', 'I', ''];
 
+// CloudCrest's fixed role columns — always present in every RACI matrix
+const CC_ROLES = ['Executive Sponsor', 'Project Manager', 'Development Team'];
+
 const STATUS_COLORS = {
     Complete:      'bar-green',
     'In Progress': 'bar-blue',
@@ -131,19 +134,31 @@ export default class ProjectCharter extends LightningElement {
 
     // ── RACI computed properties ──────────────────────────────────────────────
 
-    get raciRoles() {
+    // CloudCrest roles are always the same three columns
+    get ccRoles() {
+        return CC_ROLES.map(r => ({ key: r, name: r }));
+    }
+
+    // Client roles are any roles in the data that are NOT CloudCrest roles
+    get clientRoles() {
         const cells = this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
         const seen = new Set();
         const roles = [];
         for (const c of cells) {
-            if (c.Role__c && !seen.has(c.Role__c)) { seen.add(c.Role__c); roles.push(c.Role__c); }
+            if (c.Role__c && !CC_ROLES.includes(c.Role__c) && !seen.has(c.Role__c)) {
+                seen.add(c.Role__c);
+                roles.push(c.Role__c);
+            }
         }
         return roles.map(r => ({ key: r, name: r }));
     }
 
+    get hasClientRoles() { return this.clientRoles.length > 0; }
+    get clientRolesCount() { return this.clientRoles.length; }
+
     get raciRows() {
-        const cells = this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
-        const roles = this.raciRoles.map(r => r.name);
+        const cells        = this._editSection === 'raci' ? this._draftRaci : (this._data?.raciCells || []);
+        const clientRoles  = this.clientRoles.map(r => r.name);
         const actMap = {};
         for (const c of cells) {
             if (!c.Activity__c) continue;
@@ -155,17 +170,23 @@ export default class ProjectCharter extends LightningElement {
             .map(([activity, data]) => ({
                 key: activity,
                 activity,
-                cells: roles.map(role => ({
-                    key:         `${activity}::${role}`,
+                ccCells: CC_ROLES.map(role => ({
+                    key:        `${activity}::${role}`,
                     role,
-                    assignment:  data.map[role] || '',
-                    badgeClass:  this._raciBadgeClass(data.map[role])
+                    assignment: data.map[role] || '',
+                    badgeClass: this._raciBadgeClass(data.map[role])
+                })),
+                clientCells: clientRoles.map(role => ({
+                    key:        `${activity}::${role}`,
+                    role,
+                    assignment: data.map[role] || '',
+                    badgeClass: this._raciBadgeClass(data.map[role])
                 }))
             }));
     }
 
     get hasRaciData() {
-        return this.raciRoles.length > 0 && this.raciRows.length > 0;
+        return this.raciRows.length > 0;
     }
 
     // ── Milestone timeline chart ──────────────────────────────────────────────
@@ -342,9 +363,10 @@ export default class ProjectCharter extends LightningElement {
     handleAddActivity() {
         const name = (this._newActivity || '').trim();
         if (!name) return;
-        const order    = this.raciRows.length + 1;
-        const newCells = this.raciRoles.map(r => ({
-            Activity__c: name, Role__c: r.name, Assignment__c: '', Activity_Order__c: order
+        const order     = this.raciRows.length + 1;
+        const allRoles  = [...CC_ROLES, ...this.clientRoles.map(r => r.name)];
+        const newCells  = allRoles.map(role => ({
+            Activity__c: name, Role__c: role, Assignment__c: '', Activity_Order__c: order
         }));
         this._draftRaci   = [...this._draftRaci, ...newCells];
         this._newActivity = '';
@@ -352,8 +374,7 @@ export default class ProjectCharter extends LightningElement {
 
     handleAddRole() {
         const name = (this._newRole || '').trim();
-        if (!name) return;
-        // Add one cell per existing activity for the new role
+        if (!name || CC_ROLES.includes(name)) return; // CC roles are fixed — block duplicates
         const activities = [...new Set(this._draftRaci.map(c => c.Activity__c))];
         const newCells   = activities.map((act, i) => ({
             Activity__c: act, Role__c: name, Assignment__c: '',
@@ -392,12 +413,11 @@ export default class ProjectCharter extends LightningElement {
     }
 
     async handleSaveRaci() {
-        // Filter out blank-assignment cells before saving
-        const toSave = this._draftRaci.filter(c => c.Assignment__c);
+        // Save all cells (including blank) so activities are preserved
         this._saving = true;
         try {
-            await saveRaci({ charterId: this._data.charterId, records: toSave });
-            this._data        = { ...this._data, raciCells: [...toSave] };
+            await saveRaci({ charterId: this._data.charterId, records: this._draftRaci });
+            this._data        = { ...this._data, raciCells: [...this._draftRaci] };
             this._editSection = null;
             this._toast('Saved', 'success');
         } catch (e) {

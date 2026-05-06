@@ -345,10 +345,39 @@
 .raci-activity-hdr {
     min-width: 180px;
     text-align: left;
+    vertical-align: middle;
 }
 .raci-role-hdr {
     text-align: center;
-    min-width: 80px;
+    min-width: 90px;
+}
+
+/* Group header row */
+.raci-group-hdr {
+    text-align: center;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 7px 12px;
+    border: 1px solid #e5e7eb;
+}
+.raci-cc-hdr {
+    background: #e8f4ff;
+    color: #032d60;
+    border-bottom-color: #a8cff0;
+    --lwc-colorTextIconDefault: #0176d3;
+}
+.raci-client-hdr {
+    background: #edf7e6;
+    color: #1e5c11;
+    border-bottom-color: #a4d18c;
+}
+.raci-cc-role-hdr {
+    background: #f5f8ff;
+    color: #032d60;
+}
+.raci-cc-cell {
+    background: #fafcff;
 }
 .raci-table td {
     padding: 8px 12px;
