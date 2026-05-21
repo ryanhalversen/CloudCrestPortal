@@ -1,0 +1,233 @@
+<template>
+    <div class="portal-wrapper">
+
+        <!-- ── Header ─────────────────────────────────────────── -->
+        <div class="portal-header">
+            <div class="header-left">
+                <div class="header-icon">
+                    <lightning-icon icon-name="standard:case" size="medium"
+                        style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                </div>
+                <div>
+                    <h1 class="portal-title">Client Portal</h1>
+                    <p class="portal-subtitle">Submit stories, track progress, and view project metrics</p>
+                </div>
+            </div>
+            <button class="btn-help" onclick={toggleHelp}>
+                <lightning-icon icon-name="utility:info" size="x-small"
+                    alternative-text="Help"></lightning-icon>
+                <span>How This Works</span>
+            </button>
+        </div>
+
+        <!-- ── Help Panel ─────────────────────────────────────── -->
+        <template if:true={showHelp}>
+            <div class="help-panel">
+                <div class="help-item">
+                    <lightning-icon icon-name="utility:edit_form" size="x-small"></lightning-icon>
+                    <div>
+                        <strong>Submit a Story</strong>
+                        <p>Describe what you'd like the CloudCrest team to build or fix. Fill in all fields and hit Submit. Your request will appear on the board below.</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <lightning-icon icon-name="utility:kanban" size="x-small"></lightning-icon>
+                    <div>
+                        <strong>Storyboard</strong>
+                        <p>Shows all stories logged for your account, organized by status. This view is read-only.</p>
+                    </div>
+                </div>
+                <div class="help-item">
+                    <lightning-icon icon-name="utility:metrics" size="x-small"></lightning-icon>
+                    <div>
+                        <strong>Project Metrics</strong>
+                        <p>Hours consumed reflects all time logged by the CloudCrest team against your active project. Projected end date is updated by your project lead.</p>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ── Section 1: Story Submission Form ───────────────── -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Submit a Story</h2>
+                <p class="section-subtitle">Tell us what you need — we'll take it from here</p>
+            </div>
+
+            <template if:true={formError}>
+                <div class="error-banner">
+                    <lightning-icon icon-name="utility:error" size="x-small"
+                        variant="error"></lightning-icon>
+                    <span>{formError}</span>
+                </div>
+            </template>
+
+            <div class="form-body">
+                <div class="form-row">
+                    <label class="field-label">Title <span class="required">*</span></label>
+                    <input type="text" class={titleInputClass} value={formTitle}
+                        placeholder="Brief summary of your request" maxlength="255"
+                        oninput={handleTitleInput} data-field="title">
+                    <template if:true={titleError}>
+                        <span class="field-error">{titleError}</span>
+                    </template>
+                </div>
+
+                <div class="form-row">
+                    <label class="field-label">Description <span class="required">*</span></label>
+                    <textarea class={descriptionInputClass} value={formDescription}
+                        placeholder="Describe what you need in detail"
+                        oninput={handleDescriptionInput} data-field="description"
+                        rows="4"></textarea>
+                    <template if:true={descriptionError}>
+                        <span class="field-error">{descriptionError}</span>
+                    </template>
+                </div>
+
+                <div class="form-row-inline">
+                    <div class="form-col">
+                        <label class="field-label">Story Type <span class="required">*</span></label>
+                        <select class={typeInputClass} value={formType}
+                            onchange={handleTypeChange} data-field="type">
+                            <option value="">— Select —</option>
+                            <template for:each={typeOptions} for:item="opt">
+                                <option key={opt} value={opt}>{opt}</option>
+                            </template>
+                        </select>
+                        <template if:true={typeError}>
+                            <span class="field-error">{typeError}</span>
+                        </template>
+                    </div>
+                    <div class="form-col">
+                        <label class="field-label">Priority <span class="required">*</span></label>
+                        <select class={priorityInputClass} value={formPriority}
+                            onchange={handlePriorityChange} data-field="priority">
+                            <option value="">— Select —</option>
+                            <template for:each={priorityOptions} for:item="opt">
+                                <option key={opt} value={opt}>{opt}</option>
+                            </template>
+                        </select>
+                        <template if:true={priorityError}>
+                            <span class="field-error">{priorityError}</span>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn-submit" onclick={handleSubmit} disabled={isSubmitting}>
+                        <template if:true={isSubmitting}>
+                            <lightning-spinner alternative-text="Submitting" size="small"></lightning-spinner>
+                            <span>Submitting…</span>
+                        </template>
+                        <template if:false={isSubmitting}>
+                            <lightning-icon icon-name="utility:add" size="x-small"></lightning-icon>
+                            <span>Submit Story</span>
+                        </template>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ── Section 2: Storyboard ──────────────────────────── -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Storyboard</h2>
+                <p class="section-subtitle">All stories for your account, organized by status</p>
+            </div>
+
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasStories}>
+                    <div class="board-columns">
+                        <template for:each={statusColumns} for:item="col">
+                            <div key={col.status} class="board-column">
+                                <div class="column-header">
+                                    <span class="column-title">{col.status}</span>
+                                    <span class="column-count">{col.count}</span>
+                                </div>
+                                <div class="column-body">
+                                    <template for:each={col.stories} for:item="story">
+                                        <div key={story.Id} class="story-card">
+                                            <div class="card-top">
+                                                <span class="card-subject">{story.Subject}</span>
+                                                <span class={story.priorityClass}>{story.Priority}</span>
+                                            </div>
+                                            <div class="card-meta">
+                                                <span class="meta-tag type-tag">{story.Type}</span>
+                                            </div>
+                                            <div class="card-footer">
+                                                <template if:true={story.ownerName}>
+                                                    <span class="meta-text">
+                                                        <lightning-icon icon-name="utility:user" size="xx-small"></lightning-icon>
+                                                        {story.ownerName}
+                                                    </span>
+                                                </template>
+                                                <span class="meta-text">
+                                                    <lightning-icon icon-name="utility:date_input" size="xx-small"></lightning-icon>
+                                                    {story.createdDateFormatted}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template if:false={hasStories}>
+                    <div class="empty-state">
+                        <lightning-icon icon-name="utility:kanban" size="large"></lightning-icon>
+                        <p>No stories found for your account. Submit one above to get started.</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ── Section 3: Project Metrics ─────────────────────── -->
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">Project Metrics</h2>
+                <p class="section-subtitle">Time tracking and projected completion for your active project</p>
+            </div>
+
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="metric-icon hours-icon">
+                            <lightning-icon icon-name="utility:clock" size="small"></lightning-icon>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-value">{hoursConsumedDisplay}</span>
+                            <span class="metric-label">Hours Consumed</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon date-icon">
+                            <lightning-icon icon-name="utility:event" size="small"></lightning-icon>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-value">{projectedEndDateDisplay}</span>
+                            <span class="metric-label">Projected Completion</span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+    </div>
+</template>
