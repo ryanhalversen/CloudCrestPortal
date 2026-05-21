@@ -1,12 +1,12 @@
 /* ── Root wrapper ───────────────────────────────────────── */
 .portal-wrapper {
-    max-width: 1280px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 24px 16px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ── Header ────────────────────────────────────────────── */
+/* ── Portal Header ─────────────────────────────────────── */
 .portal-header {
     display: flex;
     align-items: center;
@@ -243,42 +243,140 @@
     cursor: not-allowed;
 }
 
-/* ── Storyboard ────────────────────────────────────────── */
-.board-columns {
+/* ── Board Wrapper ─────────────────────────────────────── */
+.board-wrapper {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    margin-bottom: 8px;
+}
+
+.board-header {
     display: flex;
-    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.board-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0d1b2a;
+    margin: 0;
+}
+
+.board-subtitle {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 2px 0 0;
+}
+
+/* ── Epic Filter Pills ─────────────────────────────────── */
+.epic-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f2f5;
+    margin-bottom: 16px;
+}
+
+.epic-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+}
+
+.epic-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: #fff;
+    color: #374151;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.epic-pill:hover {
+    background: #f8fafc;
+    border-color: #d1d5db;
+}
+
+.epic-pill-active {
+    background: #00b4d8;
+    color: #fff;
+    border-color: #00b4d8;
+}
+
+.epic-pill-active:hover {
+    background: #0096c7;
+    border-color: #0096c7;
+}
+
+.epic-count {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* ── Storyboard Columns ────────────────────────────────── */
+.board-scroll {
     overflow-x: auto;
     padding-bottom: 8px;
 }
 
-.board-column {
-    min-width: 220px;
-    flex: 1;
+.board-columns {
     display: flex;
-    flex-direction: column;
+    gap: 10px;
+    min-width: min-content;
 }
 
-.column-header {
+.board-col {
+    min-width: 220px;
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.col-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
-    background: #f8fafc;
+    padding: 10px 10px;
     border-radius: 8px 8px 0 0;
-    border: 1px solid #e5e7eb;
-    border-bottom: 2px solid #00b4d8;
 }
 
-.column-title {
-    font-size: 0.78rem;
+.col-title-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.col-title {
+    font-size: 0.72rem;
     font-weight: 700;
     color: #374151;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
-.column-count {
-    font-size: 0.72rem;
+.col-badge {
+    font-size: 0.68rem;
     font-weight: 600;
     color: #6b7280;
     background: #e5e7eb;
@@ -286,23 +384,26 @@
     border-radius: 10px;
 }
 
-.column-body {
+.col-cards {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px 0;
+    padding: 8px 6px;
+    max-height: 520px;
+    overflow-y: auto;
     min-height: 60px;
 }
 
+/* ── Story Cards ───────────────────────────────────────── */
 .story-card {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 12px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     transition: box-shadow 0.15s;
 }
 .story-card:hover {
@@ -312,16 +413,25 @@
 .card-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
 }
 
+.card-case-number {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #00b4d8;
+}
+
 .card-subject {
-    font-size: 0.84rem;
+    font-size: 0.825rem;
     font-weight: 600;
-    color: #111827;
+    color: #0d1b2a;
     line-height: 1.35;
-    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .card-meta {
@@ -330,41 +440,66 @@
     flex-wrap: wrap;
 }
 
-.meta-tag {
+.meta-type {
     font-size: 0.7rem;
     font-weight: 500;
     padding: 2px 8px;
     border-radius: 6px;
+    background: #f3f4f6;
+    color: #6b7280;
 }
 
-.type-tag {
+.meta-type-none {
+    font-style: italic;
+    color: #9ca3af;
+}
+
+.meta-epic {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 6px;
     background: #e6f7fb;
     color: #0096c7;
 }
 
 .card-footer {
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 8px;
     align-items: center;
+    justify-content: space-between;
 }
 
-.meta-text {
+.card-hours-logged {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #00b4d8;
+}
+
+.card-est-hours {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #0096c7;
+}
+
+.card-est-missing {
+    color: #b91c1c;
+}
+
+.card-date {
     font-size: 0.72rem;
     color: #9ca3af;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    margin-left: auto;
 }
 
 /* ── Priority Badges ───────────────────────────────────── */
 .priority-badge {
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: 0.62rem;
+    font-weight: 700;
     padding: 2px 8px;
     border-radius: 6px;
     white-space: nowrap;
-    text-transform: capitalize;
+    text-transform: uppercase;
 }
 
 .priority-critical {
@@ -385,6 +520,12 @@
 .priority-low {
     background: #f0fdf4;
     color: #166534;
+}
+
+.priority-needs-assignment,
+.priority-none {
+    background: #f3f4f6;
+    color: #6b7280;
 }
 
 /* ── Metrics ───────────────────────────────────────────── */
@@ -463,8 +604,9 @@
     .board-columns {
         flex-direction: column;
     }
-    .board-column {
+    .board-col {
         min-width: 100%;
+        width: 100%;
     }
     .form-row-inline {
         flex-direction: column;

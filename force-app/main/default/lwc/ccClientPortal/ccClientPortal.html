@@ -131,11 +131,35 @@
         <div class="divider"></div>
 
         <!-- ── Section 2: Storyboard ──────────────────────────── -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">Storyboard</h2>
-                <p class="section-subtitle">All stories for your account, organized by status</p>
+        <div class="board-wrapper">
+            <div class="board-header">
+                <div class="header-left">
+                    <div class="header-icon">
+                        <lightning-icon icon-name="standard:kanban" size="medium"
+                            style="--lwc-colorTextIcon:#00b4d8;"></lightning-icon>
+                    </div>
+                    <div>
+                        <h2 class="board-title">Story Board</h2>
+                        <p class="board-subtitle">{storyCountLabel}</p>
+                    </div>
+                </div>
             </div>
+
+            <!-- ── Epic Filter Pills ──────────────────────────── -->
+            <template if:false={isLoading}>
+                <div class="epic-filters">
+                    <span class="epic-label">EPICS</span>
+                    <button class={allEpicClass} onclick={handleEpicAll}>
+                        All
+                    </button>
+                    <template for:each={epics} for:item="epic">
+                        <button key={epic.epicId} class={epic.pillClass}
+                            data-id={epic.epicId} onclick={handleEpicSelect}>
+                            {epic.name} <span class="epic-count">{epic.storyCount}</span>
+                        </button>
+                    </template>
+                </div>
+            </template>
 
             <template if:true={isLoading}>
                 <div class="loading-container">
@@ -144,44 +168,50 @@
             </template>
 
             <template if:false={isLoading}>
-                <template if:true={hasStories}>
-                    <div class="board-columns">
-                        <template for:each={statusColumns} for:item="col">
-                            <div key={col.status} class="board-column">
-                                <div class="column-header">
-                                    <span class="column-title">{col.status}</span>
-                                    <span class="column-count">{col.count}</span>
-                                </div>
-                                <div class="column-body">
-                                    <template for:each={col.stories} for:item="story">
-                                        <div key={story.Id} class="story-card">
-                                            <div class="card-top">
-                                                <span class="card-subject">{story.Subject}</span>
-                                                <span class={story.priorityClass}>{story.Priority}</span>
-                                            </div>
-                                            <div class="card-meta">
-                                                <span class="meta-tag type-tag">{story.Type}</span>
-                                            </div>
-                                            <div class="card-footer">
-                                                <template if:true={story.ownerName}>
-                                                    <span class="meta-text">
-                                                        <lightning-icon icon-name="utility:user" size="xx-small"></lightning-icon>
-                                                        {story.ownerName}
-                                                    </span>
-                                                </template>
-                                                <span class="meta-text">
-                                                    <lightning-icon icon-name="utility:date_input" size="xx-small"></lightning-icon>
-                                                    {story.createdDateFormatted}
-                                                </span>
-                                            </div>
+                <template if:true={hasFilteredStories}>
+                    <div class="board-scroll">
+                        <div class="board-columns">
+                            <template for:each={statusColumns} for:item="col">
+                                <div key={col.status} class="board-col">
+                                    <div class="col-header" style={col.headerStyle}>
+                                        <div class="col-title-group">
+                                            <span class="col-title">{col.status}</span>
                                         </div>
-                                    </template>
+                                        <span class="col-badge">{col.count}</span>
+                                    </div>
+                                    <div class="col-cards">
+                                        <template for:each={col.stories} for:item="story">
+                                            <div key={story.Id} class="story-card">
+                                                <div class="card-top">
+                                                    <span class="card-case-number">{story.CaseNumber}</span>
+                                                    <span class={story.priorityClass}>{story.priorityLabel}</span>
+                                                </div>
+                                                <div class="card-subject">{story.Subject}</div>
+                                                <div class="card-meta">
+                                                    <template if:true={story.Type}>
+                                                        <span class="meta-type">{story.Type}</span>
+                                                    </template>
+                                                    <template if:false={story.Type}>
+                                                        <span class="meta-type meta-type-none">No Type</span>
+                                                    </template>
+                                                    <template if:true={story.epicName}>
+                                                        <span class="meta-epic">{story.epicName}</span>
+                                                    </template>
+                                                </div>
+                                                <div class="card-footer">
+                                                    <span class="card-hours-logged">{story.hoursLoggedDisplay}</span>
+                                                    <span class={story.estHoursClass}>{story.estHoursDisplay}</span>
+                                                    <span class="card-date">{story.timeAgo}</span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
-                            </div>
-                        </template>
+                            </template>
+                        </div>
                     </div>
                 </template>
-                <template if:false={hasStories}>
+                <template if:false={hasFilteredStories}>
                     <div class="empty-state">
                         <lightning-icon icon-name="utility:kanban" size="large"></lightning-icon>
                         <p>No stories found for your account. Submit one above to get started.</p>
