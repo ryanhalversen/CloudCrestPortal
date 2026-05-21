@@ -43,6 +43,7 @@ export default class CcClientPortal extends LightningElement {
     @track priorityOptions = [];
 
     hoursConsumed = 0;
+    hoursRemaining = null;
     projectedEndDate = null;
     projectName = '';
     selectedEpicId = null;
@@ -79,6 +80,7 @@ export default class CcClientPortal extends LightningElement {
             this.stories = data.stories || [];
             this.epics = data.epics || [];
             this.hoursConsumed = data.hoursConsumed || 0;
+            this.hoursRemaining = data.hoursRemaining != null ? data.hoursRemaining : null;
             this.projectedEndDate = data.projectedEndDate || null;
             this.projectName = data.projectName || '';
             this.isLoading = false;
@@ -170,6 +172,11 @@ export default class CcClientPortal extends LightningElement {
 
     get hoursConsumedDisplay() {
         return this.hoursConsumed + ' hrs consumed';
+    }
+
+    get hoursRemainingDisplay() {
+        if (this.hoursRemaining == null) return 'N/A';
+        return this.hoursRemaining + ' hrs remaining';
     }
 
     get projectedEndDateDisplay() {

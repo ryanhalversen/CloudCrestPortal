@@ -10,6 +10,7 @@ public without sharing class cc_ClientPortalController {
         @AuraEnabled public List<Case> stories;
         @AuraEnabled public List<EpicInfo> epics;
         @AuraEnabled public Decimal hoursConsumed;
+        @AuraEnabled public Decimal hoursRemaining;
         @AuraEnabled public Date projectedEndDate;
         @AuraEnabled public String projectName;
     }
@@ -73,7 +74,7 @@ public without sharing class cc_ClientPortalController {
         }
 
         List<Sprint__c> activeProjects = [
-            SELECT Id, Name, Est_Project_End_Date_Sprint__c
+            SELECT Id, Name, Est_Project_End_Date_Sprint__c, Completed_Delta_Sprint__c
             FROM Sprint__c
             WHERE Accountlu__c = :accountId
               AND Status__c = 'In Progress'
@@ -83,6 +84,7 @@ public without sharing class cc_ClientPortalController {
         if (!activeProjects.isEmpty()) {
             data.projectedEndDate = activeProjects[0].Est_Project_End_Date_Sprint__c;
             data.projectName = activeProjects[0].Name;
+            data.hoursRemaining = activeProjects[0].Completed_Delta_Sprint__c;
         }
 
         return data;
