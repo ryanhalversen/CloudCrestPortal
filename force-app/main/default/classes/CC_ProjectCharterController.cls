@@ -28,6 +28,7 @@ public with sharing class CC_ProjectCharterController {
         @AuraEnabled public List<Charter_RACI__c>      raciCells;
         @AuraEnabled public List<Charter_Risk__c>      risks;
         @AuraEnabled public List<Charter_Signoff__c>   signoffs;
+        @AuraEnabled public Boolean readOnly;
     }
 
     // ── Load all charter data; auto-create if none exists ────────────────────
@@ -37,97 +38,112 @@ public with sharing class CC_ProjectCharterController {
         if (projectId == null) {
             throw new AuraHandledException('projectId is required');
         }
+        return new CharterReader().load(projectId);
+    }
 
-        Sprint__c sprint = [
-            SELECT Id, Name, Status__c,
-                   Project_Start_Date__c, Project_End_Date__c,
-                   Accountlu__r.Name,
-                   Project_Lead_Sprint__r.Name
-            FROM   Sprint__c
-            WHERE  Id = :projectId
-            LIMIT  1
-        ];
+    private without sharing class CharterReader {
+        public CharterDataWrapper load(Id projectId) {
+            List<Sprint__c> sprintRows = [
+                SELECT Id, Name, Status__c,
+                       Project_Start_Date__c, Project_End_Date__c,
+                       Accountlu__r.Name,
+                       Project_Lead_Sprint__r.Name
+                FROM   Sprint__c
+                WHERE  Id = :projectId
+                LIMIT  1
+            ];
+            if (sprintRows.isEmpty()) {
+                throw new AuraHandledException('Project not found.');
+            }
+            Sprint__c sprint = sprintRows[0];
 
-        List<ProjectCharter__c> existing = [
-            SELECT Id, Status__c,
-                   Business_Problem__c, Solution_Summary__c,
-                   Objectives__c, Success_Criteria__c,
-                   Scope_In__c, Scope_Out__c,
-                   Assumptions__c, Dependencies__c,
-                   Communication_Plan__c, Change_Order_Process__c,
-                   Approved_Date__c
-            FROM   ProjectCharter__c
-            WHERE  Sprint__c = :projectId
-            LIMIT  1
-        ];
+            List<ProjectCharter__c> existing = [
+                SELECT Id, Status__c,
+                       Business_Problem__c, Solution_Summary__c,
+                       Objectives__c, Success_Criteria__c,
+                       Scope_In__c, Scope_Out__c,
+                       Assumptions__c, Dependencies__c,
+                       Communication_Plan__c, Change_Order_Process__c,
+                       Approved_Date__c
+                FROM   ProjectCharter__c
+                WHERE  Sprint__c = :projectId
+                LIMIT  1
+            ];
 
-        ProjectCharter__c charter;
-        if (existing.isEmpty()) {
-            charter = new ProjectCharter__c(Sprint__c = projectId, Status__c = 'Draft');
-            insert charter;
-        } else {
-            charter = existing[0];
+            Boolean isPortalUser = !Schema.sObjectType.ProjectCharter__c.isCreateable();
+
+            ProjectCharter__c charter;
+            if (existing.isEmpty()) {
+                if (isPortalUser) {
+                    throw new AuraHandledException('No project charter has been created for this project yet.');
+                }
+                charter = new ProjectCharter__c(Sprint__c = projectId, Status__c = 'Draft');
+                insert charter;
+            } else {
+                charter = existing[0];
+            }
+
+            List<Charter_Milestone__c> milestones = [
+                SELECT Id, Name, Start_Date__c, End_Date__c, Status__c, Sort_Order__c
+                FROM   Charter_Milestone__c
+                WHERE  Charter__c = :charter.Id
+                ORDER BY Sort_Order__c ASC NULLS LAST, Name ASC
+            ];
+
+            List<Charter_RACI__c> raciCells = [
+                SELECT Id, Role__c, Contact_Name__c,
+                       Contact__c, Contact__r.Name,
+                       User__c, User__r.Name
+                FROM   Charter_RACI__c
+                WHERE  Charter__c = :charter.Id
+                ORDER BY CreatedDate ASC
+            ];
+
+            List<Charter_Risk__c> risks = [
+                SELECT Id, Risk_Description__c, Likelihood__c, Impact__c, Mitigation__c, Sort_Order__c
+                FROM   Charter_Risk__c
+                WHERE  Charter__c = :charter.Id
+                ORDER BY Sort_Order__c ASC NULLS LAST
+            ];
+
+            List<Charter_Signoff__c> signoffs = [
+                SELECT Id, Signer_Name__c, Role__c, Status__c, Signed_Date__c
+                FROM   Charter_Signoff__c
+                WHERE  Charter__c = :charter.Id
+                ORDER BY CreatedDate ASC
+            ];
+
+            CharterDataWrapper w    = new CharterDataWrapper();
+            w.charterId             = charter.Id;
+            w.charterStatus         = charter.Status__c;
+            w.businessProblem       = charter.Business_Problem__c;
+            w.solutionSummary       = charter.Solution_Summary__c;
+            w.objectives            = charter.Objectives__c;
+            w.successCriteria       = charter.Success_Criteria__c;
+            w.scopeIn               = charter.Scope_In__c;
+            w.scopeOut              = charter.Scope_Out__c;
+            w.assumptions           = charter.Assumptions__c;
+            w.dependencies          = charter.Dependencies__c;
+            w.communicationPlan     = charter.Communication_Plan__c;
+            w.changeOrderProcess    = charter.Change_Order_Process__c;
+            w.approvedDate          = charter.Approved_Date__c != null
+                                        ? String.valueOf(charter.Approved_Date__c) : null;
+            w.projectName           = sprint.Name;
+            w.accountName           = sprint.Accountlu__r != null ? sprint.Accountlu__r.Name : '';
+            w.projectStatus         = sprint.Status__c;
+            w.projectStartDate      = sprint.Project_Start_Date__c != null
+                                        ? String.valueOf(sprint.Project_Start_Date__c) : null;
+            w.projectEndDate        = sprint.Project_End_Date__c != null
+                                        ? String.valueOf(sprint.Project_End_Date__c) : null;
+            w.ownerName             = sprint.Project_Lead_Sprint__r != null
+                                        ? sprint.Project_Lead_Sprint__r.Name : '';
+            w.milestones            = milestones;
+            w.raciCells             = raciCells;
+            w.risks                 = risks;
+            w.signoffs              = signoffs;
+            w.readOnly              = isPortalUser;
+            return w;
         }
-
-        List<Charter_Milestone__c> milestones = [
-            SELECT Id, Name, Start_Date__c, End_Date__c, Status__c, Sort_Order__c
-            FROM   Charter_Milestone__c
-            WHERE  Charter__c = :charter.Id
-            ORDER BY Sort_Order__c ASC NULLS LAST, Name ASC
-        ];
-
-        List<Charter_RACI__c> raciCells = [
-            SELECT Id, Role__c, Contact_Name__c,
-                   Contact__c, Contact__r.Name,
-                   User__c, User__r.Name
-            FROM   Charter_RACI__c
-            WHERE  Charter__c = :charter.Id
-            ORDER BY CreatedDate ASC
-        ];
-
-        List<Charter_Risk__c> risks = [
-            SELECT Id, Risk_Description__c, Likelihood__c, Impact__c, Mitigation__c, Sort_Order__c
-            FROM   Charter_Risk__c
-            WHERE  Charter__c = :charter.Id
-            ORDER BY Sort_Order__c ASC NULLS LAST
-        ];
-
-        List<Charter_Signoff__c> signoffs = [
-            SELECT Id, Signer_Name__c, Role__c, Status__c, Signed_Date__c
-            FROM   Charter_Signoff__c
-            WHERE  Charter__c = :charter.Id
-            ORDER BY CreatedDate ASC
-        ];
-
-        CharterDataWrapper w    = new CharterDataWrapper();
-        w.charterId             = charter.Id;
-        w.charterStatus         = charter.Status__c;
-        w.businessProblem       = charter.Business_Problem__c;
-        w.solutionSummary       = charter.Solution_Summary__c;
-        w.objectives            = charter.Objectives__c;
-        w.successCriteria       = charter.Success_Criteria__c;
-        w.scopeIn               = charter.Scope_In__c;
-        w.scopeOut              = charter.Scope_Out__c;
-        w.assumptions           = charter.Assumptions__c;
-        w.dependencies          = charter.Dependencies__c;
-        w.communicationPlan     = charter.Communication_Plan__c;
-        w.changeOrderProcess    = charter.Change_Order_Process__c;
-        w.approvedDate          = charter.Approved_Date__c != null
-                                    ? String.valueOf(charter.Approved_Date__c) : null;
-        w.projectName           = sprint.Name;
-        w.accountName           = sprint.Accountlu__r != null ? sprint.Accountlu__r.Name : '';
-        w.projectStatus         = sprint.Status__c;
-        w.projectStartDate      = sprint.Project_Start_Date__c != null
-                                    ? String.valueOf(sprint.Project_Start_Date__c) : null;
-        w.projectEndDate        = sprint.Project_End_Date__c != null
-                                    ? String.valueOf(sprint.Project_End_Date__c) : null;
-        w.ownerName             = sprint.Project_Lead_Sprint__r != null
-                                    ? sprint.Project_Lead_Sprint__r.Name : '';
-        w.milestones            = milestones;
-        w.raciCells             = raciCells;
-        w.risks                 = risks;
-        w.signoffs              = signoffs;
-        return w;
     }
 
     // ── Save charter header fields ────────────────────────────────────────────

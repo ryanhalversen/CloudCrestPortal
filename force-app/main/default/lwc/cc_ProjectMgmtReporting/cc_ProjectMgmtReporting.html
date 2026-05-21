@@ -16,33 +16,6 @@
         <!-- ── Report ────────────────────────────────────────── -->
         <template if:true={hasData}>
 
-            <!-- ── Completed Work Highlight ───────────────────── -->
-            <template if:true={project.hasHighlight}>
-                <div class="highlight-section">
-                    <div class="highlight-section-hdr">
-                        <span class="highlight-section-icon">&#10022;</span>
-                        <span class="highlight-section-title">Completed Work Highlight</span>
-                    </div>
-                    <div class="highlight-cards-grid">
-                        <template for:each={project.highlightSections} for:item="sec">
-                            <div key={sec.id} class="highlight-card">
-                                <template if:true={sec.title}>
-                                    <div class="highlight-card-title">{sec.title}</div>
-                                </template>
-                                <div class="highlight-card-items">
-                                    <template for:each={sec.items} for:item="item">
-                                        <div key={item.id} class="highlight-card-item">
-                                            <span class="highlight-item-dot"></span>
-                                            <span class="highlight-item-text">{item.text}</span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </template>
-
             <!-- Client pill -->
             <template if:true={project.accountName}>
                 <div class="client-pill">&#128203;&nbsp;{project.accountName}</div>

@@ -54,9 +54,11 @@
                     <span class="section-num">01</span>
                     <h2 class="section-title">Project Overview</h2>
                     <template if:false={isEditing.overview}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="overview">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="overview">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.overview}>
@@ -100,9 +102,11 @@
                     <span class="section-num">02</span>
                     <h2 class="section-title">Objectives &amp; Success Criteria</h2>
                     <template if:false={isEditing.objectives}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="objectives">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="objectives">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.objectives}>
@@ -146,9 +150,11 @@
                     <span class="section-num">03</span>
                     <h2 class="section-title">Scope</h2>
                     <template if:false={isEditing.scope}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="scope">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="scope">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.scope}>
@@ -201,9 +207,11 @@
                         <lightning-icon icon-name="utility:info" size="xx-small"></lightning-icon>
                     </button>
                     <template if:false={isEditing.raci}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="raci">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="raci">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
 
@@ -419,9 +427,11 @@
                     <span class="section-num">05</span>
                     <h2 class="section-title">Timeline &amp; Milestones</h2>
                     <template if:false={isEditing.timeline}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="timeline">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="timeline">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
 
@@ -503,9 +513,11 @@
                     <span class="section-num">06</span>
                     <h2 class="section-title">Assumptions &amp; Dependencies</h2>
                     <template if:false={isEditing.assumptions}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="assumptions">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="assumptions">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.assumptions}>
@@ -549,9 +561,11 @@
                     <span class="section-num">07</span>
                     <h2 class="section-title">Risks</h2>
                     <template if:false={isEditing.risks}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="risks">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="risks">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
 
@@ -647,9 +661,11 @@
                     <span class="section-num">08</span>
                     <h2 class="section-title">Communication Plan</h2>
                     <template if:false={isEditing.comms}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="comms">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="comms">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.comms}>
@@ -680,9 +696,11 @@
                     <span class="section-num">09</span>
                     <h2 class="section-title">Change Order Process</h2>
                     <template if:false={isEditing.changeOrder}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="changeOrder">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="changeOrder">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
                 <template if:false={isEditing.changeOrder}>
@@ -713,9 +731,11 @@
                     <span class="section-num">10</span>
                     <h2 class="section-title">Sign-Off</h2>
                     <template if:false={isEditing.signoff}>
-                        <button class="section-edit-btn" onclick={handleEdit} data-section="signoff">
-                            <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
-                        </button>
+                        <template if:true={canEdit}>
+                            <button class="section-edit-btn" onclick={handleEdit} data-section="signoff">
+                                <lightning-icon icon-name="utility:edit" size="xx-small"></lightning-icon> Edit
+                            </button>
+                        </template>
                     </template>
                 </div>
 

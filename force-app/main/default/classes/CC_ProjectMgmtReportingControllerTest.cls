@@ -158,4 +158,13 @@ private class CC_ProjectMgmtReportingControllerTest {
         System.assertEquals(1, results.size());
         System.assertEquals(2, results[0].projects.size(), 'Cancelled sprint should be excluded');
     }
+
+    @IsTest
+    static void testGetPortalProjectId_noContactUser() {
+        // Running user is an internal user with no ContactId — should return null
+        Test.startTest();
+        Id result = CC_ProjectMgmtReportingController.getPortalProjectId();
+        Test.stopTest();
+        System.assertEquals(null, result, 'Internal user with no Contact should return null');
+    }
 }

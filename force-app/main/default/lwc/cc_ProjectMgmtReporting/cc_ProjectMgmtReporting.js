@@ -1,5 +1,6 @@
-import { LightningElement, api, wire } from 'lwc';
-import getProjectReport from '@salesforce/apex/CC_ProjectMgmtReportingController.getProjectReport';
+import { LightningElement, api } from 'lwc';
+import getProjectReport  from '@salesforce/apex/CC_ProjectMgmtReportingController.getProjectReport';
+import getPortalProjectId from '@salesforce/apex/CC_ProjectMgmtReportingController.getPortalProjectId';
 
 export default class Cc_ProjectMgmtReporting extends LightningElement {
 
@@ -12,15 +13,28 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
     _showPeople      = false;
     _personFilter    = null;
 
-    @wire(getProjectReport, { projectId: '$recordId' })
-    wiredData({ data, error }) {
-        if (data) {
-            this._raw   = data;
+    async connectedCallback() {
+        if (!this.recordId) {
+            try {
+                this.recordId = await getPortalProjectId();
+            } catch (e) {
+                this._error = true;
+                console.error('CC_ProjectMgmtReporting: portal project lookup failed', e);
+                return;
+            }
+            if (!this.recordId) return;
+        }
+        this._loadReport();
+    }
+
+    async _loadReport() {
+        try {
+            this._raw   = await getProjectReport({ projectId: this.recordId });
             this._error = false;
-        } else if (error) {
+        } catch (e) {
             this._raw   = null;
             this._error = true;
-            console.error('CC_ProjectMgmtReporting:', error);
+            console.error('CC_ProjectMgmtReporting:', e);
         }
     }
 
@@ -183,8 +197,6 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         const selectedEpic = epics.find(e => e.isSelected) || null;
 
         return {
-            highlightSections:     this._parseHighlight(p.completedWorkHighlight),
-            hasHighlight:          !!(p.completedWorkHighlight && p.completedWorkHighlight.trim()),
             accountName:           p.accountName,
             startDateFormatted:    this._formatDate(p.startDate),
             endDateFormatted:      this._formatDate(p.endDate),
@@ -268,33 +280,6 @@ export default class Cc_ProjectMgmtReporting extends LightningElement {
         return month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
     }
 
-    // Parse markdown-style text into section cards
-    _parseHighlight(text) {
-        if (!text || !text.trim()) return [];
-        const sections = [];
-        let current = null;
-        for (const raw of text.split('\n')) {
-            const line = raw.trim();
-            if (!line) continue;
-            if (/^[-=*_]{2,}$/.test(line)) continue;
-            if (line.startsWith('#')) {
-                current = {
-                    id:    String(sections.length),
-                    title: line.replace(/^#+\s*/, '').trim(),
-                    items: []
-                };
-                sections.push(current);
-            } else {
-                if (!current) {
-                    current = { id: '0', title: '', items: [] };
-                    sections.push(current);
-                }
-                const item = line.replace(/^[-*•]\s*/, '').trim();
-                if (item) current.items.push({ id: String(current.items.length), text: item });
-            }
-        }
-        return sections.filter(s => s.title || s.items.length > 0);
-    }
 
     // Aggregate stories by a key, optionally sort by a fixed order array
     _breakdown(stories, keyFn, order) {

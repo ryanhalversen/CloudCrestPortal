@@ -8,6 +8,7 @@ import saveRisks        from '@salesforce/apex/CC_ProjectCharterController.saveR
 import saveSignoffs     from '@salesforce/apex/CC_ProjectCharterController.saveSignoffs';
 import searchContacts   from '@salesforce/apex/CC_ProjectCharterController.searchContacts';
 import searchUsers      from '@salesforce/apex/CC_ProjectCharterController.searchUsers';
+import getPortalProjectId from '@salesforce/apex/CC_ProjectMgmtReportingController.getPortalProjectId';
 
 // ── Section → charter field mappings ─────────────────────────────────────────
 const SECTION_FIELDS = {
@@ -73,7 +74,16 @@ export default class ProjectCharter extends LightningElement {
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    connectedCallback() {
+    async connectedCallback() {
+        if (!this.recordId) {
+            try {
+                this.recordId = await getPortalProjectId();
+            } catch (e) {
+                this._error = e;
+                return;
+            }
+            if (!this.recordId) return;
+        }
         this._load();
     }
 
@@ -91,6 +101,7 @@ export default class ProjectCharter extends LightningElement {
     get hasData()    { return !!this._data;  }
     get hasError()   { return !!this._error; }
     get isSaving()   { return this._saving;  }
+    get canEdit()    { return this._data && !this._data.readOnly; }
 
     get data()         { return this._data         || {}; }
     get draftCharter() { return this._draftCharter || {}; }

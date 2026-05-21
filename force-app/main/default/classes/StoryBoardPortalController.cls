@@ -22,11 +22,12 @@ public without sharing class StoryBoardPortalController {
             'FROM Case';
 
         List<String> filters = new List<String>{
-            'Subject NOT IN (\'Meetings\', \'Project Management\', \'Helpdesk\')',
-            'Projects__c IN (SELECT Id FROM Sprint__c WHERE Accountlu__c = \'' + accountId + '\' AND Status__c = \'In Progress\')'
+            'Subject NOT IN (\'Meetings\', \'Project Management\', \'Helpdesk\')'
         };
         if (projectId != null) {
-            filters.add('Projects__c = \'' + projectId + '\'');
+            filters.add('Projects__c = \'' + String.escapeSingleQuotes(projectId) + '\'');
+        } else {
+            filters.add('Projects__c IN (SELECT Id FROM Sprint__c WHERE Accountlu__c = \'' + String.escapeSingleQuotes(accountId) + '\' AND Status__c != \'Cancelled\' AND Status__c != \'Complete\')');
         }
         if (epicId != null) {
             filters.add('Epic__c = \'' + epicId + '\'');
@@ -54,9 +55,10 @@ public without sharing class StoryBoardPortalController {
             SELECT Id, Name, OwnerId
             FROM Sprint__c
             WHERE Accountlu__c = :accountId
-            AND   Status__c    = 'In Progress'
-            ORDER BY Name ASC
-            LIMIT 100
+              AND Status__c != 'Cancelled'
+              AND Status__c != 'Completed'
+            ORDER BY Project_Start_Date__c DESC NULLS LAST
+            LIMIT 1
         ];
     }
 
