@@ -150,12 +150,18 @@
                 <div class="epic-filters">
                     <span class="epic-label">EPICS</span>
                     <button class={allEpicClass} onclick={handleEpicAll}>
-                        All
+                        <span class="epic-name">All Stories</span>
                     </button>
                     <template for:each={epics} for:item="epic">
                         <button key={epic.epicId} class={epic.pillClass}
                             data-id={epic.epicId} onclick={handleEpicSelect}>
-                            {epic.name} <span class="epic-count">{epic.storyCount}</span>
+                            <span class="epic-pill-top">
+                                <span class="epic-name">{epic.name}</span>
+                                <span class="epic-count">{epic.progressLabel}</span>
+                            </span>
+                            <span class="epic-progress-track">
+                                <span class="epic-progress-fill" style={epic.progressStyle}></span>
+                            </span>
                         </button>
                     </template>
                 </div>

@@ -296,23 +296,26 @@
 
 .epic-pill {
     display: inline-flex;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
     gap: 6px;
-    padding: 5px 14px;
+    min-width: 150px;
+    max-width: 220px;
+    padding: 8px 14px;
     border: 1px solid #e5e7eb;
-    border-radius: 20px;
+    border-radius: 10px;
     background: #fff;
     color: #374151;
     font-size: 0.78rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
-    white-space: nowrap;
+    text-align: left;
 }
 
 .epic-pill:hover {
-    background: #f8fafc;
-    border-color: #d1d5db;
+    border-color: #00b4d8;
+    box-shadow: 0 2px 8px rgba(0, 180, 216, 0.12);
 }
 
 .epic-pill-active {
@@ -326,9 +329,64 @@
     border-color: #0096c7;
 }
 
+/* "All Stories" pill has no progress bar — keep it compact and centered */
+.epic-pill.epic-pill-all {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+}
+
+.epic-pill-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+.epic-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .epic-count {
-    font-size: 0.7rem;
-    opacity: 0.8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    opacity: 0.75;
+    white-space: nowrap;
+}
+
+.epic-progress-track {
+    display: block;
+    width: 100%;
+    height: 4px;
+    border-radius: 4px;
+    background: #e9edf2;
+    overflow: hidden;
+}
+
+.epic-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: #00b4d8;
+    transition: width 0.2s;
+}
+
+.epic-pill-active .epic-count {
+    color: #fff;
+    opacity: 0.9;
+}
+
+.epic-pill-active .epic-progress-track {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.epic-pill-active .epic-progress-fill {
+    background: #fff;
 }
 
 /* ── Storyboard Columns ────────────────────────────────── */

@@ -20,9 +20,11 @@ public class cc_ClientPortalControllerTest {
         insert epic;
 
         List<Case> stories = new List<Case>{
-            new Case(Subject = 'Portal Story A', Status = 'New', Priority = 'High', Type = 'Feature', AccountId = acct.Id),
-            new Case(Subject = 'Portal Story B', Status = 'In Progress', Priority = 'Medium', Type = 'Bug', AccountId = acct.Id),
-            new Case(Subject = 'Portal Story C', Status = 'Closed', Priority = 'Low', Type = 'Feature', AccountId = acct.Id)
+            new Case(Subject = 'Portal Story A', Status = 'New', Priority = 'High', Type = 'Feature', AccountId = acct.Id, Projects__c = project.Id, Epic__c = epic.Id),
+            new Case(Subject = 'Portal Story B', Status = 'New', Priority = 'Medium', Type = 'Bug', AccountId = acct.Id, Projects__c = project.Id, Epic__c = epic.Id),
+            new Case(Subject = 'Portal Story C', Status = 'Completed', Priority = 'Low', Type = 'Feature', AccountId = acct.Id, Projects__c = project.Id, Epic__c = epic.Id),
+            // Excluded internal subject — should never appear on the board or in epic counts
+            new Case(Subject = 'Meetings', Status = 'New', Priority = 'Low', Type = 'Feature', AccountId = acct.Id, Projects__c = project.Id, Epic__c = epic.Id)
         };
         insert stories;
     }
@@ -99,7 +101,7 @@ public class cc_ClientPortalControllerTest {
             FROM Case
             WHERE AccountId = :acct.Id
         ];
-        System.assertEquals(3, stories.size(), 'Should have 3 test stories');
+        System.assertEquals(4, stories.size(), 'Should have 4 test stories (incl. excluded Meetings case)');
 
         List<Sprint__c> projects = [
             SELECT Id, Name
@@ -107,5 +109,47 @@ public class cc_ClientPortalControllerTest {
             WHERE Accountlu__c = :acct.Id AND Status__c = 'In Progress'
         ];
         System.assertEquals(1, projects.size(), 'Should have 1 active project');
+    }
+
+    @isTest
+    static void testInsertStory_attachesProjectAndEpic() {
+        Account acct = [SELECT Id FROM Account WHERE Name = 'Portal Test Account' LIMIT 1];
+        Sprint__c project = [
+            SELECT Id FROM Sprint__c
+            WHERE Accountlu__c = :acct.Id AND Status__c = 'In Progress' LIMIT 1
+        ];
+        insert new Sprint_Items__c(Name = 'Needs Assignment', Projects_new__c = project.Id);
+
+        Test.startTest();
+        Case created = cc_ClientPortalController.insertStory(
+            acct.Id, 'New Portal Request', 'Details here', 'Feature', 'High'
+        );
+        Test.stopTest();
+
+        System.assertNotEquals(null, created.Id, 'Story should be inserted');
+        System.assertEquals('New Portal Request', created.Subject, 'Subject should match');
+
+        Case stored = [SELECT AccountId, Projects__c, Epic__c, Origin FROM Case WHERE Id = :created.Id LIMIT 1];
+        System.assertEquals(acct.Id, stored.AccountId, 'Should be linked to the account');
+        System.assertEquals(project.Id, stored.Projects__c, 'Should attach to the active project');
+        System.assertNotEquals(null, stored.Epic__c, 'Should default to the Needs Assignment epic');
+        System.assertEquals('Portal', stored.Origin, 'Origin should be Portal');
+    }
+
+    @isTest
+    static void testBuildPortalData_activeProject() {
+        Account acct = [SELECT Id FROM Account WHERE Name = 'Portal Test Account' LIMIT 1];
+
+        Test.startTest();
+        cc_ClientPortalController.PortalData data = cc_ClientPortalController.buildPortalData(acct.Id);
+        Test.stopTest();
+
+        System.assertEquals('Active Portal Project', data.projectName, 'Should resolve the active project');
+        System.assertEquals(3, data.stories.size(), 'Meetings case should be excluded; 3 real stories on the project');
+
+        System.assertEquals(1, data.epics.size(), 'Should return the one epic on the project');
+        cc_ClientPortalController.EpicInfo ei = data.epics[0];
+        System.assertEquals(3, ei.totalStories, 'Epic total excludes the Meetings case');
+        System.assertEquals(1, ei.completedStories, 'One story is Completed');
     }
 }

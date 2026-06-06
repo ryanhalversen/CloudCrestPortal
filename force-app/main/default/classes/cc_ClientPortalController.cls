@@ -4,7 +4,14 @@ public without sharing class cc_ClientPortalController {
         @AuraEnabled public Id epicId;
         @AuraEnabled public String name;
         @AuraEnabled public Integer storyCount;
+        @AuraEnabled public Integer completedStories;
+        @AuraEnabled public Integer totalStories;
     }
+
+    // Internal/operational cases that should never surface on the client board
+    private static final Set<String> EXCLUDED_SUBJECTS = new Set<String>{
+        'Meetings', 'Project Management', 'Helpdesk'
+    };
 
     public class PortalData {
         @AuraEnabled public List<Case> stories;
@@ -17,61 +24,17 @@ public without sharing class cc_ClientPortalController {
 
     @AuraEnabled(cacheable=true)
     public static PortalData getPortalData() {
-        Id accountId = resolveAccountId();
+        return buildPortalData(resolveAccountId());
+    }
+
+    @TestVisible
+    private static PortalData buildPortalData(Id accountId) {
         PortalData data = new PortalData();
-
-        if (accountId == null) {
-            data.stories = new List<Case>();
-            data.hoursConsumed = 0;
-            return data;
-        }
-
-        data.stories = [
-            SELECT Id, CaseNumber, Subject, Status, Priority, Type,
-                   Description, CreatedDate, CreatedBy.Name,
-                   OwnerId, Owner.Name,
-                   Epic__c, Epic__r.Name,
-                   Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c
-            FROM Case
-            WHERE AccountId = :accountId
-            ORDER BY CreatedDate DESC
-            LIMIT 500
-        ];
-
-        Map<Id, Integer> epicCounts = new Map<Id, Integer>();
-        for (Case c : data.stories) {
-            if (c.Epic__c != null) {
-                Integer cnt = epicCounts.get(c.Epic__c);
-                epicCounts.put(c.Epic__c, cnt == null ? 1 : cnt + 1);
-            }
-        }
-
+        data.stories = new List<Case>();
         data.epics = new List<EpicInfo>();
-        if (!epicCounts.isEmpty()) {
-            for (Sprint_Items__c epic : [
-                SELECT Id, Name FROM Sprint_Items__c
-                WHERE Id IN :epicCounts.keySet()
-                ORDER BY Name ASC
-            ]) {
-                EpicInfo ei = new EpicInfo();
-                ei.epicId = epic.Id;
-                ei.name = epic.Name;
-                ei.storyCount = epicCounts.get(epic.Id);
-                data.epics.add(ei);
-            }
-        }
+        data.hoursConsumed = 0;
 
-        AggregateResult[] timeAgg = [
-            SELECT SUM(Hours_Logged__c) total
-            FROM Time__c
-            WHERE Epic__r.Projects_new__r.Accountlu__c = :accountId
-              AND Epic__r.Projects_new__r.Status__c = 'In Progress'
-        ];
-        if (!timeAgg.isEmpty() && timeAgg[0].get('total') != null) {
-            data.hoursConsumed = (Decimal) timeAgg[0].get('total');
-        } else {
-            data.hoursConsumed = 0;
-        }
+        if (accountId == null) return data;
 
         List<Sprint__c> activeProjects = [
             SELECT Id, Name, Est_Project_End_Date_Sprint__c, Completed_Delta_Sprint__c
@@ -81,13 +44,81 @@ public without sharing class cc_ClientPortalController {
             ORDER BY CreatedDate DESC
             LIMIT 1
         ];
-        if (!activeProjects.isEmpty()) {
-            data.projectedEndDate = activeProjects[0].Est_Project_End_Date_Sprint__c;
-            data.projectName = activeProjects[0].Name;
-            data.hoursRemaining = activeProjects[0].Completed_Delta_Sprint__c;
+        if (activeProjects.isEmpty()) return data;
+
+        Sprint__c project = activeProjects[0];
+        Id projectId = project.Id;
+        data.projectName = project.Name;
+        data.projectedEndDate = project.Est_Project_End_Date_Sprint__c;
+        data.hoursRemaining = project.Completed_Delta_Sprint__c;
+
+        data.stories = [
+            SELECT Id, CaseNumber, Subject, Status, Priority, Type,
+                   Description, CreatedDate, CreatedBy.Name,
+                   OwnerId, Owner.Name,
+                   Epic__c, Epic__r.Name,
+                   Hours_Estimate_to_Complete__c, Actual_Hours_to_Complete__c
+            FROM Case
+            WHERE Projects__c = :projectId
+              AND Subject NOT IN :EXCLUDED_SUBJECTS
+            ORDER BY CreatedDate DESC
+            LIMIT 500
+        ];
+
+        data.epics = buildEpicInfos(projectId);
+
+        AggregateResult[] timeAgg = [
+            SELECT SUM(Hours_Logged__c) total
+            FROM Time__c
+            WHERE Epic__r.Projects_new__c = :projectId
+        ];
+        if (!timeAgg.isEmpty() && timeAgg[0].get('total') != null) {
+            data.hoursConsumed = (Decimal) timeAgg[0].get('total');
         }
 
         return data;
+    }
+
+    private static List<EpicInfo> buildEpicInfos(Id projectId) {
+        List<EpicInfo> result = new List<EpicInfo>();
+
+        List<Sprint_Items__c> epics = [
+            SELECT Id, Name
+            FROM Sprint_Items__c
+            WHERE Projects_new__c = :projectId
+            ORDER BY Name ASC
+        ];
+        if (epics.isEmpty()) return result;
+
+        Set<Id> epicIds = new Map<Id, Sprint_Items__c>(epics).keySet();
+
+        Map<Id, Integer> totalMap = new Map<Id, Integer>();
+        Map<Id, Integer> completedMap = new Map<Id, Integer>();
+        for (AggregateResult ar : [
+            SELECT Epic__c, Status, COUNT(Id) cnt
+            FROM Case
+            WHERE Epic__c IN :epicIds
+              AND Subject NOT IN :EXCLUDED_SUBJECTS
+            GROUP BY Epic__c, Status
+        ]) {
+            Id eid = (Id) ar.get('Epic__c');
+            Integer cnt = Integer.valueOf(ar.get('cnt'));
+            totalMap.put(eid, (totalMap.containsKey(eid) ? totalMap.get(eid) : 0) + cnt);
+            if ('Completed'.equals((String) ar.get('Status'))) {
+                completedMap.put(eid, (completedMap.containsKey(eid) ? completedMap.get(eid) : 0) + cnt);
+            }
+        }
+
+        for (Sprint_Items__c e : epics) {
+            EpicInfo ei = new EpicInfo();
+            ei.epicId = e.Id;
+            ei.name = e.Name;
+            ei.totalStories = totalMap.containsKey(e.Id) ? totalMap.get(e.Id) : 0;
+            ei.completedStories = completedMap.containsKey(e.Id) ? completedMap.get(e.Id) : 0;
+            ei.storyCount = ei.totalStories;
+            result.add(ei);
+        }
+        return result;
     }
 
     @AuraEnabled
@@ -95,6 +126,30 @@ public without sharing class cc_ClientPortalController {
         Id accountId = resolveAccountId();
         if (accountId == null) {
             throw new AuraHandledException('Unable to determine your account. Please contact support.');
+        }
+        return insertStory(accountId, subject, description, storyType, priority);
+    }
+
+    @TestVisible
+    private static Case insertStory(Id accountId, String subject, String description, String storyType, String priority) {
+        List<Sprint__c> activeProjects = [
+            SELECT Id FROM Sprint__c
+            WHERE Accountlu__c = :accountId
+              AND Status__c = 'In Progress'
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+        Id projectId = activeProjects.isEmpty() ? null : activeProjects[0].Id;
+
+        Id epicId = null;
+        if (projectId != null) {
+            List<Sprint_Items__c> defaultEpics = [
+                SELECT Id FROM Sprint_Items__c
+                WHERE Name = 'Needs Assignment'
+                  AND Projects_new__c = :projectId
+                LIMIT 1
+            ];
+            epicId = defaultEpics.isEmpty() ? null : defaultEpics[0].Id;
         }
 
         try {
@@ -105,7 +160,9 @@ public without sharing class cc_ClientPortalController {
                 Priority = priority,
                 Status = 'New',
                 Origin = 'Portal',
-                AccountId = accountId
+                AccountId = accountId,
+                Projects__c = projectId,
+                Epic__c = epicId
             );
             insert c;
 

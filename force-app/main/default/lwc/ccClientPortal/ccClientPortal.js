@@ -7,13 +7,15 @@ const STATUS_ORDER = [
     'New',
     'Backlog',
     'Scheduled',
-    'Work in Progress (WIP)',
+    'Working',
+    'Work In Progress (WIP)',
     'Waiting for User',
     'On Hold',
     'Blocked',
     'In Review',
     'In UAT',
     'Completed',
+    'Closed',
     'Cancelled'
 ];
 
@@ -21,13 +23,15 @@ const STATUS_COLORS = {
     'New':                     '#caf0f8',
     'Backlog':                 '#0096c7',
     'Scheduled':               '#ade8f4',
-    'Work in Progress (WIP)':  '#90e0ef',
+    'Working':                 '#90e0ef',
+    'Work In Progress (WIP)':  '#90e0ef',
     'Waiting for User':        '#48cae4',
     'On Hold':                 '#00b4d8',
     'Blocked':                 '#004a70',
     'In Review':               '#0077b6',
     'In UAT':                  '#005f8e',
     'Completed':               '#012a3d',
+    'Closed':                  '#012a3d',
     'Cancelled':               '#023e5a'
 };
 
@@ -38,7 +42,6 @@ const MONTH_NAMES = [
 
 export default class CcClientPortal extends LightningElement {
     @track stories = [];
-    @track epics = [];
     @track typeOptions = [];
     @track priorityOptions = [];
 
@@ -78,7 +81,7 @@ export default class CcClientPortal extends LightningElement {
     wiredPortalData({ data, error }) {
         if (data) {
             this.stories = data.stories || [];
-            this.epics = data.epics || [];
+            this._epics = data.epics || [];
             this.hoursConsumed = data.hoursConsumed || 0;
             this.hoursRemaining = data.hoursRemaining != null ? data.hoursRemaining : null;
             this.projectedEndDate = data.projectedEndDate || null;
@@ -112,7 +115,7 @@ export default class CcClientPortal extends LightningElement {
     }
 
     get allEpicClass() {
-        return 'epic-pill' + (!this.selectedEpicId ? ' epic-pill-active' : '');
+        return 'epic-pill epic-pill-all' + (!this.selectedEpicId ? ' epic-pill-active' : '');
     }
 
     get statusColumns() {
@@ -157,16 +160,21 @@ export default class CcClientPortal extends LightningElement {
 
     // ── Computed — Epics ─────────────────────────────────
 
+    @track _epics = [];
+
     get epics() {
-        return this._epics.map(e => ({
-            ...e,
-            pillClass: 'epic-pill' + (this.selectedEpicId === e.epicId ? ' epic-pill-active' : '')
-        }));
+        return this._epics.map(e => {
+            const total = e.totalStories || 0;
+            const completed = e.completedStories || 0;
+            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+            return {
+                ...e,
+                pillClass: 'epic-pill' + (this.selectedEpicId === e.epicId ? ' epic-pill-active' : ''),
+                progressLabel: completed + '/' + total,
+                progressStyle: 'width: ' + pct + '%;'
+            };
+        });
     }
-    set epics(val) {
-        this._epics = val || [];
-    }
-    _epics = [];
 
     // ── Computed — Metrics ───────────────────────────────
 
