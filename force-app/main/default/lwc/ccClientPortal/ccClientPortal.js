@@ -131,12 +131,11 @@ export default class CcClientPortal extends LightningElement {
         });
 
         return STATUS_ORDER
-            .filter(s => grouped[s] && grouped[s].length > 0)
             .map(s => ({
                 status: s,
-                count: grouped[s].length,
+                count: (grouped[s] || []).length,
                 headerStyle: 'border-top: 3px solid ' + (STATUS_COLORS[s] || '#e5e7eb'),
-                stories: grouped[s]
+                stories: grouped[s] || []
             }));
     }
 
