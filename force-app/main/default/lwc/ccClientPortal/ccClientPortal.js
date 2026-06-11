@@ -50,6 +50,7 @@ export default class CcClientPortal extends LightningElement {
     projectedEndDate = null;
     projectName = '';
     selectedEpicId = null;
+    selectedStoryId = null;
 
     isLoading = true;
     isSubmitting = false;
@@ -140,19 +141,22 @@ export default class CcClientPortal extends LightningElement {
     }
 
     enrichStory(story) {
-        const hoursLogged = story.Actual_Hours_to_Complete__c || 0;
-        const estHours = story.Hours_Estimate_to_Complete__c;
-        const hasEst = estHours != null && estHours !== undefined;
+        const status = story.Status || 'New';
+        const isClosed = status === 'Completed' || status === 'Cancelled' || status === 'Closed';
+        const closingComments = story.Closing_Comments__c || null;
+        const description = story.Description || null;
         return {
             ...story,
             CaseNumber: story.CaseNumber,
             epicName: story.Epic__r ? story.Epic__r.Name : null,
-            ownerName: story.Owner ? story.Owner.Name : null,
             priorityLabel: story.Priority || 'NEEDS ASSIGNMENT',
             priorityClass: 'priority-badge priority-' + (story.Priority || 'none').toLowerCase().replace(/ /g, '-'),
-            hoursLoggedDisplay: hoursLogged.toFixed(1) + 'h',
-            estHoursDisplay: 'est ' + (hasEst ? estHours.toFixed(0) : '0') + 'h',
-            estHoursClass: 'card-est-hours' + (!hasEst ? ' card-est-missing' : ''),
+            statusStyle: 'background: ' + (STATUS_COLORS[status] || '#e5e7eb'),
+            description: description,
+            hasDescription: !!description,
+            closingComments: closingComments,
+            isClosed: isClosed,
+            showClosingComments: isClosed && !!closingComments,
             timeAgo: this.getTimeAgo(story.CreatedDate)
         };
     }
@@ -216,6 +220,30 @@ export default class CcClientPortal extends LightningElement {
     handleEpicSelect(e) {
         const epicId = e.currentTarget.dataset.id;
         this.selectedEpicId = epicId === this.selectedEpicId ? null : epicId;
+    }
+
+    // ── Handlers — Story Modal ───────────────────────────
+
+    handleCardClick(e) {
+        this.selectedStoryId = e.currentTarget.dataset.id;
+    }
+
+    handleModalClose() {
+        this.selectedStoryId = null;
+    }
+
+    handleModalContainerClick(e) {
+        e.stopPropagation();
+    }
+
+    get showModal() {
+        return this.selectedStoryId != null;
+    }
+
+    get modalStory() {
+        if (!this.selectedStoryId) return null;
+        const story = this.stories.find(s => s.Id === this.selectedStoryId);
+        return story ? this.enrichStory(story) : null;
     }
 
     // ── Handlers — Form ──────────────────────────────────

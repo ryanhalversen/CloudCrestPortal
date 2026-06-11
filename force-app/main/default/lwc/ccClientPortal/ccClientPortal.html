@@ -187,7 +187,8 @@
                                     </div>
                                     <div class="col-cards">
                                         <template for:each={col.stories} for:item="story">
-                                            <div key={story.Id} class="story-card">
+                                            <div key={story.Id} class="story-card"
+                                                data-id={story.Id} onclick={handleCardClick}>
                                                 <div class="card-top">
                                                     <span class="card-case-number">{story.CaseNumber}</span>
                                                     <span class={story.priorityClass}>{story.priorityLabel}</span>
@@ -205,8 +206,6 @@
                                                     </template>
                                                 </div>
                                                 <div class="card-footer">
-                                                    <span class="card-hours-logged">{story.hoursLoggedDisplay}</span>
-                                                    <span class={story.estHoursClass}>{story.estHoursDisplay}</span>
                                                     <span class="card-date">{story.timeAgo}</span>
                                                 </div>
                                             </div>
@@ -273,6 +272,75 @@
                 </div>
             </template>
         </div>
+
+        <!-- ── Story Detail Modal (read-only) ─────────────────── -->
+        <template if:true={showModal}>
+            <div class="story-modal-backdrop" onclick={handleModalClose}>
+                <div class="story-modal" onclick={handleModalContainerClick}>
+                    <div class="story-modal-header">
+                        <div class="modal-header-left">
+                            <span class="modal-case-number">{modalStory.CaseNumber}</span>
+                            <span class={modalStory.priorityClass}>{modalStory.priorityLabel}</span>
+                        </div>
+                        <button class="modal-close-btn" onclick={handleModalClose}
+                            title="Close">
+                            <lightning-icon icon-name="utility:close" size="x-small"
+                                alternative-text="Close"></lightning-icon>
+                        </button>
+                    </div>
+
+                    <div class="story-modal-body">
+                        <h2 class="modal-subject">{modalStory.Subject}</h2>
+
+                        <div class="modal-field-grid">
+                            <div class="modal-field">
+                                <span class="modal-field-label">Status</span>
+                                <span class="modal-status-pill" style={modalStory.statusStyle}>{modalStory.Status}</span>
+                            </div>
+                            <div class="modal-field">
+                                <span class="modal-field-label">Type</span>
+                                <template if:true={modalStory.Type}>
+                                    <span class="modal-field-value">{modalStory.Type}</span>
+                                </template>
+                                <template if:false={modalStory.Type}>
+                                    <span class="modal-field-value modal-field-muted">—</span>
+                                </template>
+                            </div>
+                            <div class="modal-field">
+                                <span class="modal-field-label">Epic</span>
+                                <template if:true={modalStory.epicName}>
+                                    <span class="modal-field-value">{modalStory.epicName}</span>
+                                </template>
+                                <template if:false={modalStory.epicName}>
+                                    <span class="modal-field-value modal-field-muted">—</span>
+                                </template>
+                            </div>
+                            <div class="modal-field">
+                                <span class="modal-field-label">Submitted</span>
+                                <span class="modal-field-value">{modalStory.timeAgo}</span>
+                            </div>
+                        </div>
+
+                        <div class="modal-section">
+                            <span class="modal-section-label">Description</span>
+                            <template if:true={modalStory.hasDescription}>
+                                <p class="modal-section-text">{modalStory.description}</p>
+                            </template>
+                            <template if:false={modalStory.hasDescription}>
+                                <p class="modal-section-text modal-field-muted">No description provided.</p>
+                            </template>
+                        </div>
+
+                        <template if:true={modalStory.showClosingComments}>
+                            <div class="modal-section modal-section-closing">
+                                <span class="modal-section-label">Closing Comments</span>
+                                <p class="modal-section-text">{modalStory.closingComments}</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
 
     </div>
 </template>
