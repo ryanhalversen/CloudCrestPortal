@@ -51,6 +51,7 @@ export default class CcClientPortal extends LightningElement {
     projectName = '';
     selectedEpicId = null;
     selectedStoryId = null;
+    selectedSource = 'all'; // 'all' | 'portal' | 'team'
 
     isLoading = true;
     isSubmitting = false;
@@ -98,8 +99,26 @@ export default class CcClientPortal extends LightningElement {
     // ── Computed — Board ─────────────────────────────────
 
     get filteredStories() {
-        if (!this.selectedEpicId) return this.stories;
-        return this.stories.filter(s => s.Epic__c === this.selectedEpicId);
+        let result = this.stories;
+        if (this.selectedEpicId) {
+            result = result.filter(s => s.Epic__c === this.selectedEpicId);
+        }
+        if (this.selectedSource === 'portal') {
+            result = result.filter(s => s.Origin === 'Portal');
+        } else if (this.selectedSource === 'team') {
+            result = result.filter(s => s.Origin !== 'Portal');
+        }
+        return result;
+    }
+
+    get sourceAllClass() {
+        return 'source-pill' + (this.selectedSource === 'all' ? ' source-pill-active' : '');
+    }
+    get sourcePortalClass() {
+        return 'source-pill' + (this.selectedSource === 'portal' ? ' source-pill-active' : '');
+    }
+    get sourceTeamClass() {
+        return 'source-pill' + (this.selectedSource === 'team' ? ' source-pill-active' : '');
     }
 
     get hasStories() {
@@ -145,6 +164,7 @@ export default class CcClientPortal extends LightningElement {
         const isClosed = status === 'Completed' || status === 'Cancelled' || status === 'Closed';
         const closingComments = story.Closing_Comments__c || null;
         const description = story.Description || null;
+        const isPortal = story.Origin === 'Portal';
         return {
             ...story,
             CaseNumber: story.CaseNumber,
@@ -157,6 +177,10 @@ export default class CcClientPortal extends LightningElement {
             closingComments: closingComments,
             isClosed: isClosed,
             showClosingComments: isClosed && !!closingComments,
+            createdByName: story.CreatedBy ? story.CreatedBy.Name : null,
+            isPortal: isPortal,
+            sourceLabel: isPortal ? 'Submitted via Portal' : 'CloudCrest Team',
+            sourceClass: 'card-source ' + (isPortal ? 'card-source-portal' : 'card-source-team'),
             timeAgo: this.getTimeAgo(story.CreatedDate)
         };
     }
@@ -220,6 +244,12 @@ export default class CcClientPortal extends LightningElement {
     handleEpicSelect(e) {
         const epicId = e.currentTarget.dataset.id;
         this.selectedEpicId = epicId === this.selectedEpicId ? null : epicId;
+    }
+
+    // ── Handlers — Source Filter ─────────────────────────
+
+    handleSourceSelect(e) {
+        this.selectedSource = e.currentTarget.dataset.source;
     }
 
     // ── Handlers — Story Modal ───────────────────────────

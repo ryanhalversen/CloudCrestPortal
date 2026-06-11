@@ -145,6 +145,22 @@
                 </div>
             </div>
 
+            <!-- ── Source Filter ──────────────────────────────── -->
+            <template if:false={isLoading}>
+                <div class="source-filters">
+                    <span class="source-label">SHOW</span>
+                    <button class={sourceAllClass} data-source="all" onclick={handleSourceSelect}>
+                        All Stories
+                    </button>
+                    <button class={sourcePortalClass} data-source="portal" onclick={handleSourceSelect}>
+                        Submitted by You
+                    </button>
+                    <button class={sourceTeamClass} data-source="team" onclick={handleSourceSelect}>
+                        Created by CloudCrest
+                    </button>
+                </div>
+            </template>
+
             <!-- ── Epic Filter Pills ──────────────────────────── -->
             <template if:false={isLoading}>
                 <div class="epic-filters">
@@ -318,6 +334,19 @@
                             <div class="modal-field">
                                 <span class="modal-field-label">Submitted</span>
                                 <span class="modal-field-value">{modalStory.timeAgo}</span>
+                            </div>
+                            <div class="modal-field">
+                                <span class="modal-field-label">Created By</span>
+                                <template if:true={modalStory.createdByName}>
+                                    <span class="modal-field-value">{modalStory.createdByName}</span>
+                                </template>
+                                <template if:false={modalStory.createdByName}>
+                                    <span class="modal-field-value modal-field-muted">—</span>
+                                </template>
+                            </div>
+                            <div class="modal-field">
+                                <span class="modal-field-label">Source</span>
+                                <span class={modalStory.sourceClass}>{modalStory.sourceLabel}</span>
                             </div>
                         </div>
 

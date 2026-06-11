@@ -54,7 +54,7 @@ public without sharing class cc_ClientPortalController {
 
         data.stories = [
             SELECT Id, CaseNumber, Subject, Status, Priority, Type,
-                   Description, CreatedDate,
+                   Description, CreatedDate, Origin, CreatedBy.Name,
                    Epic__c, Epic__r.Name, Closing_Comments__c
             FROM Case
             WHERE Projects__c = :projectId
